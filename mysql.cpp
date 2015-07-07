@@ -90,16 +90,19 @@ Table::TableExceptions::~TableExceptions() throw()
 
 std::vector<std::string> Table::Split(const std::string& string, const char separator) const {
 	std::vector<std::string> result;
-	result.push_back(std::string());
+	std::string substr;
 
 	for (size_t i = 0; i < string.size(); ++i) {
 		if (string[i] == separator) {
-			result.push_back(std::string());
+			result.push_back(substr);
+			substr = "";
 		} else {
-			size_t index = result.size();
-			result[result.size() - 1] += string[i];
+			substr += string[i];
 		}
 	}
+
+	result.push_back(substr);
+
 	return result;
 }
 
@@ -113,17 +116,24 @@ void Table::AddFields(std::vector<Field*>* fields, const std::string& part, std:
 			throw TableExceptions("ERR: table is set incorrectly");
 		}
 
-		if (field[1] == "int") {
-			fields->push_back(new IntField(field[0]));
-		} else if (field[1] == "string") {
-			fields->push_back(new StringField(field[0]));
+		std::string field_name = field[0];
+		std::string field_def = field[1];
+
+		Field* new_field;
+
+		if (field_def == "int") {
+			new_field = new IntField(field_name);
+		} else if (field_def == "string") {
+			new_field = new StringField(field_name);
 		} else {
 			throw TableExceptions("ERR: table is set incorrectly, incorrect field type");
 		}
 
-		(*query) += (*fields)[fields->size() - 1]->GetFieldName()
+		fields->push_back(new_field);
+
+		(*query) += field_name
 			+ " "
-			+ (*fields)[fields->size() - 1]->GetSqlDef()
+			+ new_field->GetSqlDef()
 			+ ",\n";
 	}
 
@@ -147,7 +157,11 @@ Table::Table(const std::string& description)
 	std::vector<std::string> parts = Split(description, '|');
 
 	if (parts.size() != 3) {
-		throw TableExceptions("ERR: table is set incorrectly");
+		throw TableExceptions(
+			"String '"
+			+ description
+			+ "' is not a valid script description,because there should be three values, separated by '|'"
+		);
 	}
 
 	table_name = parts[0];
@@ -228,17 +242,18 @@ Table::Rows Table::Select(const std::string& query_where) {
 	select_query.clear();
 
 	while (res->next()) {
-		select_query.push_back(std::unordered_map<std::string, StringType>());
-		size_t index = select_query.size() - 1;
+		std::unordered_map<std::string, StringType> result;
+
 		for (size_t i = 0; i < primary.size(); ++i) {
-			select_query[index][primary[i]->GetFieldName()] =
+			result[primary[i]->GetFieldName()] =
 				std::string(res->getString(primary[i]->GetFieldName()));
 		}
 
 		for (size_t i = 0; i < values.size(); ++i) {
-			select_query[index][values[i]->GetFieldName()] =
+			result[values[i]->GetFieldName()] =
 				std::string(res->getString(values[i]->GetFieldName()));
 		}
+		select_query.push_back(result);
 	}
 
 	return Rows(select_query.cbegin());
