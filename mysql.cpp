@@ -172,7 +172,7 @@ Table::Table(const std::string& description)
 	std::string query = "create table if not exists " + table_name + " (\n";
 
 	AddFields(&primary, parts[1], &query);
-	AddFields(&primary, parts[2], &query);
+	AddFields(&values, parts[2], &query);
 
 	query += "primary key(";
 
