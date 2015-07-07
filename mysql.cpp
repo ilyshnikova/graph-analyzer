@@ -113,7 +113,10 @@ void Table::AddFields(std::vector<Field*>* fields, const std::string& part, std:
 	for (size_t i = 0; i < separate_parts.size(); ++i) {
 		std::vector<std::string> field = Split(separate_parts[i] ,':');
 		if (field.size() != 2) {
-			throw TableExceptions("ERR: table is set incorrectly");
+			throw TableExceptions("field definition '"
+				+ separate_parts[i]
+				+ "' cannot be a field definition, there should be two words separatd by ':'"
+			);
 		}
 
 		std::string field_name = field[0];
@@ -126,7 +129,7 @@ void Table::AddFields(std::vector<Field*>* fields, const std::string& part, std:
 		} else if (field_def == "string") {
 			new_field = new StringField(field_name);
 		} else {
-			throw TableExceptions("ERR: table is set incorrectly, incorrect field type");
+			throw TableExceptions("Table is set incorrectly, incorrect field type " + field_def);
 		}
 
 		fields->push_back(new_field);
