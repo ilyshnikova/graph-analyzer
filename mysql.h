@@ -129,7 +129,7 @@ public:
 	void Insert(Args... args) {
 		std::string query = "(";
 		CreateQuery(&query, args...);
-		query[query.size() - 1] = ')';
+		query[static_cast<int>(query.size()) - 1] = ')';
 
 		insert_query.push_back(query);
 	}

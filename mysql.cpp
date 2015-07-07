@@ -178,7 +178,7 @@ Table::Table(const std::string& description)
 
 	for (size_t i = 0; i < primary.size(); ++i) {
 		query += primary[i]->GetFieldName();
-		query += (i == primary.size() - 1 ? ")\n" : ", ");
+		query += (i + 1 == primary.size() ? ")\n" : ", ");
 	}
 
 	query += ")";
