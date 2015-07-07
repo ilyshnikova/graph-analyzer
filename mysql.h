@@ -1,5 +1,5 @@
-#ifndef CALLBACK
-#define CALLBACK
+#ifndef MYSQL
+#define MYSQL
 #include "mysql_connection.h"
 
 #include <cppconn/driver.h>
@@ -11,6 +11,8 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+
+#include <exception>
 
 class StringType {
 private:
@@ -39,35 +41,26 @@ public:
 
 	virtual std::string GetSqlDef() const = 0;
 
-	virtual std::string GetFieldName() const = 0;
+	std::string GetFieldName() const;
 };
 
 
 
 class IntField : public Field {
-private:
-	std::string field_name;
 public:
 	IntField(const std::string& field_name);
 
 	std::string GetSqlDef() const;
 
-	std::string GetFieldName() const;
-
-
 };
 
 
 class StringField : public Field {
-private:
-	std::string field_name;
-
 public:
 	StringField(const std::string& field_name);
 
 	std::string GetSqlDef() const;
 
-	std::string GetFieldName() const;
 };
 
 class Table {
@@ -78,6 +71,19 @@ private:
 	sql::Connection *con;
 	std::vector<std::string> insert_query;
 	std::vector<std::unordered_map<std::string, StringType> > select_query;
+
+	class TableExceptions : public std::exception {
+	private:
+		std::string reason;
+
+	public:
+		TableExceptions(const std::string& reason);
+
+		const char * what() const throw();
+
+		~TableExceptions() throw();
+	};
+
 
 	class Rows {
 	private:
@@ -101,9 +107,9 @@ public:
 
 	typedef Rows rows;
 
-	std::pair<std::string, std::string> Split(const std::string& description, size_t index) const;
+	std::vector<std::string> Split(const std::string& string, const char separator) const;
 
-	size_t AddField(std::vector<Field*>* fields, const std::string& description, size_t index);
+	void AddFields(std::vector<Field*>* fields, const std::string& part, std::string* query);
 
 	Table(const std::string& description);
 

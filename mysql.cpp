@@ -44,13 +44,16 @@ Field::Field(const std::string& field_name)
 : field_name(field_name)
 {}
 
+std::string Field::GetFieldName() const {
+	return field_name;
+}
+
 
 /*   IntField    */
 
 
 IntField::IntField(const std::string& field_name)
 : Field(field_name)
-, field_name(field_name)
 {}
 
 
@@ -58,16 +61,11 @@ std::string IntField::GetSqlDef() const {
  	return "int(11) not null default 0";
 }
 
-std::string IntField::GetFieldName() const {
-	return field_name;
-}
-
 /*   StringField    */
 
 
 StringField::StringField(const std::string& field_name)
 : Field(field_name)
-, field_name(field_name)
 {}
 
 
@@ -76,41 +74,58 @@ std::string StringField::GetSqlDef() const {
 }
 
 
-std::string StringField::GetFieldName() const {
-	return field_name;
-}
-
-
 /*  Table   */
 
+Table::TableExceptions::TableExceptions(const std::string& reason)
+: reason(reason)
+{}
 
-std::pair<std::string, std::string> Table::Split(const std::string& description, size_t index) const {
-	std::string field_name;
-	while (description[index] != ':' && description[index] != '|' && index < description.size()) {
-		field_name.push_back(description[index++]);
-	}
 
-	++index;
-	std::string field_type;
-
-	while (description[index] != ',' && index < description.size() && description[index] != '|') {
-		field_type.push_back(description[index++]);
-	}
-
-	return std::make_pair(field_name, field_type);
-
+const char * Table::TableExceptions::what() const throw() {
+	return reason.c_str();
 }
 
-size_t Table::AddField(std::vector<Field*>* fields, const std::string& description, size_t index) {
-	std::pair<std::string, std::string> field  = Split(description, index);
-	std::cout << field.first << " " << field.second << "\n";
-	if (field.second == "int") {
-		fields->push_back(new IntField(field.first));
-	} else if (field.second == "string") {
-		fields->push_back(new StringField(field.first));
+Table::TableExceptions::~TableExceptions() throw()
+{}
+
+std::vector<std::string> Table::Split(const std::string& string, const char separator) const {
+	std::vector<std::string> result;
+	result.push_back(std::string());
+
+	for (size_t i = 0; i < string.size(); ++i) {
+		if (string[i] == separator) {
+			result.push_back(std::string());
+		} else {
+			size_t index = result.size();
+			result[result.size() - 1] += string[i];
+		}
 	}
-	index += field.first.size() + field.second.size() + 1;
-	return description[index] == '|' ? index : index + 1;
+	return result;
+}
+
+
+void Table::AddFields(std::vector<Field*>* fields, const std::string& part, std::string* query) {
+	std::vector<std::string> separate_parts = Split(part, ',');
+
+	for (size_t i = 0; i < separate_parts.size(); ++i) {
+		std::vector<std::string> field = Split(separate_parts[i] ,':');
+		if (field.size() != 2) {
+			throw TableExceptions("ERR: table is set incorrectly");
+		}
+
+		if (field[1] == "int") {
+			fields->push_back(new IntField(field[0]));
+		} else if (field[1] == "string") {
+			fields->push_back(new StringField(field[0]));
+		} else {
+			throw TableExceptions("ERR: table is set incorrectly, incorrect field type");
+		}
+
+		(*query) += (*fields)[fields->size() - 1]->GetFieldName()
+			+ " "
+			+ (*fields)[fields->size() - 1]->GetSqlDef()
+			+ ",\n";
+	}
 
 }
 
@@ -129,33 +144,18 @@ Table::Table(const std::string& description)
 
 	con->setSchema("gandb");
 
+	std::vector<std::string> parts = Split(description, '|');
 
-	for (size_t i = 0; i < description.size() && description[i] != '|'; ++i) {
-		table_name.push_back(description[i]);
+	if (parts.size() != 3) {
+		throw TableExceptions("ERR: table is set incorrectly");
 	}
 
+	table_name = parts[0];
 
 	std::string query = "create table if not exists " + table_name + " (\n";
 
-	std::cout << "PRIMARY\n";
-
-	size_t index = table_name.size() + 1;
-	while (description[index] != '|') {
-		index = AddField(&primary, description, index);
-
-		Field* field = primary[primary.size() - 1];
-		query += field->GetFieldName() + " " + field->GetSqlDef() + ",\n";
-	}
-	index++;
-
-	std::cout << "VALUE\n";
-	while(index < description.size()) {
-		index = AddField(&values, description, index);
-
-		Field* field = values[values.size() - 1];
-		query += field->GetFieldName() + " " + field->GetSqlDef() + ",\n";
-	}
-
+	AddFields(&primary, parts[1], &query);
+	AddFields(&primary, parts[2], &query);
 
 	query += "primary key(";
 
@@ -165,8 +165,6 @@ Table::Table(const std::string& description)
 	}
 
 	query += ");";
-
-	std::cout  << query << "\n";
 
 	sql::Statement* stmt = con->createStatement();
 	stmt->execute(query);
@@ -196,7 +194,6 @@ StringType Table::Rows::operator[](const std::string& field) const {
 }
 
 
-
 void Table::CreateQuery(std::string* query) const {}
 
 
@@ -220,7 +217,12 @@ Table::Rows Table::SelectEnd() const {
 
 
 Table::Rows Table::Select(const std::string& query_where) {
-	sql::PreparedStatement *pstmt = con->prepareStatement("select * from " + table_name + " where " + query_where);
+	sql::PreparedStatement *pstmt = con->prepareStatement(
+		"select * from "
+		+ table_name
+		+ " where "
+		+ query_where
+	);
 	sql::ResultSet* res = pstmt->executeQuery();
 
 	select_query.clear();
@@ -229,11 +231,13 @@ Table::Rows Table::Select(const std::string& query_where) {
 		select_query.push_back(std::unordered_map<std::string, StringType>());
 		size_t index = select_query.size() - 1;
 		for (size_t i = 0; i < primary.size(); ++i) {
-			select_query[index][primary[i]->GetFieldName()] = std::string(res->getString(primary[i]->GetFieldName()));
+			select_query[index][primary[i]->GetFieldName()] =
+				std::string(res->getString(primary[i]->GetFieldName()));
 		}
 
 		for (size_t i = 0; i < values.size(); ++i) {
-			select_query[index][values[i]->GetFieldName()] = std::string(res->getString(values[i]->GetFieldName()));
+			select_query[index][values[i]->GetFieldName()] =
+				std::string(res->getString(values[i]->GetFieldName()));
 		}
 	}
 
