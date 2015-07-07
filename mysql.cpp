@@ -164,7 +164,7 @@ Table::Table(const std::string& description)
 		query += (i == primary.size() - 1 ? ")\n" : ", ");
 	}
 
-	query += ");";
+	query += ")";
 
 	sql::Statement* stmt = con->createStatement();
 	stmt->execute(query);
@@ -190,7 +190,7 @@ Table::Rows& Table::Rows::operator++() {
 }
 
 StringType Table::Rows::operator[](const std::string& field) const {
-	return (*iterator).at(field);
+	return iterator->at(field);
 }
 
 
