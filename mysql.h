@@ -118,7 +118,6 @@ public:
 	template
 	<typename ...Args>
 	Table& CreateQuery(std::string* query, const StringType& value, Args... args) {
-		std::cout << std::string(value) << "\n";
 		*query += "'" + std::string(value) + "',";
 		CreateQuery(query, args...);
 		return *this;
@@ -131,8 +130,6 @@ public:
 		std::string query = "(";
 		CreateQuery(&query, args...);
 		query[query.size() - 1] = ')';
-
-		std::cout << query << "<- query\n";
 
 		insert_query.push_back(query);
 	}
