@@ -22,7 +22,7 @@ client: client.o daemons.o
 	g++  -std=c++0x -g client.o daemons.o -o client
 
 
-main: main.o mysql.o daemons.o
+main: main.o mysql.o
 	g++  -lmysqlcppconn -std=c++0x main.o mysql.o daemons.o -o main
 
 clean:
