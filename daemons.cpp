@@ -45,11 +45,15 @@ void LibSocket::Prepare() {
 
 int LibSocket::Start() {
 	int status = getaddrinfo(ip.c_str(), port.c_str(), &host_info, &host_info_list);
-	if (status != 0) throw SocketExceptions("getaddrinfo failed: " + std::to_string(status) +  " \n");
+	if (status != 0) {
+		throw SocketExceptions("getaddrinfo failed: " + std::to_string(status) +  " \n");
+	}
 
 
 	int socketfd = socket(host_info_list->ai_family, host_info_list->ai_socktype, host_info_list->ai_protocol);
-	if (socketfd == -1) throw SocketExceptions("Creating socket failed\n");
+	if (socketfd == -1) {
+		throw SocketExceptions("Creating socket failed\n");
+	}
 
 
 	return socketfd;
@@ -68,12 +72,18 @@ std::string LibSocket::GetMessage(const size_t RECV_PART, struct timeval tv, con
 		memset(incoming_data_buffer, 0, RECV_PART + 1);
 
 		int select_result = select(socketfd + 1, &fds, NULL, NULL, &tv);
-		if (select_result < 0) throw SocketExceptions("select failed");
+		if (select_result < 0) {
+			throw SocketExceptions("select failed");
+		}
 
-		if (!select_result) break;
+		if (!select_result) {
+			break;
+		}
 
 		ssize_t bytes_recieved = recv(socketfd, incoming_data_buffer, RECV_PART, 0);
-		if (bytes_recieved == 0) break;
+		if (bytes_recieved == 0) {
+		       	break;
+		}
 
 		got_message += std::string(incoming_data_buffer);
 	}
@@ -92,7 +102,9 @@ int Client::Connect()  {
 	int socketfd = Start();
 
 	int status = connect(socketfd, host_info_list->ai_addr, host_info_list->ai_addrlen);
-	if (status == -1) throw SocketExceptions("connect failed\n");
+	if (status == -1) {
+		throw SocketExceptions("connect failed\n");
+	}
 
 	return socketfd;
 
@@ -107,7 +119,9 @@ int DaemonBase::Connect() {
 
 
 	int status = bind(socketfd, host_info_list->ai_addr, host_info_list->ai_addrlen);
-	if (status == -1) throw SocketExceptions("bind failed\n");
+	if (status == -1) {
+		throw SocketExceptions("bind failed\n");
+	}
 
 	listen(socketfd, 10);
 
@@ -119,9 +133,9 @@ int DaemonBase::Connect() {
 Client::Client(const std::string& ip, const std::string& port)
 : LibSocket(ip, port)
 {
-	const size_t RECV_PART = 10;
+	const size_t RECV_PART = 10000;
 
-	double timeout = 1;
+	double timeout = 900;
 	struct timeval tv;
 	tv.tv_sec = int(timeout);
 	tv.tv_usec = int((timeout - tv.tv_sec) * 1e6);
@@ -151,7 +165,7 @@ Client::Client(const std::string& ip, const std::string& port)
 
 
 std::string DaemonBase::Respond(const std::string& query) const {
-	return "";
+	return std::string("\0");
 }
 
 
@@ -168,9 +182,9 @@ DaemonBase::DaemonBase(const std::string& ip, const std::string& port, const int
 
 
 void DaemonBase::Daemon() {
-	const size_t RECV_PART = 10;
+	const size_t RECV_PART = 10000;
 
-	double timeout = 1;
+	double timeout = 900;
 	struct timeval tv;
 	tv.tv_sec = int(timeout);
 	tv.tv_usec = int((timeout - tv.tv_sec) * 1e6);
@@ -185,15 +199,13 @@ void DaemonBase::Daemon() {
 	while (1) {
 
 		int client_socketfd = accept(socketfd, (struct sockaddr *) &cli_addr, &clilen);
-		if (client_socketfd < 0) throw SocketExceptions("Accepting client socket failed\n");
+		if (client_socketfd < 0) {
+			throw SocketExceptions("Accepting client socket failed\n");
+		}
 
 
 		std::string query = GetMessage(RECV_PART, tv, client_socketfd);
 		shutdown(client_socketfd, 0);
-
-		std::cout << "got message = " << query << "\n";
-
-		std::cout << "answer = " <<  Respond(query) << "\n";
 
 		SendMessage(client_socketfd, Respond(query));
 
