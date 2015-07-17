@@ -147,12 +147,10 @@ Client::Client(const std::string& ip, const std::string& port)
 		std::cout << "gan> ";
 		std::string query;
 		std::getline(std::cin, query);
-//		std::cin >> query;
 
 		int socketfd = Connect();
 
 		SendMessage(socketfd, query);
-
 		shutdown(socketfd, 1);
 
 		std::string got_message = GetMessage(RECV_PART, tv, socketfd);
