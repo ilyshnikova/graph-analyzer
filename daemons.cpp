@@ -208,7 +208,6 @@ void DaemonBase::Daemon() {
 
 		std::string query = GetMessage(RECV_PART, tv, client_socketfd);
 
-		std::cout << "query = " <<  query << "\n";
 		shutdown(client_socketfd, 0);
 
 		SendMessage(client_socketfd, Respond(query));
