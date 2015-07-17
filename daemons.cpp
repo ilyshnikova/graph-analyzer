@@ -146,7 +146,8 @@ Client::Client(const std::string& ip, const std::string& port)
 
 		std::cout << "gan> ";
 		std::string query;
-		std::cin >> query;
+		std::getline(std::cin, query);
+//		std::cin >> query;
 
 		int socketfd = Connect();
 
