@@ -146,7 +146,10 @@ Client::Client(const std::string& ip, const std::string& port)
 
 		std::cout << "gan> ";
 		std::string query;
-		std::getline(std::cin, query);
+		if (!std::getline(std::cin, query)) {
+			std::cout << "\n";
+			break;
+		}
 
 		int socketfd = Connect();
 
@@ -204,6 +207,8 @@ void DaemonBase::Daemon() {
 
 
 		std::string query = GetMessage(RECV_PART, tv, client_socketfd);
+
+		std::cout << "query = " <<  query << "\n";
 		shutdown(client_socketfd, 0);
 
 		SendMessage(client_socketfd, Respond(query));
