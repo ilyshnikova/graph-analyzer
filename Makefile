@@ -1,4 +1,4 @@
-all: main
+all: main client server
 
 mysql.o: mysql.cpp
 	g++ -c -std=c++0x mysql.cpp
@@ -26,4 +26,4 @@ main: main.o mysql.o daemons.o
 	g++  -lmysqlcppconn -std=c++0x main.o mysql.o daemons.o -o main
 
 clean:
-	rm -rf *.o main
+	rm -rf *.o main client server
