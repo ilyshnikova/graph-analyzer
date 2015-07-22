@@ -13,6 +13,8 @@
 #include <iostream>
 
 
+/*    LibSocket     */
+
 LibSocket::LibSocket(const std::string& ip, const std::string& port)
 : ip(ip)
 , port(port)
@@ -20,6 +22,7 @@ LibSocket::LibSocket(const std::string& ip, const std::string& port)
 , host_info_list()
 {}
 
+/*SocketExceptions*/
 
 LibSocket::SocketExceptions::SocketExceptions(const std::string& reason)
 : reason(reason)
@@ -97,6 +100,7 @@ void LibSocket::SendMessage(const int socketfd, const std::string& send_message)
 
 }
 
+/*    Client      */
 
 int Client::Connect()  {
 	int socketfd = Start();
@@ -110,24 +114,6 @@ int Client::Connect()  {
 
 }
 
-
-int DaemonBase::Connect() {
-	std::string ip = "127.0.0.1";
-	std::string port = "8081";
-
-	int socketfd = Start();
-
-
-	int status = bind(socketfd, host_info_list->ai_addr, host_info_list->ai_addrlen);
-	if (status == -1) {
-		throw SocketExceptions("bind failed\n");
-	}
-
-	listen(socketfd, 10);
-
-	return socketfd;
-
-}
 
 
 Client::Client(const std::string& ip, const std::string& port)
@@ -166,7 +152,28 @@ Client::Client(const std::string& ip, const std::string& port)
 }
 
 
-std::string DaemonBase::Respond(const std::string& query) const {
+/*    DaemonBase      */
+
+int DaemonBase::Connect() {
+	std::string ip = "127.0.0.1";
+	std::string port = "8081";
+
+	int socketfd = Start();
+
+
+	int status = bind(socketfd, host_info_list->ai_addr, host_info_list->ai_addrlen);
+	if (status == -1) {
+		throw SocketExceptions("bind failed\n");
+	}
+
+	listen(socketfd, 10);
+
+	return socketfd;
+
+}
+
+
+std::string DaemonBase::Respond(const std::string& query) {
 	return std::string("\0");
 }
 
@@ -210,13 +217,25 @@ void DaemonBase::Daemon() {
 
 		shutdown(client_socketfd, 0);
 
-		SendMessage(client_socketfd, Respond(query));
+		std::string message;
+
+		try {
+			message = Respond(query);
+		} catch (std::exception& e) {
+			message = e.what();
+		}
+
+		SendMessage(client_socketfd, message);
 
 		close(client_socketfd);
 	}
 }
 
-std::string EchoDaemon::Respond(const std::string& query) const {
+
+/*    EchoDaemon     */
+
+
+std::string EchoDaemon::Respond(const std::string& query) {
 	return query;
 }
 

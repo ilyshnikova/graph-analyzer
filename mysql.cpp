@@ -10,6 +10,7 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <ctime>
 
 /*   StringType    */
 
@@ -108,6 +109,9 @@ std::vector<std::string> Table::Split(const std::string& string, const char sepa
 
 
 void Table::AddFields(std::vector<Field*>* fields, const std::string& part, std::string* query) {
+	if (part.size() == 0) {
+		return;
+	}
 	std::vector<std::string> separate_parts = Split(part, ',');
 
 	for (size_t i = 0; i < separate_parts.size(); ++i) {
@@ -149,6 +153,7 @@ Table::Table(const std::string& description)
 , con()
 , insert_query()
 , select_query()
+, time_of_last_execute(std::time(0))
 {
 
 	sql::Driver *driver;
@@ -170,6 +175,7 @@ Table::Table(const std::string& description)
 	table_name = parts[0];
 
 	std::string query = "create table if not exists " + table_name + " (\n";
+
 
 	AddFields(&primary, parts[1], &query);
 	AddFields(&values, parts[2], &query);
@@ -224,6 +230,7 @@ Table& Table::Execute() {
 
 	sql::Statement* stmt = con->createStatement();
 	stmt->execute(query);
+	return *this;
 }
 
 
@@ -262,4 +269,19 @@ Table::Rows Table::Select(const std::string& query_where) {
 	return Rows(select_query.cbegin());
 }
 
+void Table::Delete(const std::string& query_where) const {
+	std::string query =  "delete from  " + table_name + " where "  + query_where;
+	sql::Statement* stmt = con->createStatement();
+	stmt->execute(query);
+}
+
+
+StringType Table::MaxValue(const std::string& field_name) const {
+	sql::PreparedStatement *pstmt = con->prepareStatement("select ifnull(max(" + field_name + "), 0)  as " + field_name + " from " + table_name);
+	sql::ResultSet *res = pstmt->executeQuery();
+	res->next();
+
+	return StringType(res->getString(field_name));
+
+}
 

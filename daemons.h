@@ -60,7 +60,7 @@ private:
 	int Connect() ;
 
 
-	virtual std::string Respond(const std::string& query) const;
+	virtual std::string Respond(const std::string& query);
 
 public:
 
@@ -74,7 +74,7 @@ public:
 
 class EchoDaemon : public DaemonBase {
 private:
-	std::string Respond(const std::string& query) const;
+	std::string Respond(const std::string& query);
 
 public:
 	EchoDaemon(const std::string& ip, const std::string& port);

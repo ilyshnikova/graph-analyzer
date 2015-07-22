@@ -11,6 +11,7 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <ctime>
 
 #include <exception>
 
@@ -45,7 +46,6 @@ public:
 };
 
 
-
 class IntField : public Field {
 public:
 	IntField(const std::string& field_name);
@@ -63,6 +63,7 @@ public:
 
 };
 
+
 class Table {
 private:
 	std::string table_name;
@@ -71,6 +72,7 @@ private:
 	sql::Connection *con;
 	std::vector<std::string> insert_query;
 	std::vector<std::unordered_map<std::string, StringType> > select_query;
+	std::time_t time_of_last_execute;
 
 	class TableExceptions : public std::exception {
 	private:
@@ -113,6 +115,7 @@ public:
 
 	Table(const std::string& description);
 
+
 	void CreateQuery(std::string* query) const;
 
 	template
@@ -126,12 +129,17 @@ public:
 
 	template
 	<typename... Args>
-	void Insert(Args... args) {
+	Table& Insert(Args... args) {
 		std::string query = "(";
 		CreateQuery(&query, args...);
 		query[static_cast<int>(query.size()) - 1] = ')';
 
 		insert_query.push_back(query);
+
+		if (std::time(0) - time_of_last_execute > 10 * 60 || insert_query.size() > 10) {
+			Execute();
+		}
+		return *this;
 	}
 
 
@@ -140,6 +148,11 @@ public:
 	Rows Select(const std::string& query_where);
 
 	Rows SelectEnd() const;
+
+	void Delete(const std::string& query_where) const;
+
+	StringType MaxValue(const std::string& field_name) const;
+
 
 };
 
