@@ -65,7 +65,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 			CreateGraph(graph_id, graph_name);
 		}
 		return "Ok";
-	} else if (boost::regex_match(query, match, boost::regex("\\s*delete\\s*graph\\s*(\\w+)"))) {
+	} else if (boost::regex_match(query, match, boost::regex("\\s*delete\\s+graph\\s+(\\w+)"))) {
 		std::string graph_name = match[1];
 
 		if (graphs.count(graph_name) != 0) {
