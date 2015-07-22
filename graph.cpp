@@ -1,20 +1,21 @@
-#include "graph.h"
 #include <boost/regex.hpp>
 #include <ctime>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
+#include "graph.h"
 
 /*WorkSpaceExceptions*/
 
 WorkSpace::WorkSpaceExceptions::WorkSpaceExceptions(const std::string& reason)
-: reason(reason)
+: id(927462)
+, reason(reason)
 {}
 
 
 const char * WorkSpace::WorkSpaceExceptions::what() const throw() {
-	return reason.c_str();
+	return ("ERROR " + std::to_string(id) + " : " + reason).c_str();
 }
 
 
@@ -43,20 +44,37 @@ WorkSpace::WorkSpace()
 
 
 std::string WorkSpace::Respond(const std::string& query)  {
+	std::cout << "query = " << query << "\n";
 	boost::smatch match;
-	if (boost::regex_match(query, match, boost::regex("\\s*create\\s*graph\\s*(\\w+)"))) {
+	if (boost::regex_match(query, match, boost::regex("\\s*create\\s+graph\\s+(\\w+)"))) {
 		int graph_id = graphs_table.MaxValue("Id") + 1;
 		std::string graph_name = match[1];
 
+		if (graphs.count(graph_name) == 0) {
+			CreateGraph(graph_id, graph_name);
+			return "Ok";
+		} else {
+			throw WorkSpaceExceptions("Graph with same name yet exists\n");
+		}
 
-		CreateGraph(graph_id, graph_name);
+	} else if (boost::regex_match(query, match, boost::regex("\\s*create\\s+graph\\s+if\\s+not\\s+exists\\s+(\\w+)"))) {
+		int graph_id = graphs_table.MaxValue("Id") + 1;
+		std::string graph_name = match[1];
+
+		if (graphs.count(graph_name) == 0) {
+			CreateGraph(graph_id, graph_name);
+		}
 		return "Ok";
-
 	} else if (boost::regex_match(query, match, boost::regex("\\s*delete\\s*graph\\s*(\\w+)"))) {
 		std::string graph_name = match[1];
-		int graph_id = graphs.at(graph_name)->GetId();
-		DeleteGraph(graph_id, graph_name);
-		return "Ok";
+
+		if (graphs.count(graph_name) != 0) {
+			int graph_id = graphs.at(graph_name)->GetId();
+			DeleteGraph(graph_id, graph_name);
+			return "Ok";
+		} else {
+			throw WorkSpaceExceptions("Graph with same name does not exist\n");
+		}
 	}
 	throw WorkSpaceExceptions("Incorrect query\n");
 }
@@ -76,6 +94,12 @@ void WorkSpace::DeleteGraph(const int graph_id, const std::string& graph_name) {
 
 
 
+WorkSpace::~WorkSpace() {
+	for (auto it = graphs.begin(); it != graphs.end(); ++it) {
+		delete it->second;
+	}
+}
+
 /*     Graph     */
 
 
@@ -92,6 +116,7 @@ Graph::Graph(const int id, const std::string& graph_name)
 int Graph::GetId() const {
 	return id;
 }
+
 
 
 

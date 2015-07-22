@@ -127,6 +127,7 @@ public:
 
 	class WorkSpaceExceptions : public std::exception {
 	private:
+		int id;
 		std::string reason;
 
 	public:
@@ -137,6 +138,7 @@ public:
 		~WorkSpaceExceptions() throw();
 	};
 
+	~WorkSpace();
 
 };
 #endif

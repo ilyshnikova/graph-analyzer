@@ -24,6 +24,7 @@ public:
 
 	class SocketExceptions : public std::exception {
 	private:
+		int id;
 		std::string reason;
 
 	public:

@@ -83,7 +83,7 @@ Table::TableExceptions::TableExceptions(const std::string& reason)
 
 
 const char * Table::TableExceptions::what() const throw() {
-	return reason.c_str();
+	return ("ERROR " + std::to_string(id) + " : " + reason).c_str();
 }
 
 Table::TableExceptions::~TableExceptions() throw()

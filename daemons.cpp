@@ -25,12 +25,13 @@ LibSocket::LibSocket(const std::string& ip, const std::string& port)
 /*SocketExceptions*/
 
 LibSocket::SocketExceptions::SocketExceptions(const std::string& reason)
-: reason(reason)
+: id(283652)
+, reason(reason)
 {}
 
 
 const char * LibSocket::SocketExceptions::what() const throw() {
-	return reason.c_str();
+	return ("ERROR " + std::to_string(id) + " : " + reason).c_str();
 }
 
 
