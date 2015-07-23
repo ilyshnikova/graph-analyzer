@@ -1,6 +1,3 @@
-#include "daemons.h"
-#include <exception>
-
 #include <string>
 #include <iostream>
 
@@ -11,7 +8,10 @@
 #include <string>
 #include <unistd.h>
 #include <iostream>
+#include "gan-exception.h"
+#include "daemons.h"
 
+/*    LibSocket     */
 
 LibSocket::LibSocket(const std::string& ip, const std::string& port)
 : ip(ip)
@@ -20,19 +20,6 @@ LibSocket::LibSocket(const std::string& ip, const std::string& port)
 , host_info_list()
 {}
 
-
-LibSocket::SocketExceptions::SocketExceptions(const std::string& reason)
-: reason(reason)
-{}
-
-
-const char * LibSocket::SocketExceptions::what() const throw() {
-	return reason.c_str();
-}
-
-
-LibSocket::SocketExceptions::~SocketExceptions() throw()
-{}
 
 
 void LibSocket::Prepare() {
@@ -46,13 +33,13 @@ void LibSocket::Prepare() {
 int LibSocket::Start() {
 	int status = getaddrinfo(ip.c_str(), port.c_str(), &host_info, &host_info_list);
 	if (status != 0) {
-		throw SocketExceptions("getaddrinfo failed: " + std::to_string(status) +  " \n");
+		throw GANException(324832, "getaddrinfo failed: " + std::to_string(status));
 	}
 
 
 	int socketfd = socket(host_info_list->ai_family, host_info_list->ai_socktype, host_info_list->ai_protocol);
 	if (socketfd == -1) {
-		throw SocketExceptions("Creating socket failed\n");
+		throw GANException(235153 , "Creating socket failed");
 	}
 
 
@@ -73,7 +60,7 @@ std::string LibSocket::GetMessage(const size_t RECV_PART, struct timeval tv, con
 
 		int select_result = select(socketfd + 1, &fds, NULL, NULL, &tv);
 		if (select_result < 0) {
-			throw SocketExceptions("select failed");
+			throw GANException(954625, "select failed");
 		}
 
 		if (!select_result) {
@@ -97,37 +84,20 @@ void LibSocket::SendMessage(const int socketfd, const std::string& send_message)
 
 }
 
+/*    Client      */
 
 int Client::Connect()  {
 	int socketfd = Start();
 
 	int status = connect(socketfd, host_info_list->ai_addr, host_info_list->ai_addrlen);
 	if (status == -1) {
-		throw SocketExceptions("connect failed\n");
+		throw GANException(247528, "connect failed");
 	}
 
 	return socketfd;
 
 }
 
-
-int DaemonBase::Connect() {
-	std::string ip = "127.0.0.1";
-	std::string port = "8081";
-
-	int socketfd = Start();
-
-
-	int status = bind(socketfd, host_info_list->ai_addr, host_info_list->ai_addrlen);
-	if (status == -1) {
-		throw SocketExceptions("bind failed\n");
-	}
-
-	listen(socketfd, 10);
-
-	return socketfd;
-
-}
 
 
 Client::Client(const std::string& ip, const std::string& port)
@@ -166,7 +136,28 @@ Client::Client(const std::string& ip, const std::string& port)
 }
 
 
-std::string DaemonBase::Respond(const std::string& query) const {
+/*    DaemonBase      */
+
+int DaemonBase::Connect() {
+	std::string ip = "127.0.0.1";
+	std::string port = "8081";
+
+	int socketfd = Start();
+
+
+	int status = bind(socketfd, host_info_list->ai_addr, host_info_list->ai_addrlen);
+	if (status == -1) {
+		throw GANException(649265, "bind failed");
+	}
+
+	listen(socketfd, 10);
+
+	return socketfd;
+
+}
+
+
+std::string DaemonBase::Respond(const std::string& query) {
 	return std::string("\0");
 }
 
@@ -202,7 +193,7 @@ void DaemonBase::Daemon() {
 
 		int client_socketfd = accept(socketfd, (struct sockaddr *) &cli_addr, &clilen);
 		if (client_socketfd < 0) {
-			throw SocketExceptions("Accepting client socket failed\n");
+			throw GANException(539154, "Accepting client socket failed");
 		}
 
 
@@ -210,13 +201,25 @@ void DaemonBase::Daemon() {
 
 		shutdown(client_socketfd, 0);
 
-		SendMessage(client_socketfd, Respond(query));
+		std::string message;
+
+		try {
+			message = Respond(query);
+		} catch (std::exception& e) {
+			message = e.what();
+		}
+
+		SendMessage(client_socketfd, message);
 
 		close(client_socketfd);
 	}
 }
 
-std::string EchoDaemon::Respond(const std::string& query) const {
+
+/*    EchoDaemon     */
+
+
+std::string EchoDaemon::Respond(const std::string& query) {
 	return query;
 }
 

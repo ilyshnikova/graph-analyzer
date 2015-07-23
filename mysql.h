@@ -1,6 +1,5 @@
 #ifndef MYSQL
 #define MYSQL
-#include "mysql_connection.h"
 
 #include <cppconn/driver.h>
 #include <cppconn/exception.h>
@@ -11,8 +10,10 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <ctime>
 
-#include <exception>
+#include "mysql_connection.h"
+#include "gan-exception.h"
 
 class StringType {
 private:
@@ -45,7 +46,6 @@ public:
 };
 
 
-
 class IntField : public Field {
 public:
 	IntField(const std::string& field_name);
@@ -63,6 +63,7 @@ public:
 
 };
 
+
 class Table {
 private:
 	std::string table_name;
@@ -71,19 +72,7 @@ private:
 	sql::Connection *con;
 	std::vector<std::string> insert_query;
 	std::vector<std::unordered_map<std::string, StringType> > select_query;
-
-	class TableExceptions : public std::exception {
-	private:
-		std::string reason;
-
-	public:
-		TableExceptions(const std::string& reason);
-
-		const char * what() const throw();
-
-		~TableExceptions() throw();
-	};
-
+	std::time_t time_of_last_execute;
 
 	class Rows {
 	private:
@@ -113,6 +102,7 @@ public:
 
 	Table(const std::string& description);
 
+
 	void CreateQuery(std::string* query) const;
 
 	template
@@ -126,12 +116,17 @@ public:
 
 	template
 	<typename... Args>
-	void Insert(Args... args) {
+	Table& Insert(Args... args) {
 		std::string query = "(";
 		CreateQuery(&query, args...);
 		query[static_cast<int>(query.size()) - 1] = ')';
 
 		insert_query.push_back(query);
+
+		if (std::time(0) - time_of_last_execute > 10 * 60 || insert_query.size() > 10) {
+			Execute();
+		}
+		return *this;
 	}
 
 
@@ -140,6 +135,11 @@ public:
 	Rows Select(const std::string& query_where);
 
 	Rows SelectEnd() const;
+
+	void Delete(const std::string& query_where) const;
+
+	StringType MaxValue(const std::string& field_name) const;
+
 
 };
 

@@ -3,7 +3,6 @@
 
 #include <string>
 
-#include <exception>
 #include <cstring>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -11,6 +10,8 @@
 #include <string>
 #include <unistd.h>
 #include <iostream>
+#include "gan-exception.h"
+
 
 class LibSocket {
 public:
@@ -22,17 +23,6 @@ public:
 
 	LibSocket(const std::string& ip, const std::string& port);
 
-	class SocketExceptions : public std::exception {
-	private:
-		std::string reason;
-
-	public:
-		SocketExceptions(const std::string& reason);
-
-		const char * what() const throw();
-
-		~SocketExceptions() throw();
-	};
 
 	void Prepare();
 
@@ -60,7 +50,7 @@ private:
 	int Connect() ;
 
 
-	virtual std::string Respond(const std::string& query) const;
+	virtual std::string Respond(const std::string& query);
 
 public:
 
@@ -74,7 +64,7 @@ public:
 
 class EchoDaemon : public DaemonBase {
 private:
-	std::string Respond(const std::string& query) const;
+	std::string Respond(const std::string& query);
 
 public:
 	EchoDaemon(const std::string& ip, const std::string& port);
