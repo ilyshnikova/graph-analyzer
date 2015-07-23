@@ -1,16 +1,15 @@
-#include "mysql.h"
-#include "mysql_connection.h"
-
 #include <cppconn/driver.h>
 #include <cppconn/exception.h>
 #include <cppconn/resultset.h>
 #include <cppconn/statement.h>
-
 #include <cppconn/prepared_statement.h>
 #include <string>
 #include <vector>
 #include <unordered_map>
 #include <ctime>
+#include "mysql.h"
+#include "mysql_connection.h"
+#include "gan-exception.h"
 
 /*   StringType    */
 
@@ -75,20 +74,6 @@ std::string StringField::GetSqlDef() const {
 }
 
 
-/*  Table   */
-
-Table::TableExceptions::TableExceptions(const std::string& reason)
-: reason(reason)
-{}
-
-
-const char * Table::TableExceptions::what() const throw() {
-	return ("ERROR " + std::to_string(id) + " : " + reason).c_str();
-}
-
-Table::TableExceptions::~TableExceptions() throw()
-{}
-
 std::vector<std::string> Table::Split(const std::string& string, const char separator) const {
 	std::vector<std::string> result;
 	std::string substr;
@@ -117,7 +102,7 @@ void Table::AddFields(std::vector<Field*>* fields, const std::string& part, std:
 	for (size_t i = 0; i < separate_parts.size(); ++i) {
 		std::vector<std::string> field = Split(separate_parts[i] ,':');
 		if (field.size() != 2) {
-			throw TableExceptions("field definition '"
+			throw GANException(329523, "field definition '"
 				+ separate_parts[i]
 				+ "' cannot be a field definition, there should be two words separatd by ':'"
 			);
@@ -133,7 +118,7 @@ void Table::AddFields(std::vector<Field*>* fields, const std::string& part, std:
 		} else if (field_def == "string") {
 			new_field = new StringField(field_name);
 		} else {
-			throw TableExceptions("Table is set incorrectly, incorrect field type " + field_def);
+			throw GANException(235319, "Table is set incorrectly, incorrect field type " + field_def);
 		}
 
 		fields->push_back(new_field);
@@ -165,7 +150,8 @@ Table::Table(const std::string& description)
 	std::vector<std::string> parts = Split(description, '|');
 
 	if (parts.size() != 3) {
-		throw TableExceptions(
+		throw GANException(
+			528562,
 			"String '"
 			+ description
 			+ "' is not a valid script description,because there should be three values, separated by '|'"
@@ -174,7 +160,7 @@ Table::Table(const std::string& description)
 
 	table_name = parts[0];
 
-	std::string query = "create table if not exists " + table_name + " (\n";
+	std::string query = "create table if not exists " + table_name + " ( " ;
 
 
 	AddFields(&primary, parts[1], &query);
@@ -184,7 +170,7 @@ Table::Table(const std::string& description)
 
 	for (size_t i = 0; i < primary.size(); ++i) {
 		query += primary[i]->GetFieldName();
-		query += (i + 1 == primary.size() ? ")\n" : ", ");
+		query += (i + 1 == primary.size() ? ")" : ", ");
 	}
 
 	query += ")";
@@ -270,9 +256,8 @@ Table::Rows Table::Select(const std::string& query_where) {
 }
 
 void Table::Delete(const std::string& query_where) const {
-	std::string query =  "delete from  " + table_name + " where "  + query_where;
 	sql::Statement* stmt = con->createStatement();
-	stmt->execute(query);
+	stmt->execute("delete from  " + table_name + " where "  + query_where);
 }
 
 

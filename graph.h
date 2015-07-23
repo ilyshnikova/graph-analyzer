@@ -5,8 +5,10 @@
 #include <unordered_map>
 #include <ctime>
 #include <vector>
+
 #include "daemons.h"
 #include "mysql.h"
+#include "gan-exception.h"
 
 
 /*      Point       */
@@ -124,19 +126,6 @@ public:
 	void CreateGraph(const int graph_id, const std::string& graph_name);
 
 	void DeleteGraph(const int graph_id, const std::string& graph_name);
-
-	class WorkSpaceExceptions : public std::exception {
-	private:
-		int id;
-		std::string reason;
-
-	public:
-		WorkSpaceExceptions(const std::string& reason);
-
-		const char * what() const throw();
-
-		~WorkSpaceExceptions() throw();
-	};
 
 	~WorkSpace();
 

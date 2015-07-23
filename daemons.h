@@ -3,7 +3,6 @@
 
 #include <string>
 
-#include <exception>
 #include <cstring>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -11,6 +10,8 @@
 #include <string>
 #include <unistd.h>
 #include <iostream>
+#include "gan-exception.h"
+
 
 class LibSocket {
 public:
@@ -22,18 +23,6 @@ public:
 
 	LibSocket(const std::string& ip, const std::string& port);
 
-	class SocketExceptions : public std::exception {
-	private:
-		int id;
-		std::string reason;
-
-	public:
-		SocketExceptions(const std::string& reason);
-
-		const char * what() const throw();
-
-		~SocketExceptions() throw();
-	};
 
 	void Prepare();
 

@@ -1,6 +1,5 @@
 #ifndef MYSQL
 #define MYSQL
-#include "mysql_connection.h"
 
 #include <cppconn/driver.h>
 #include <cppconn/exception.h>
@@ -13,7 +12,8 @@
 #include <unordered_map>
 #include <ctime>
 
-#include <exception>
+#include "mysql_connection.h"
+#include "gan-exception.h"
 
 class StringType {
 private:
@@ -73,20 +73,6 @@ private:
 	std::vector<std::string> insert_query;
 	std::vector<std::unordered_map<std::string, StringType> > select_query;
 	std::time_t time_of_last_execute;
-
-	class TableExceptions : public std::exception {
-	private:
-		int id;
-		std::string reason;
-
-	public:
-		TableExceptions(const std::string& reason);
-
-		const char * what() const throw();
-
-		~TableExceptions() throw();
-	};
-
 
 	class Rows {
 	private:

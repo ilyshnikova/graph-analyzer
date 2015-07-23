@@ -3,24 +3,8 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
-
+#include "gan-exception.h"
 #include "graph.h"
-
-/*WorkSpaceExceptions*/
-
-WorkSpace::WorkSpaceExceptions::WorkSpaceExceptions(const std::string& reason)
-: id(927462)
-, reason(reason)
-{}
-
-
-const char * WorkSpace::WorkSpaceExceptions::what() const throw() {
-	return ("ERROR " + std::to_string(id) + " : " + reason).c_str();
-}
-
-
-WorkSpace::WorkSpaceExceptions::~WorkSpaceExceptions() throw()
-{}
 
 
 /*   WorkSpace    */
@@ -54,7 +38,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 			CreateGraph(graph_id, graph_name);
 			return "Ok";
 		} else {
-			throw WorkSpaceExceptions("Graph with same name yet exists\n");
+			throw GANException(128463, "Graph with same name yet exists\n");
 		}
 
 	} else if (boost::regex_match(query, match, boost::regex("\\s*create\\s+graph\\s+if\\s+not\\s+exists\\s+(\\w+)"))) {
@@ -73,10 +57,10 @@ std::string WorkSpace::Respond(const std::string& query)  {
 			DeleteGraph(graph_id, graph_name);
 			return "Ok";
 		} else {
-			throw WorkSpaceExceptions("Graph with same name does not exist\n");
+			throw GANException(483294, "Graph with same name does not exist\n");
 		}
 	}
-	throw WorkSpaceExceptions("Incorrect query\n");
+	throw GANException(529352, "Incorrect query\n");
 }
 
 
