@@ -22,6 +22,11 @@ WorkSpace::WorkSpace()
 , graphs_table("GraphsTable|Id:int|GraphName:string")
 , graphs_and_blocks_table("GraphsAndBlocks|DraphId:int,GraphId:int|")
 , DaemonBase("127.0.0.1", "8081", 0)
+// Will be using in next version.
+//, blocks_table("Blocks|Id:int|BlockName:string,Type:string,State:string")
+//, edges_table("Edges|Id:int|EdgeName:string,ToBlock:int")
+//, outgoing_edges_and_blocks_table("OutgoingEdgesAndBlocks|BlockId:int,EdgeId")
+
 {
 	Load();
 	Daemon();
@@ -99,10 +104,6 @@ Graph::Graph(const int id, const std::string& graph_name)
 , graph_name(graph_name)
 , graph()
 , edges()
-// Will be using in next version.
-//, blocks_table(graph_name + "Blocks|Id:int|BlockName:string,Type:string,State:string")
-//, edges_table(graph_name + "Edges|Id:int|EdgeName:string,ToBlock:int")
-//, outgoing_edges_and_blocks_table(graph_name + "OutgoingEdgesAndBlocks|BlockId:int,EdgeId")
 {}
 
 int Graph::GetId() const {

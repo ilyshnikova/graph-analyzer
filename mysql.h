@@ -73,6 +73,8 @@ private:
 	std::vector<std::string> insert_query;
 	std::vector<std::unordered_map<std::string, StringType> > select_query;
 	std::time_t time_of_last_execute;
+	std::time_t timeout;
+	int line_count;
 
 	class Rows {
 	private:
@@ -122,8 +124,8 @@ public:
 		query[static_cast<int>(query.size()) - 1] = ')';
 
 		insert_query.push_back(query);
-
-		if (std::time(0) - time_of_last_execute > 10 * 60 || insert_query.size() > 10) {
+		std::cout << std::time(0) - time_of_last_execute << "\n";
+		if (std::time(0) - time_of_last_execute > timeout || insert_query.size() > line_count) {
 			Execute();
 		}
 		return *this;
@@ -139,6 +141,10 @@ public:
 	void Delete(const std::string& query_where) const;
 
 	StringType MaxValue(const std::string& field_name) const;
+
+	void ChangeTimeout(const int new_timeout);
+
+	void ChangeLineCount(const int new_line_count);
 
 
 };

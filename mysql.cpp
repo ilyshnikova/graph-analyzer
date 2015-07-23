@@ -139,6 +139,8 @@ Table::Table(const std::string& description)
 , insert_query()
 , select_query()
 , time_of_last_execute(std::time(0))
+, timeout(60)
+, line_count(5000)
 {
 
 	sql::Driver *driver;
@@ -267,6 +269,15 @@ StringType Table::MaxValue(const std::string& field_name) const {
 	res->next();
 
 	return StringType(res->getString(field_name));
-
 }
+
+
+void Table::ChangeTimeout(const int new_timeout) {
+	timeout = std::time_t(new_timeout);
+}
+
+void Table::ChangeLineCount(const int new_line_count) {
+	line_count = new_line_count;
+}
+
 

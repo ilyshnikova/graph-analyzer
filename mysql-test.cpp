@@ -28,5 +28,20 @@ int main() {
 //			<< " V2: " << std::string(it["V1"]) << " V2: " << std::string(it["V2"]) << "\n";
 	}
 
+
+	std::string a;
+	table.Delete("K1 = 1 or K1 = 3 or K1 = 2 or K1 = 9 or K1 = 4");
+
+	std::cin >> a;
+	table.ChangeTimeout(2);
+	table.Insert(7, std::string("awev"));
+	std::cin >> a;
+	table.Insert(3, std::string("edvfdv"));
+
+	table.ChangeLineCount(2);
+	table.Insert(4, std::string("edvsadfdv"));
+	table.Insert(1, std::string("edavcvfdv"));
+	table.Insert(9, std::string("edacfvfdv"));
+
 	return 0;
 }
