@@ -3,6 +3,9 @@ all: mysql-test client test-server gan-server
 gan-exception.o: gan-exception.cpp
 	g++ -c -std=c++0x gan-exception.cpp
 
+logger.o: logger.cpp
+	g++ -c  -std=c++0x logger.cpp
+
 mysql.o: mysql.cpp
 	g++ -c -std=c++0x mysql.cpp
 
@@ -35,8 +38,8 @@ graph.o: graph.cpp
 gan-server.o: gan-server.cpp
 	g++ -lboost_regex -std=c++0x -g -c gan-server.cpp
 
-gan-server: gan-exception.o graph.o gan-server.o daemons.o mysql.o
-	g++ -lboost_regex -lmysqlcppconn -std=c++0x -g mysql.o gan-exception.o daemons.o graph.o gan-server.o -o gan-server
+gan-server: gan-exception.o graph.o gan-server.o daemons.o mysql.o logger.o
+	g++ -lboost_regex -lmysqlcppconn -std=c++0x -g mysql.o gan-exception.o daemons.o graph.o gan-server.o logger.o -o gan-server
 
 
 clean:

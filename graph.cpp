@@ -5,11 +5,12 @@
 #include <vector>
 #include "gan-exception.h"
 #include "graph.h"
+#include "logger.h"
 
 
 /*   WorkSpace    */
 
-void WorkSpace::Recover() {
+void WorkSpace::Load() {
 	for (Table::rows it = graphs_table.Select("1"); it != graphs_table.SelectEnd(); ++it) {
 		CreateGraph(int(it["Id"]), std::string(it["GraphName"]));
 	}
@@ -22,13 +23,13 @@ WorkSpace::WorkSpace()
 , graphs_and_blocks_table("GraphsAndBlocks|DraphId:int,GraphId:int|")
 , DaemonBase("127.0.0.1", "8081", 0)
 {
-	Recover();
+	Load();
 	Daemon();
 }
 
 
 std::string WorkSpace::Respond(const std::string& query)  {
-	std::cout << "query = " << query << "\n";
+	logger << "query = " + query;
 	boost::smatch match;
 	if (boost::regex_match(query, match, boost::regex("\\s*create\\s+graph\\s+(\\w+)"))) {
 		int graph_id = graphs_table.MaxValue("Id") + 1;
@@ -36,9 +37,11 @@ std::string WorkSpace::Respond(const std::string& query)  {
 
 		if (graphs.count(graph_name) == 0) {
 			CreateGraph(graph_id, graph_name);
+			logger << "answer = Ok\n";
 			return "Ok";
 		} else {
-			throw GANException(128463, "Graph with same name yet exists\n");
+			logger << "answer = GANException: Graph with same name already exists";
+			throw GANException(128463, "Graph with same name already exists");
 		}
 
 	} else if (boost::regex_match(query, match, boost::regex("\\s*create\\s+graph\\s+if\\s+not\\s+exists\\s+(\\w+)"))) {
@@ -48,6 +51,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		if (graphs.count(graph_name) == 0) {
 			CreateGraph(graph_id, graph_name);
 		}
+		logger << "answer = Ok";
 		return "Ok";
 	} else if (boost::regex_match(query, match, boost::regex("\\s*delete\\s+graph\\s+(\\w+)"))) {
 		std::string graph_name = match[1];
@@ -55,12 +59,15 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		if (graphs.count(graph_name) != 0) {
 			int graph_id = graphs.at(graph_name)->GetId();
 			DeleteGraph(graph_id, graph_name);
+			logger << "answer = Ok";
 			return "Ok";
 		} else {
-			throw GANException(483294, "Graph with same name does not exist\n");
+			logger << "answer = GANException: Graph with same name does not exist";
+			throw GANException(483294, "Graph with same name does not exist");
 		}
 	}
-	throw GANException(529352, "Incorrect query\n");
+	logger << "answer = GANException:  Incorrect query";
+	throw GANException(529352, "Incorrect query");
 }
 
 
@@ -92,6 +99,7 @@ Graph::Graph(const int id, const std::string& graph_name)
 , graph_name(graph_name)
 , graph()
 , edges()
+// Will be using in next version.
 //, blocks_table(graph_name + "Blocks|Id:int|BlockName:string,Type:string,State:string")
 //, edges_table(graph_name + "Edges|Id:int|EdgeName:string,ToBlock:int")
 //, outgoing_edges_and_blocks_table(graph_name + "OutgoingEdgesAndBlocks|BlockId:int,EdgeId")

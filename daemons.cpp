@@ -33,13 +33,13 @@ void LibSocket::Prepare() {
 int LibSocket::Start() {
 	int status = getaddrinfo(ip.c_str(), port.c_str(), &host_info, &host_info_list);
 	if (status != 0) {
-		throw GANException(324832, "getaddrinfo failed: " + std::to_string(status) +  " \n");
+		throw GANException(324832, "getaddrinfo failed: " + std::to_string(status));
 	}
 
 
 	int socketfd = socket(host_info_list->ai_family, host_info_list->ai_socktype, host_info_list->ai_protocol);
 	if (socketfd == -1) {
-		throw GANException(235153 , "Creating socket failed\n");
+		throw GANException(235153 , "Creating socket failed");
 	}
 
 
@@ -91,7 +91,7 @@ int Client::Connect()  {
 
 	int status = connect(socketfd, host_info_list->ai_addr, host_info_list->ai_addrlen);
 	if (status == -1) {
-		throw GANException(247528, "connect failed\n");
+		throw GANException(247528, "connect failed");
 	}
 
 	return socketfd;
@@ -147,7 +147,7 @@ int DaemonBase::Connect() {
 
 	int status = bind(socketfd, host_info_list->ai_addr, host_info_list->ai_addrlen);
 	if (status == -1) {
-		throw GANException(649265, "bind failed\n");
+		throw GANException(649265, "bind failed");
 	}
 
 	listen(socketfd, 10);
@@ -193,7 +193,7 @@ void DaemonBase::Daemon() {
 
 		int client_socketfd = accept(socketfd, (struct sockaddr *) &cli_addr, &clilen);
 		if (client_socketfd < 0) {
-			throw GANException(539154, "Accepting client socket failed\n");
+			throw GANException(539154, "Accepting client socket failed");
 		}
 
 

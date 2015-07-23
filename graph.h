@@ -119,7 +119,7 @@ private:
 	std::string Respond(const std::string& query);
 public:
 
-	void Recover();
+	void Load();
 
 	WorkSpace();
 
