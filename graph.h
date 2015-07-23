@@ -88,6 +88,7 @@ private:
 	std::string graph_name;
 	std::unordered_map<std::string, BlockBase*> graph;
 	std::vector<Edge*> edges;
+// Will be using in next version.
 //	Table blocks_table;
 //	Table edges_table;
 //	Table outgoing_edges_and_blocks_table;
