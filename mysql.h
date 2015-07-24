@@ -124,7 +124,6 @@ public:
 		query[static_cast<int>(query.size()) - 1] = ')';
 
 		insert_query.push_back(query);
-		std::cout << std::time(0) - time_of_last_execute << "\n";
 		if (std::time(0) - time_of_last_execute > timeout || insert_query.size() > line_count) {
 			Execute();
 		}
