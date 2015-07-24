@@ -1,4 +1,5 @@
 #include <iostream>
+#include <boost/thread/thread.hpp>
 #include "mysql.h"
 
 
@@ -28,14 +29,12 @@ int main() {
 //			<< " V2: " << std::string(it["V1"]) << " V2: " << std::string(it["V2"]) << "\n";
 	}
 
-
-	std::string a;
 	table.Delete("K1 = 1 or K1 = 3 or K1 = 2 or K1 = 9 or K1 = 4");
 
-	std::cin >> a;
+	boost::this_thread::sleep( boost::posix_time::seconds(2));
 	table.ChangeTimeout(2);
 	table.Insert(7, std::string("awev"));
-	std::cin >> a;
+	boost::this_thread::sleep( boost::posix_time::seconds(2));
 	table.Insert(3, std::string("edvfdv"));
 
 	table.ChangeLineCount(2);

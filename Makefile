@@ -10,10 +10,10 @@ mysql.o: mysql.cpp
 	g++ -c -std=c++0x mysql.cpp
 
 mysql-test.o: mysql-test.cpp
-	g++ -c -std=c++0x mysql-test.cpp
+	g++ -c -std=c++0x -lboost_thread-mt mysql-test.cpp
 
 mysql-test: mysql-test.o mysql.o gan-exception.o
-	g++  -lmysqlcppconn -std=c++0x gan-exception.o mysql-test.o mysql.o  -o mysql-test
+	g++  -lmysqlcppconn -lboost_thread-mt -std=c++0x gan-exception.o mysql-test.o mysql.o  -o mysql-test
 
 
 daemons.o: daemons.cpp
@@ -40,7 +40,6 @@ gan-server.o: gan-server.cpp
 
 gan-server: gan-exception.o graph.o gan-server.o daemons.o mysql.o logger.o
 	g++ -lboost_regex -lmysqlcppconn -std=c++0x -g mysql.o gan-exception.o daemons.o graph.o gan-server.o logger.o -o gan-server
-
 
 clean:
 	rm -rf *.o mysql-test client test-server gan-server

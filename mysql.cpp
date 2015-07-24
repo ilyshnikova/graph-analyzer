@@ -140,7 +140,7 @@ Table::Table(const std::string& description)
 , select_query()
 , time_of_last_execute(std::time(0))
 , timeout(60)
-, line_count(5000)
+, line_count(50000)
 {
 
 	sql::Driver *driver;
