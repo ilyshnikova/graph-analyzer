@@ -1,2 +1,2 @@
 #* Надо избавиться от указания полного пути
-rlwrap /root/git/graph-analyzer/client
+rlwrap ./client
