@@ -41,6 +41,5 @@ gan-server.o: gan-server.cpp
 gan-server: gan-exception.o graph.o gan-server.o daemons.o mysql.o logger.o
 	g++ -lboost_regex -lmysqlcppconn -std=c++0x -g mysql.o gan-exception.o daemons.o graph.o gan-server.o logger.o -o gan-server
 
-
 clean:
 	rm -rf *.o mysql-test client test-server gan-server
