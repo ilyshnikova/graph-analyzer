@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <ctime>
 #include <vector>
+#include <unordered_set>
 
 #include "daemons.h"
 #include "mysql.h"
@@ -45,13 +46,20 @@ class Edge {
 private:
 	int id;
 	std::string edge_name;
+	BlockBase* from;
 	BlockBase* to;
 
 public:
-	Edge(const int id, const std::string& name, BlockBase* to);
+	Edge();
 
+	Edge(const int id, const std::string& name, BlockBase* from, BlockBase* to);
+
+	int GetEdgeId() const;
 
 	BlockBase* To() const;
+
+	BlockBase* From() const;
+
 	std::string GetEdgeName() const;
 };
 
@@ -60,16 +68,40 @@ public:
 class BlockBase {
 private:
 	int id;
-	std::vector<std::string> incoming_edges_names;
+	std::string block_name;
+	std::unordered_set<std::string> incoming_edges_names;
 	std::unordered_map<int, std::unordered_map<std::string, Point> > data;
-	std::unordered_map<std::string, Edge*> incoming_edges;
-	std::unordered_map<std::string, Edge*> outgoing_edges;
 
-	bool Check(const std::time_t& time) const;
+
+//	virtual Point Do(const std::time_t& time) = 0;
+
+//	virtual bool Check(const std::time_t& time) const;
 
 public:
 
-	virtual Point Do(const std::time_t& time);
+	std::unordered_map<std::string, Edge*> incoming_edges;
+	std::unordered_map<std::string, Edge*> outgoing_edges;
+
+
+	BlockBase();
+
+	BlockBase(
+		const int id,
+		const std::string& block_name,
+		const std::unordered_set<std::string>& incoming_edges_names
+	);
+
+	int GetBlockId() const;
+
+	std::string GetBlockName() const;
+
+	void AddIncomingEdge(Edge* edge);
+
+	void DeleteIncomingEdge(const std::string& edge_name);
+
+	void AddOutgoingEdge(Edge* edge, Table* blocks_and_outgoing_edges_table);
+
+	void DeleteOutgoingEdge(const std::string& edge_name, Table* blocks_and_outgoing_edges_table);
 
 	void Insert(const Point& point, const std::string& edge_name);
 
@@ -77,7 +109,34 @@ public:
 
 	void Save();
 
-	BlockBase(const int id, const std::vector<std::string>& incoming_edges_names);
+	Edge* GetOutgoingEdge(const std::string& edge_name);
+
+	Edge* GetIncomingEdge(const std::string& edge_name);
+
+	void DeleteEdge(
+		const std::string& edge_name,
+		const std::string& from,
+		const std::string& to
+	);
+
+	void DeleteEdge(Edge* edge);
+
+};
+
+class TestBlock : public BlockBase {
+private:
+
+//	Point Do(const std::time_t& time);
+
+//	bool Check(const std::time_t& time) const;
+public:
+	TestBlock();
+
+	TestBlock(
+		const int id,
+		const std::string& block_name
+	);
+
 };
 
 /*      Graph       */
@@ -86,13 +145,34 @@ class Graph {
 private:
 	int id;
 	std::string graph_name;
-	std::unordered_map<std::string, BlockBase*> graph;
+	std::unordered_map<std::string, BlockBase*> blocks;
 	std::vector<Edge*> edges;
+	Table* graphs_and_blocks_table;
+	Table* blocks_table;
+	Table* edges_table;
+	Table* blocks_and_outgoing_edges_table;
+
+
+
+	BlockBase* GetBlock(
+		const std::string& block_type,
+		const int block_id,
+		const std::string& block_name
+	) const;
 
 public:
-	Graph(const int id, const std::string& graph_name);
+	Graph(
+		const int id,
+		const std::string& graph_name,
+		Table* graphs_and_blocks_table,
+		Table* blocks_table,
+		Table* edges_table,
+		Table* blocks_and_outgoing_edges_table
+	);
 
-	int GetId() const;
+	void Load();
+
+	int GetGraphId() const;
 
 	void CreateVertex(const std::string& block_type, const std::string& block_name);
 
@@ -101,6 +181,34 @@ public:
 	void Delete(const std::string& block_name);
 
 	bool Verification() const;
+
+	void CreateBlock(
+		const std::string& block_type,
+		const int block_id,
+		const std::string& block_name
+	);
+
+	bool In(const std::string& block_name) const;
+
+ 	void DeleteBlock(const std::string& block_name);
+
+	void DeleteGraph();
+
+	void CreateEdge(
+		const int edge_id,
+		const std::string& edge_name,
+		const std::string& from,
+		const std::string& to
+	);
+
+
+	void DeleteEdge(
+		const std::string& edge_name,
+		const std::string& from,
+		const std::string& to
+	);
+
+	void DeleteEdge(Edge* edge_name);
 
 };
 
@@ -112,10 +220,10 @@ private:
 	std::unordered_map<std::string, Graph*> graphs;
 	Table graphs_table;
 	Table graphs_and_blocks_table;
-// Will be using in next version.
-//	Table blocks_table;
-//	Table edges_table;
-//	Table outgoing_edges_and_blocks_table;
+	Table blocks_table;
+	Table edges_table;
+	Table blocks_and_outgoing_edges_table;
+
 
 
 	std::string Respond(const std::string& query);
@@ -128,6 +236,7 @@ public:
 	void CreateGraph(const int graph_id, const std::string& graph_name);
 
 	void DeleteGraph(const int graph_id, const std::string& graph_name);
+
 
 	~WorkSpace();
 

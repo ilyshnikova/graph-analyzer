@@ -10,6 +10,8 @@
 #include "mysql.h"
 #include "mysql_connection.h"
 #include "gan-exception.h"
+#include "logger.h"
+
 
 /*   StringType    */
 
@@ -156,7 +158,7 @@ Table::Table(const std::string& description)
 			528562,
 			"String '"
 			+ description
-			+ "' is not a valid script description,because there should be three values, separated by '|'"
+			+ "' is not a valid table description,because there should be three values, separated by '|'"
 		);
 	}
 
@@ -209,15 +211,20 @@ void Table::CreateQuery(std::string* query) const {}
 
 
 Table& Table::Execute() {
-	std::string query = "replace into " + table_name + " values ";
-	for (size_t i = 0; i < insert_query.size(); ++i) {
-		query += insert_query[i] + (i + 1 == insert_query.size() ? "" : ", ");
+	if (insert_query.size() != 0) {
+		time_of_last_execute = std::time(0);
+
+		std::string query = "replace into " + table_name + " values ";
+		for (size_t i = 0; i < insert_query.size(); ++i) {
+			query += insert_query[i] + (i + 1 == insert_query.size() ? "" : ", ");
+		}
+
+		logger << "from mysql.cpp: query = " + query;
+		insert_query.clear();
+
+		sql::Statement* stmt = con->createStatement();
+		stmt->execute(query);
 	}
-
-	insert_query.clear();
-
-	sql::Statement* stmt = con->createStatement();
-	stmt->execute(query);
 	return *this;
 }
 
@@ -229,6 +236,8 @@ Table::Rows Table::SelectEnd() const {
 
 
 Table::Rows Table::Select(const std::string& query_where) {
+	logger << "from mysql.cpp: query = select * from " + table_name + " where " + query_where;
+
 	sql::PreparedStatement *pstmt = con->prepareStatement(
 		"select * from "
 		+ table_name
@@ -259,6 +268,9 @@ Table::Rows Table::Select(const std::string& query_where) {
 
 void Table::Delete(const std::string& query_where) const {
 	sql::Statement* stmt = con->createStatement();
+
+	logger << "from mysql.cpp: query = delete from  " + table_name + " where "  + query_where;
+
 	stmt->execute("delete from  " + table_name + " where "  + query_where);
 }
 
