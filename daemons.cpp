@@ -10,6 +10,7 @@
 #include <iostream>
 #include "gan-exception.h"
 #include "daemons.h"
+#include "logger.h"
 
 /*    LibSocket     */
 
@@ -208,6 +209,8 @@ void DaemonBase::Daemon() {
 		} catch (std::exception& e) {
 			message = e.what();
 		}
+
+		logger << "answer = " + message;
 
 		SendMessage(client_socketfd, message);
 

@@ -50,8 +50,6 @@ private:
 	BlockBase* to;
 
 public:
-	Edge();
-
 	Edge(const int id, const std::string& name, BlockBase* from, BlockBase* to);
 
 	int GetEdgeId() const;
@@ -81,9 +79,6 @@ public:
 
 	std::unordered_map<std::string, Edge*> incoming_edges;
 	std::unordered_map<std::string, Edge*> outgoing_edges;
-
-
-	BlockBase();
 
 	BlockBase(
 		const int id,
@@ -130,8 +125,6 @@ private:
 
 //	bool Check(const std::time_t& time) const;
 public:
-	TestBlock();
-
 	TestBlock(
 		const int id,
 		const std::string& block_name
@@ -180,7 +173,12 @@ public:
 
 	void Delete(const std::string& block_name);
 
-	bool Verification() const;
+	void Verification();
+
+	std::string BFSFindCycle(
+		std::unordered_map<std::string, bool>* used,
+		const std::string& start_block
+	);
 
 	void CreateBlock(
 		const std::string& block_type,
@@ -237,6 +235,9 @@ public:
 
 	void DeleteGraph(const int graph_id, const std::string& graph_name);
 
+	void ChangeGraphsValid(const std::string& graph_name, const int valid);
+
+	void Verification(const std::string& graph_name);
 
 	~WorkSpace();
 

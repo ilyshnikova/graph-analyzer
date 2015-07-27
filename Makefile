@@ -28,8 +28,8 @@ test-server: test-server.o daemons.o gan-exception.o
 client.o: client.cpp
 	g++ -g -std=c++0x -c client.cpp
 
-client: client.o daemons.o gan-exception.o
-	g++  -std=c++0x -g client.o daemons.o gan-exception.o -o client
+client: client.o daemons.o gan-exception.o logger.o
+	g++  -std=c++0x -g client.o daemons.o gan-exception.o logger.o -o client
 
 
 graph.o: graph.cpp
