@@ -12,8 +12,8 @@ mysql.o: mysql.cpp
 mysql-test.o: mysql-test.cpp
 	g++ -c -std=c++0x mysql-test.cpp
 
-mysql-test: mysql-test.o mysql.o gan-exception.o
-	g++  -lmysqlcppconn -std=c++0x gan-exception.o mysql-test.o mysql.o  -o mysql-test
+mysql-test: mysql-test.o mysql.o gan-exception.o logger.o
+	g++  -lmysqlcppconn -std=c++0x gan-exception.o mysql-test.o mysql.o logger.o  -o mysql-test
 
 
 daemons.o: daemons.cpp
