@@ -122,17 +122,21 @@ Client::Client(const std::string& ip, const std::string& port)
 			break;
 		}
 
-		int socketfd = Connect();
+		try {
+			int socketfd = Connect();
 
-		SendMessage(socketfd, query);
-		shutdown(socketfd, 1);
+			SendMessage(socketfd, query);
+			shutdown(socketfd, 1);
 
-		std::string got_message = GetMessage(RECV_PART, tv, socketfd);
+			std::string got_message = GetMessage(RECV_PART, tv, socketfd);
 
+			std::cout << got_message << "\n";
+			freeaddrinfo(host_info_list);
+			close(socketfd);
+		} catch (std::exception& e) {
+			std::cout <<  e.what() << "\n";
+		}
 
-		std::cout << got_message << "\n";
-		freeaddrinfo(host_info_list);
-		close(socketfd);
 	}
 }
 
