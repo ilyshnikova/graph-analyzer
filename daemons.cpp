@@ -10,7 +10,6 @@
 #include <iostream>
 #include "gan-exception.h"
 #include "daemons.h"
-#include "logger.h"
 
 /*    LibSocket     */
 
@@ -122,21 +121,17 @@ Client::Client(const std::string& ip, const std::string& port)
 			break;
 		}
 
-		try {
-			int socketfd = Connect();
+		int socketfd = Connect();
 
-			SendMessage(socketfd, query);
-			shutdown(socketfd, 1);
+		SendMessage(socketfd, query);
+		shutdown(socketfd, 1);
 
-			std::string got_message = GetMessage(RECV_PART, tv, socketfd);
+		std::string got_message = GetMessage(RECV_PART, tv, socketfd);
 
-			std::cout << got_message << "\n";
-			freeaddrinfo(host_info_list);
-			close(socketfd);
-		} catch (std::exception& e) {
-			std::cout <<  e.what() << "\n";
-		}
 
+		std::cout << got_message << "\n";
+		freeaddrinfo(host_info_list);
+		close(socketfd);
 	}
 }
 
@@ -213,8 +208,6 @@ void DaemonBase::Daemon() {
 		} catch (std::exception& e) {
 			message = e.what();
 		}
-
-		logger << "answer = " + message;
 
 		SendMessage(client_socketfd, message);
 
