@@ -137,6 +137,16 @@ TestBlock::TestBlock(
 : BlockBase(id, block_name, std::unordered_set<std::string>({"test_edge"}))
 {}
 
+/*   EmptyTestBlock    */
+
+EmptyTestBlock::EmptyTestBlock(
+	const int id,
+	const std::string& block_name
+)
+: BlockBase(id, block_name, std::unordered_set<std::string>())
+{}
+
+
 /*     Graph     */
 
 Graph::Graph(
@@ -433,6 +443,8 @@ BlockBase* Graph::GetBlock(
 ) const {
 	if (block_type == "TestBlock") {
 		return new TestBlock(block_id, block_name);
+	} else if (block_type == "EmptyTestBlock") {
+		return new EmptyTestBlock(block_id, block_name);
 	} else {
 		throw GANException(649264, "Incorret block type.");
 	}
@@ -509,6 +521,21 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		boost::regex_match(
 			query,
 			match,
+			boost::regex("\\s*delete\\s+graph\\s+if\\s+exists\\s+(\\w+)")
+		)
+	) {
+		std::string graph_name = match[1];
+
+		if (graphs.count(graph_name) != 0) {
+			int graph_id = graphs.at(graph_name)->GetGraphId();
+			DeleteGraph(graph_id, graph_name);
+		}
+
+		return "Ok";
+	} else if (
+		boost::regex_match(
+			query,
+			match,
 			boost::regex("\\s*create\\s+vertex\\s+(\\w+):(\\w+)\\s+in\\s+(\\w+)")
 		)
 	) {
@@ -532,7 +559,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		boost::regex_match(
 			query,
 			match,
-			boost::regex("\\s*create\\s+if\\s+not\\s+exist\\s+vertex\\s+(\\w+):(\\w+)\\s+in\\s+(\\w+)")
+			boost::regex("\\s*create\\s+vertex\\s+if\\s+not\\s+exists\\s+(\\w+):(\\w+)\\s+in\\s+(\\w+)")
 		)
 	) {
 		std::string block_name = match[1];
@@ -570,6 +597,22 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		boost::regex_match(
 			query,
 			match,
+			boost::regex("\\s*delete\\s+vertex\\s+if\\s+exists\\s+(\\w+)\\s+in\\s+(\\w+)")
+		)
+	) {
+		std::string block_name = match[1];
+		std::string graph_name = match[2];
+
+		if (graphs.count(graph_name) != 0) {
+			graphs[graph_name]->DeleteBlock(block_name);
+			ChangeGraphsValid(graph_name, 0);
+		}
+
+		return "Ok";
+	} else if (
+		boost::regex_match(
+			query,
+			match,
 			boost::regex("\\s*create\\s+edge\\s+(\\w+)\\s+in\\s+(\\w+)\\s+from\\s+(\\w+)\\s+to\\s+(\\w+)")
 		)
 	) {
@@ -590,7 +633,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		boost::regex_match(
 			query,
 			match,
-			boost::regex("\\s*create\\s+edge\\s+if\\s+not\\s+exist\\s+(\\w+)\\s+in\\s+(\\w+)\\s+from\\s+(\\w+)\\s+to\\s+(\\w+)")
+			boost::regex("\\s*create\\s+edge\\s+if\\s+not\\s+exists\\s+(\\w+)\\s+in\\s+(\\w+)\\s+from\\s+(\\w+)\\s+to\\s+(\\w+)")
 		)
 	)  {
 		std::string edge_name = match[1];
@@ -600,7 +643,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		int id = edges_table.MaxValue("Id") + 1;
 
 		if (graphs.count(graph_name) != 0) {
-			graphs[graph_name]->CreateEdge(id, graph_name, from_name, to_name);
+			graphs[graph_name]->CreateEdge(id, edge_name, from_name, to_name);
 			ChangeGraphsValid(graph_name, 0);
 		}
 		return "Ok";
@@ -626,6 +669,24 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		}
 
 	} else if (
+		boost::regex_match(
+			query,
+			match,
+			boost::regex("\\s*delete\\s+edge\\s+if\\s+exists\\s+edge\\s+(\\w+)\\s+in\\s+(\\w+)\\s+from\\s+(\\w+)\\s+to\\s+(\\w+)")
+		)
+	) {
+		std::string edge_name = match[1];
+		std::string graph_name = match[2];
+		std::string from_name = match[3];
+		std::string to_name = match[4];
+
+
+		if (graphs.count(graph_name) != 0) {
+			graphs[graph_name]->DeleteEdge(edge_name, from_name, to_name);
+			ChangeGraphsValid(graph_name, 0);
+		}
+		return "Ok";
+	}else if (
 		boost::regex_match(
 			query,
 			match,

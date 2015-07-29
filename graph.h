@@ -132,6 +132,21 @@ public:
 
 };
 
+class EmptyTestBlock : public BlockBase {
+private:
+
+//	Point Do(const std::time_t& time);
+
+//	bool Check(const std::time_t& time) const;
+public:
+	EmptyTestBlock(
+		const int id,
+		const std::string& block_name
+	);
+
+};
+
+
 /*      Graph       */
 
 class Graph {
