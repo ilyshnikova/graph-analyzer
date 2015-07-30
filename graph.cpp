@@ -145,7 +145,7 @@ void Block::DeleteIncomingEdge(const std::string& edge_name) {
 	if (incoming_edges.count(edge_name) != 0) {
 		incoming_edges.erase(edge_name);
 	} else {
-		throw GANException(264913, "Incoming edge with same name does not exist.");
+		throw GANException(264913, "Incoming edge with this name does not exist.");
 	}
 }
 
@@ -175,7 +175,7 @@ void Block::DeleteOutgoingEdge(const std::string& edge_name, Table* blocks_and_o
 		logger << "DeleteOutgoingEdge from BlocksAndOutgoingEdges where BlockID = " + std::to_string(id);
 		blocks_and_outgoing_edges_table->Delete("BlockID = " + std::to_string(id));
 	} else {
-		throw GANException(264193, "Outgoing edge with same name does not exist.");
+		throw GANException(264193, "Outgoing edge with this name does not exist.");
 	}
 }
 
@@ -183,7 +183,7 @@ Edge* Block::GetOutgoingEdge(const std::string& edge_name) {
 	if (outgoing_edges.count(edge_name) != 0) {
 		return outgoing_edges[edge_name];
 	} else {
-		throw GANException(166231, "Edge with same name does not exist between such blocks.");
+		throw GANException(166231, "Edge with this name does not exist between such blocks.");
 	}
 }
 
@@ -191,7 +191,7 @@ Edge* Block::GetIncomingEdge(const std::string& edge_name) {
 	if (incoming_edges.count(edge_name) != 0) {
 		return incoming_edges[edge_name];
 	} else {
-		throw GANException(161031, "Edge with same name does not exist between such block");
+		throw GANException(161031, "Edge with this name does not exist between such block");
 	}
 }
 
@@ -352,7 +352,7 @@ void Graph::DeleteBlock(const std::string& block_name) {
 
 
 	} else {
-		throw GANException(529471, "Block with same name does not exist.");
+		throw GANException(529471, "Block with this name does not exist.");
 	}
 }
 
@@ -424,7 +424,7 @@ Edge* Graph::CreateEdge(
 
 		return edge;
 	}
-		throw GANException(239185, "Block with same name does not exist");
+		throw GANException(239185, "Block with this name does not exist");
 
 }
 
@@ -446,7 +446,7 @@ void Graph::DeleteEdge(
 
 		edges_table->Delete("Id = " + std::to_string(edge->GetEdgeId()));
 	} else {
-		throw GANException(419248, "Block with same does not exist.");
+		throw GANException(419248, "Block with this does not exist.");
 	}
 
 }
@@ -573,7 +573,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		std::string graph_name = match[1];
 
 		if (graphs.count(graph_name) != 0) {
-			throw GANException(128463, "Graph with same name already exists.");
+			throw GANException(128463, "Graph with this name already exists.");
 		}
 
 		AddGaphInTables(CreateGraph(graph_id, graph_name));
@@ -600,7 +600,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		std::string graph_name = match[1];
 
 		if (graphs.count(graph_name) == 0) {
-			throw GANException(483294, "Graph with same name does not exist.");
+			throw GANException(483294, "Graph with this name does not exist.");
 		}
 
 		int graph_id = graphs.at(graph_name)->GetGraphId();
@@ -630,11 +630,11 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		std::string block_type = match[2];
 		std::string graph_name = match[3];
 		if (graphs.count(graph_name) == 0) {
-			throw GANException(419294, "Graph with same name does not exist.");
+			throw GANException(419294, "Graph with this name does not exist.");
 
 		}
 		if (graphs[graph_name]->In(block_name)) {
-			throw GANException(428352, "Block with same name already exists in this graph.");
+			throw GANException(428352, "Block with this name already exists in this graph.");
 		}
 
 		int block_id = blocks_table.MaxValue("Id") + 1;
@@ -654,7 +654,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		std::string block_type = match[2];
 		std::string graph_name = match[3];
 		if (graphs.count(graph_name) == 0) {
-			throw GANException(483294, "Graph with same name does not exist.");
+			throw GANException(483294, "Graph with this name does not exist.");
 
 		}
 		if (!graphs[graph_name]->In(block_name)) {
@@ -676,7 +676,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		std::string graph_name = match[2];
 
 		if (graphs.count(graph_name) == 0) {
-			throw GANException(375920, "Graph with same name does not exist.");
+			throw GANException(375920, "Graph with this name does not exist.");
 		}
 
 		graphs[graph_name]->DeleteBlock(block_name);
@@ -711,7 +711,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		int id = edges_table.MaxValue("Id") + 1;
 
 		if (graphs.count(graph_name) == 0) {
-			throw GANException(362796, "Graph with same name does not exist.");
+			throw GANException(362796, "Graph with this name does not exist.");
 		}
 
 		graphs[graph_name]->AddEdgeInTables(
@@ -731,7 +731,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		int id = edges_table.MaxValue("Id") + 1;
 
 		if (graphs.count(graph_name) == 0) {
-			throw GANException(362796, "Graph with same name does not exist.");
+			throw GANException(362796, "Graph with this name does not exist.");
 		}
 
 		if (graphs[graph_name]->CanEdgeExist(to_name, edge_name)) {
@@ -754,7 +754,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 
 
 		if (graphs.count(graph_name) == 0) {
-			throw GANException(362796, "Graph with same name does not exist.");
+			throw GANException(362796, "Graph with this name does not exist.");
 		}
 
 		graphs[graph_name]->DeleteEdge(edge_name, from_name, to_name);
@@ -774,7 +774,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 
 
 		if (graphs.count(graph_name) == 0) {
-			throw GANException(362796, "Graph with same name does not exist.");
+			throw GANException(362796, "Graph with this name does not exist.");
 		}
 
 		if (graphs[graph_name]->IsEdgeExist(to_name, edge_name)) {
@@ -793,7 +793,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		if (graphs.count(graph_name) != 0) {
 			Verification(graph_name);
 		} else {
-			throw GANException(263702, "Graph with same name does not exist.");
+			throw GANException(263702, "Graph with this name does not exist.");
 		}
 
 	} else {
