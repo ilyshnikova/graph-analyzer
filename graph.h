@@ -39,52 +39,87 @@ public:
 
 /*    Edge     */
 
-class BlockBase;
+class Block;
 
 
 class Edge {
 private:
 	int id;
 	std::string edge_name;
-	BlockBase* from;
-	BlockBase* to;
+	Block* from;
+	Block* to;
 
 public:
-	Edge(const int id, const std::string& name, BlockBase* from, BlockBase* to);
+	Edge(const int id, const std::string& name, Block* from, Block* to);
 
 	int GetEdgeId() const;
 
-	BlockBase* To() const;
+	Block* To() const;
 
-	BlockBase* From() const;
+	Block* From() const;
 
 	std::string GetEdgeName() const;
+
 };
 
-/*      Block       */
-
+/*      BlockBase       */
 class BlockBase {
 private:
-	int id;
-	std::string block_name;
-	std::unordered_set<std::string> incoming_edges_names;
-	std::unordered_map<int, std::unordered_map<std::string, Point> > data;
-
-
-//	virtual Point Do(const std::time_t& time) = 0;
+//	virtual Point Do(const std::time_t& time);
 
 //	virtual bool Check(const std::time_t& time) const;
+
+public:
+	std::unordered_set<std::string> incoming_edges_names;
+
+	BlockBase(const std::unordered_set<std::string>& incoming_edges_names);
+};
+
+class TestBlock : public BlockBase {
+private:
+
+//	Point Do(const std::time_t& time);
+
+//	bool Check(const std::time_t& time) const;
+public:
+	TestBlock();
+
+};
+
+class EmptyTestBlock : public BlockBase {
+private:
+
+//	Point Do(const std::time_t& time);
+
+//	bool Check(const std::time_t& time) const;
+public:
+	EmptyTestBlock();
+
+};
+
+
+/*	Block	*/
+
+class Block {
+private:
+	BlockBase* block;
+	int id;
+	std::string block_name;
+	std::unordered_map<int, std::unordered_map<std::string, Point> > data;
+	std::string block_type;
 
 public:
 
 	std::unordered_map<std::string, Edge*> incoming_edges;
 	std::unordered_map<std::string, Edge*> outgoing_edges;
 
-	BlockBase(
+	Block(
 		const int id,
 		const std::string& block_name,
-		const std::unordered_set<std::string>& incoming_edges_names
+		const std::string& block_type
 	);
+
+	std::string GetBlockType() const;
 
 	int GetBlockId() const;
 
@@ -93,6 +128,8 @@ public:
 	void AddIncomingEdge(Edge* edge);
 
 	void DeleteIncomingEdge(const std::string& edge_name);
+
+	void AddOutgoingEdgeInTable(Edge* edge, Table* blocks_and_outgoing_edges_table);
 
 	void AddOutgoingEdge(Edge* edge, Table* blocks_and_outgoing_edges_table);
 
@@ -103,6 +140,10 @@ public:
 	bool Verification() const;
 
 	void Save();
+
+	bool IsEdgeExist(std::string& incoming_edge_name);
+
+	bool CanEdgeExist(std::string& incoming_edge_name);
 
 	Edge* GetOutgoingEdge(const std::string& edge_name);
 
@@ -116,33 +157,7 @@ public:
 
 	void DeleteEdge(Edge* edge);
 
-};
-
-class TestBlock : public BlockBase {
-private:
-
-//	Point Do(const std::time_t& time);
-
-//	bool Check(const std::time_t& time) const;
-public:
-	TestBlock(
-		const int id,
-		const std::string& block_name
-	);
-
-};
-
-class EmptyTestBlock : public BlockBase {
-private:
-
-//	Point Do(const std::time_t& time);
-
-//	bool Check(const std::time_t& time) const;
-public:
-	EmptyTestBlock(
-		const int id,
-		const std::string& block_name
-	);
+	~Block();
 
 };
 
@@ -153,7 +168,7 @@ class Graph {
 private:
 	int id;
 	std::string graph_name;
-	std::unordered_map<std::string, BlockBase*> blocks;
+	std::unordered_map<std::string, Block*> blocks;
 	std::vector<Edge*> edges;
 	Table* graphs_and_blocks_table;
 	Table* blocks_table;
@@ -162,7 +177,7 @@ private:
 
 
 
-	BlockBase* GetBlock(
+	Block* GetBlock(
 		const std::string& block_type,
 		const int block_id,
 		const std::string& block_name
@@ -182,6 +197,8 @@ public:
 
 	int GetGraphId() const;
 
+	std::string GetGraphName() const;
+
 	void CreateVertex(const std::string& block_type, const std::string& block_name);
 
 	void Insert(const Point& point, const std::string& block_name);
@@ -195,7 +212,9 @@ public:
 		const std::string& start_block
 	);
 
-	void CreateBlock(
+	void AddBlockInTables(Block* block);
+
+	Block* CreateBlock(
 		const std::string& block_type,
 		const int block_id,
 		const std::string& block_name
@@ -207,7 +226,13 @@ public:
 
 	void DeleteGraph();
 
-	void CreateEdge(
+	bool IsEdgeExist(const std::string& block_name, std::string& incoming_edge_name);
+
+	bool CanEdgeExist(const std::string& block_name, std::string& incoming_edge_name);
+
+	void AddEdgeInTables(Edge* edge);
+
+	Edge* CreateEdge(
 		const int edge_id,
 		const std::string& edge_name,
 		const std::string& from,
@@ -222,6 +247,8 @@ public:
 	);
 
 	void DeleteEdge(Edge* edge_name);
+
+	~Graph();
 
 };
 
@@ -246,7 +273,9 @@ public:
 
 	WorkSpace();
 
-	void CreateGraph(const int graph_id, const std::string& graph_name);
+	void AddGaphInTables(Graph* grpah);
+
+	Graph* CreateGraph(const int graph_id, const std::string& graph_name);
 
 	void DeleteGraph(const int graph_id, const std::string& graph_name);
 
