@@ -60,7 +60,7 @@ Block::Block(
 	const std::string& block_name,
 	const std::string& block_type
 )
-// Я насчитал 7 переменных в классе, а в конструкторе инициализируется 6. Надо точно также проверить все остальные конструкторы на эту ошибку.
+//* Я насчитал 7 переменных в классе, а в конструкторе инициализируется 6. Надо точно также проверить все остальные конструкторы на эту ошибку.
 : block()
 , id(id)
 , block_name(block_name)
@@ -73,7 +73,7 @@ Block::Block(
 	} else if (block_type == "EmptyTestBlock") {
 		block = new EmptyTestBlock();
 	} else {
-		// Нет, так не пойдет, надо написать какой именно block type некорректный. В итоге надо отредактировать все тексты исключений, ни в одном из них не должно быть такого, что текст константный, и в его формировании не участвует значение никакой переменной. Везде должна присутствовать подсказака для пользователя, какое слово он неправильно ввел в запросе.
+		//* Нет, так не пойдет, надо написать какой именно block type некорректный. В итоге надо отредактировать все тексты исключений, ни в одном из них не должно быть такого, что текст константный, и в его формировании не участвует значение никакой переменной. Везде должна присутствовать подсказака для пользователя, какое слово он неправильно ввел в запросе.
 		throw GANException(649264, "Incorret block type.");
 	}
 }
@@ -99,7 +99,7 @@ bool Block::Verification() const {
 	return true;
 }
 
-// IsYouKnowEnglishVeryWell ?
+//* IsYouKnowEnglishVeryWell ?
 bool Block::IsEdgeExist(std::string& incoming_edge_name) {
 	if (block->incoming_edges_names.count(incoming_edge_name) == 0) {
 		throw GANException(519720, "Edge with this name can't incoming to this block.");
@@ -151,7 +151,7 @@ void Block::DeleteIncomingEdge(const std::string& edge_name) {
 	}
 }
 
-// Не может быть "add in", может быть только "is in" или "add to". В остальных названиях функций надо задуматься над тем же вопросом
+//* Не может быть "add in", может быть только "is in" или "add to". В остальных названиях функций надо задуматься над тем же вопросом
 void Block::AddOutgoingEdgeInTable(Edge* edge, Table* blocks_and_outgoing_edges_table) {
 	logger <<
 		"Insert intp table BlocksAndOutgoingEdges BlockId:"
@@ -159,7 +159,7 @@ void Block::AddOutgoingEdgeInTable(Edge* edge, Table* blocks_and_outgoing_edges_
 		+ " EdgeId:"
 		+ std::to_string(edge->GetEdgeId());
 	blocks_and_outgoing_edges_table->Insert(id, edge->GetEdgeId());
-	// Копипаста одной и той же строчки повсюду с логгером и сообщением Execute
+	//* Копипаста одной и той же строчки повсюду с логгером и сообщением Execute
 	logger << "Execute";
 	blocks_and_outgoing_edges_table->Execute();
 
@@ -203,7 +203,7 @@ Block::~Block() {
 	for (auto it = outgoing_edges.begin(); it != outgoing_edges.end(); ++it) {
 		delete it->second;
 	}
-	// Такие ужасные вещи ведут к seg fault. У тебя просто не было шанца это протестировать. Добавляем новый запрос shutdown, при котором сервер выходит из цикла respond, и завершается, дергая все деструкторы. Это надо будет сделать в базовом классе демона.
+	//* Такие ужасные вещи ведут к seg fault. У тебя просто не было шанца это протестировать. Добавляем новый запрос shutdown, при котором сервер выходит из цикла respond, и завершается, дергая все деструкторы. Это надо будет сделать в базовом классе демона.
 	delete this;
 }
 
@@ -834,13 +834,13 @@ Graph* WorkSpace::CreateGraph(const int graph_id, const std::string& graph_name)
 		&blocks_and_outgoing_edges_table
 
 	);
-	// Два раза производится доступ по ключу, можно этого избежать в этой функции.
+	//* Два раза производится доступ по ключу, можно этого избежать в этой функции.
 	return graphs[graph_name];
 }
 
 
 void WorkSpace::DeleteGraph(const int graph_id, const std::string& graph_name) {
-	//Надо во всех функциях проверить нет ли копипасты с доступом по одному и тому же ключу два раза
+	//* Надо во всех функциях проверить нет ли копипасты с доступом по одному и тому же ключу два раза
 	graphs[graph_name]->DeleteGraph();
 	delete graphs[graph_name];
 	graphs.erase(graph_name);
