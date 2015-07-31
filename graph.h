@@ -129,7 +129,7 @@ public:
 
 	void DeleteIncomingEdge(const std::string& edge_name);
 
-	void AddOutgoingEdgeInTable(Edge* edge, Table* blocks_and_outgoing_edges_table);
+	void AddOutgoingEdgeToTable(Edge* edge, Table* blocks_and_outgoing_edges_table);
 
 	void AddOutgoingEdge(Edge* edge, Table* blocks_and_outgoing_edges_table);
 
@@ -141,7 +141,7 @@ public:
 
 	void Save();
 
-	bool IsEdgeExist(std::string& incoming_edge_name);
+	bool DoesEdgeExist(std::string& incoming_edge_name);
 
 	bool CanEdgeExist(std::string& incoming_edge_name);
 
@@ -212,7 +212,7 @@ public:
 		const std::string& start_block
 	);
 
-	void AddBlockInTables(Block* block);
+	void AddBlockToTables(Block* block);
 
 	Block* CreateBlock(
 		const std::string& block_type,
@@ -226,11 +226,11 @@ public:
 
 	void DeleteGraph();
 
-	bool IsEdgeExist(const std::string& block_name, std::string& incoming_edge_name);
+	bool DoesEdgeExist(const std::string& block_name, std::string& incoming_edge_name);
 
 	bool CanEdgeExist(const std::string& block_name, std::string& incoming_edge_name);
 
-	void AddEdgeInTables(Edge* edge);
+	void AddEdgeToTables(Edge* edge);
 
 	Edge* CreateEdge(
 		const int edge_id,
@@ -273,7 +273,7 @@ public:
 
 	WorkSpace();
 
-	void AddGaphInTables(Graph* grpah);
+	void AddGaphToTables(Graph* grpah);
 
 	Graph* CreateGraph(const int graph_id, const std::string& graph_name);
 

@@ -61,11 +61,13 @@ Block::Block(
 	const std::string& block_type
 )
 //* Я насчитал 7 переменных в классе, а в конструкторе инициализируется 6. Надо точно также проверить все остальные конструкторы на эту ошибку.
+//* добавлена инициализация incoming_edges
 : block()
 , id(id)
 , block_name(block_name)
 , data()
 , outgoing_edges()
+, incoming_edges()
 , block_type(block_type)
 {
 	if (block_type == "TestBlock") {
@@ -74,7 +76,8 @@ Block::Block(
 		block = new EmptyTestBlock();
 	} else {
 		//* Нет, так не пойдет, надо написать какой именно block type некорректный. В итоге надо отредактировать все тексты исключений, ни в одном из них не должно быть такого, что текст константный, и в его формировании не участвует значение никакой переменной. Везде должна присутствовать подсказака для пользователя, какое слово он неправильно ввел в запросе.
-		throw GANException(649264, "Incorret block type.");
+		//* исправила все исключения
+		throw GANException(649264, "Type " + block_type + " is incorret block type.");
 	}
 }
 
@@ -100,9 +103,10 @@ bool Block::Verification() const {
 }
 
 //* IsYouKnowEnglishVeryWell ?
-bool Block::IsEdgeExist(std::string& incoming_edge_name) {
+//* исправила
+bool Block::DoesEdgeExist(std::string& incoming_edge_name) {
 	if (block->incoming_edges_names.count(incoming_edge_name) == 0) {
-		throw GANException(519720, "Edge with this name can't incoming to this block.");
+		throw GANException(519720, "Edge with name " + incoming_edge_name  + " can't incoming to this block.");
 	}
 
 	if (
@@ -117,7 +121,7 @@ bool Block::IsEdgeExist(std::string& incoming_edge_name) {
 
 bool Block::CanEdgeExist(std::string& incoming_edge_name) {
 	if (block->incoming_edges_names.count(incoming_edge_name) == 0) {
-		throw GANException(519720, "Edge with this name can't incoming to this block.");
+		throw GANException(519720, "Edge with name " + incoming_edge_name  + " can't incoming to this block.");
 	}
 
 	if (
@@ -132,13 +136,14 @@ bool Block::CanEdgeExist(std::string& incoming_edge_name) {
 
 
 void Block::AddIncomingEdge(Edge* edge) {
+	std::string edge_name = edge->GetEdgeName();
 	if (
-		block->incoming_edges_names.count(edge->GetEdgeName()) != 0 &&
-		incoming_edges.count(edge->GetEdgeName()) == 0
+		block->incoming_edges_names.count(edge_name) != 0 &&
+		incoming_edges.count(edge_name) == 0
 	) {
-		incoming_edges[edge->GetEdgeName()] = edge;
+		incoming_edges[edge_name] = edge;
 	} else {
-		throw GANException(238536, "Edge with name " + edge->GetEdgeName()  +  " can't enter to this block.");
+		throw GANException(238536, "Edge with name " + edge_name  +  " can't enter to this block.");
 	}
 
 }
@@ -147,20 +152,22 @@ void Block::DeleteIncomingEdge(const std::string& edge_name) {
 	if (incoming_edges.count(edge_name) != 0) {
 		incoming_edges.erase(edge_name);
 	} else {
-		throw GANException(264913, "Incoming edge with this name does not exist.");
+		throw GANException(264913, "Incoming edge with name " + edge_name  + " does not exist.");
 	}
 }
 
 //* Не может быть "add in", может быть только "is in" или "add to". В остальных названиях функций надо задуматься над тем же вопросом
-void Block::AddOutgoingEdgeInTable(Edge* edge, Table* blocks_and_outgoing_edges_table) {
+//* исправила
+void Block::AddOutgoingEdgeToTable(Edge* edge, Table* blocks_and_outgoing_edges_table) {
+	int edge_id = edge->GetEdgeId();
 	logger <<
 		"Insert intp table BlocksAndOutgoingEdges BlockId:"
 		+ std::to_string(id)
 		+ " EdgeId:"
-		+ std::to_string(edge->GetEdgeId());
-	blocks_and_outgoing_edges_table->Insert(id, edge->GetEdgeId());
+		+ std::to_string(edge_id);
+	blocks_and_outgoing_edges_table->Insert(id, edge_id);
 	//* Копипаста одной и той же строчки повсюду с логгером и сообщением Execute
-	logger << "Execute";
+	//* удалила
 	blocks_and_outgoing_edges_table->Execute();
 
 }
@@ -179,7 +186,7 @@ void Block::DeleteOutgoingEdge(const std::string& edge_name, Table* blocks_and_o
 		logger << "DeleteOutgoingEdge from BlocksAndOutgoingEdges where BlockID = " + std::to_string(id);
 		blocks_and_outgoing_edges_table->Delete("BlockID = " + std::to_string(id));
 	} else {
-		throw GANException(264193, "Outgoing edge with this name does not exist.");
+		throw GANException(264193, "Outgoing edge with name " + edge_name  + " does not exist.");
 	}
 }
 
@@ -187,7 +194,7 @@ Edge* Block::GetOutgoingEdge(const std::string& edge_name) {
 	if (outgoing_edges.count(edge_name) != 0) {
 		return outgoing_edges[edge_name];
 	} else {
-		throw GANException(166231, "Edge with this name does not exist between such blocks.");
+		throw GANException(166231, "Edge with name " + edge_name  +  " does not exist between such blocks.");
 	}
 }
 
@@ -195,7 +202,7 @@ Edge* Block::GetIncomingEdge(const std::string& edge_name) {
 	if (incoming_edges.count(edge_name) != 0) {
 		return incoming_edges[edge_name];
 	} else {
-		throw GANException(161031, "Edge with this name does not exist between such block");
+		throw GANException(161031, "Edge with name " + edge_name  + " does not exist between such block");
 	}
 }
 
@@ -204,9 +211,8 @@ Block::~Block() {
 		delete it->second;
 	}
 	//* Такие ужасные вещи ведут к seg fault. У тебя просто не было шанца это протестировать. Добавляем новый запрос shutdown, при котором сервер выходит из цикла respond, и завершается, дергая все деструкторы. Это надо будет сделать в базовом классе демона.
-	delete this;
+	//*  исправлено(в daemons.cpp)
 }
-
 
 
 /*     Graph     */
@@ -271,7 +277,7 @@ void Graph::Load() {
 }
 
 
-void Graph::AddBlockInTables(Block* block) {
+void Graph::AddBlockToTables(Block* block) {
 	int block_id = block->GetBlockId();
 	std::string block_name = block->GetBlockName();
 	std::string block_type = block->GetBlockType();
@@ -282,7 +288,6 @@ void Graph::AddBlockInTables(Block* block) {
 		+ std::to_string(block_id);
 
 	graphs_and_blocks_table->Insert(id, block_id);
-	logger << "Execute";
 	graphs_and_blocks_table->Execute();
 
 	logger <<
@@ -295,7 +300,6 @@ void Graph::AddBlockInTables(Block* block) {
 		+ " State:";
 
 	blocks_table->Insert(block_id, block_name, block_type, std::string(""));
-	logger << "Execute";
 	blocks_table->Execute();
 }
 
@@ -357,7 +361,7 @@ void Graph::DeleteBlock(const std::string& block_name) {
 
 
 	} else {
-		throw GANException(529471, "Block with this name does not exist.");
+		throw GANException(529471, "Block with name " + block_name  + " does not exist.");
 	}
 }
 
@@ -382,7 +386,7 @@ bool Graph::In(const std::string& block_name) const {
 	return false;
 }
 
-void Graph::AddEdgeInTables(Edge* edge) {
+void Graph::AddEdgeToTables(Edge* edge) {
 	int edge_id = edge->GetEdgeId();
 	std::string edge_name = edge->GetEdgeName();
 	int to_id = edge->To()->GetBlockId();
@@ -394,17 +398,16 @@ void Graph::AddEdgeInTables(Edge* edge) {
 		+ " BlockTo:"
 		+ std::to_string(to_id);
 	edges_table->Insert(edge_id, edge_name, to_id);
-	logger << "Execute";
 	edges_table->Execute();
-	edge->From()->AddOutgoingEdgeInTable(edge, blocks_and_outgoing_edges_table);
+	edge->From()->AddOutgoingEdgeToTable(edge, blocks_and_outgoing_edges_table);
 
 }
 
-bool Graph::IsEdgeExist(const std::string& block_name, std::string& incoming_edge_name) {
+bool Graph::DoesEdgeExist(const std::string& block_name, std::string& incoming_edge_name) {
 	if (blocks.count(block_name)) {
-		return blocks[block_name]->IsEdgeExist(incoming_edge_name);
+		return blocks[block_name]->DoesEdgeExist(incoming_edge_name);
 	}
-	throw GANException(220561, "Block with this name does not exist.");
+	throw GANException(220561, "Block with name " + block_name  +  " does not exist.");
 }
 
 
@@ -412,7 +415,7 @@ bool Graph::CanEdgeExist(const std::string& block_name, std::string& incoming_ed
 	if (blocks.count(block_name)) {
 		return blocks[block_name]->CanEdgeExist(incoming_edge_name);
 	}
-	throw GANException(283561, "Block with this name does not exist.");
+	throw GANException(283561, "Block with name " + block_name  +  " does not exist.");
 }
 
 Edge* Graph::CreateEdge(
@@ -422,14 +425,19 @@ Edge* Graph::CreateEdge(
 		const std::string& to
 	) {
 	if (blocks.count(from) != 0 && blocks.count(to) != 0) {
-		Edge* edge = new Edge(edge_id, edge_name, blocks[from], blocks[to]);
+		Block* block_to = blocks[to];
+		Block* block_from = blocks[from];
+		Edge* edge = new Edge(edge_id, edge_name, block_from, block_to);
 
 		blocks[to]->AddIncomingEdge(edge);
 		blocks[from]->AddOutgoingEdge(edge, blocks_and_outgoing_edges_table);
 
 		return edge;
 	}
-		throw GANException(239185, "Block with this name does not exist");
+		throw GANException(239185, "Block with name "
+			+ (blocks.count(from) == 0 ? from  : to)
+			+ " does not exist."
+		);
 
 }
 
@@ -440,10 +448,13 @@ void Graph::DeleteEdge(
 	const std::string& to
 ) {
 	if (blocks.count(from) != 0 && blocks.count(to) != 0) {
-		Edge* edge = blocks[from]->GetOutgoingEdge(edge_name);
-		edge = blocks[to]->GetIncomingEdge(edge_name);
-		blocks[from]->DeleteOutgoingEdge(edge_name, blocks_and_outgoing_edges_table);
-		blocks[to]->DeleteIncomingEdge(edge_name);
+		Block* block_to = blocks[to];
+		Block* block_from = blocks[from];
+
+		Edge* edge = block_from->GetOutgoingEdge(edge_name);
+		edge = block_to->GetIncomingEdge(edge_name);
+		block_from->DeleteOutgoingEdge(edge_name, blocks_and_outgoing_edges_table);
+		block_to->DeleteIncomingEdge(edge_name);
 
 		logger <<
 			"Delete from Edges where Id:"
@@ -451,7 +462,11 @@ void Graph::DeleteEdge(
 
 		edges_table->Delete("Id = " + std::to_string(edge->GetEdgeId()));
 	} else {
-		throw GANException(419248, "Block with this does not exist.");
+
+		throw GANException(419248, "Block with name "
+			+ (blocks.count(from) == 0 ? from  : to)
+			+ " does not exist."
+		);
 	}
 
 }
@@ -571,41 +586,41 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		boost::regex_match(
 			query,
 			match,
-			boost::regex("\\s*create\\s+graph\\s+(\\w+)")
+			boost::regex("\\s*create\\s+graph\\s+(\\w+)\\s*")
 		)
 	) {
 		int graph_id = graphs_table.MaxValue("Id") + 1;
 		std::string graph_name = match[1];
 
 		if (graphs.count(graph_name) != 0) {
-			throw GANException(128463, "Graph with this name already exists.");
+			throw GANException(128463, "Graph with name " + graph_name   +  " already exists.");
 		}
 
-		AddGaphInTables(CreateGraph(graph_id, graph_name));
+		AddGaphToTables(CreateGraph(graph_id, graph_name));
 	} else if (
 		boost::regex_match(
 			query,
 			match,
-			boost::regex("\\s*create\\s+graph\\s+if\\s+not\\s+exists\\s+(\\w+)")
+			boost::regex("\\s*create\\s+graph\\s+if\\s+not\\s+exists\\s+(\\w+)\\s*")
 		)
 	) {
 		int graph_id = graphs_table.MaxValue("Id") + 1;
 		std::string graph_name = match[1];
 
 		if (graphs.count(graph_name) == 0) {
-			AddGaphInTables(CreateGraph(graph_id, graph_name));
+			AddGaphToTables(CreateGraph(graph_id, graph_name));
 		}
 	} else if (
 		boost::regex_match(
 			query,
 			match,
-			boost::regex("\\s*delete\\s+graph\\s+(\\w+)")
+			boost::regex("\\s*delete\\s+graph\\s+(\\w+)\\s*")
 		)
 	) {
 		std::string graph_name = match[1];
 
 		if (graphs.count(graph_name) == 0) {
-			throw GANException(483294, "Graph with this name does not exist.");
+			throw GANException(483294, "Graph with name " + graph_name  +  " does not exist.");
 		}
 
 		int graph_id = graphs.at(graph_name)->GetGraphId();
@@ -614,7 +629,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		boost::regex_match(
 			query,
 			match,
-			boost::regex("\\s*delete\\s+graph\\s+if\\s+exists\\s+(\\w+)")
+			boost::regex("\\s*delete\\s+graph\\s+if\\s+exists\\s+(\\w+)\\s*")
 		)
 	) {
 		std::string graph_name = match[1];
@@ -628,22 +643,22 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		boost::regex_match(
 			query,
 			match,
-			boost::regex("\\s*create\\s+vertex\\s+(\\w+):(\\w+)\\s+in\\s+(\\w+)")
+			boost::regex("\\s*create\\s+vertex\\s+(\\w+):(\\w+)\\s+in\\s+(\\w+)\\s*")
 		)
 	) {
 		std::string block_name = match[1];
 		std::string block_type = match[2];
 		std::string graph_name = match[3];
 		if (graphs.count(graph_name) == 0) {
-			throw GANException(419294, "Graph with this name does not exist.");
+			throw GANException(419294, "Graph with name " + graph_name  +  " does not exist.");
 
 		}
 		if (graphs[graph_name]->In(block_name)) {
-			throw GANException(428352, "Block with this name already exists in this graph.");
+			throw GANException(428352, "Block with name" + block_name  + " already exists in this graph.");
 		}
 
 		int block_id = blocks_table.MaxValue("Id") + 1;
-		graphs[graph_name]->AddBlockInTables(
+		graphs[graph_name]->AddBlockToTables(
 			graphs[graph_name]->CreateBlock(block_type, block_id, block_name)
 		);
 		ChangeGraphsValid(graph_name, 0);
@@ -652,19 +667,19 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		boost::regex_match(
 			query,
 			match,
-			boost::regex("\\s*create\\s+vertex\\s+if\\s+not\\s+exists\\s+(\\w+):(\\w+)\\s+in\\s+(\\w+)")
+			boost::regex("\\s*create\\s+vertex\\s+if\\s+not\\s+exists\\s+(\\w+):(\\w+)\\s+in\\s+(\\w+)\\s*")
 		)
 	) {
 		std::string block_name = match[1];
 		std::string block_type = match[2];
 		std::string graph_name = match[3];
 		if (graphs.count(graph_name) == 0) {
-			throw GANException(483294, "Graph with this name does not exist.");
+			throw GANException(483294, "Graph with name " + graph_name  +  " does not exist.");
 
 		}
 		if (!graphs[graph_name]->In(block_name)) {
 			int block_id = blocks_table.MaxValue("Id") + 1;
-			graphs[graph_name]->AddBlockInTables(
+			graphs[graph_name]->AddBlockToTables(
 				graphs[graph_name]->CreateBlock(block_type, block_id, block_name)
 			);
 
@@ -674,14 +689,14 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		boost::regex_match(
 			query,
 			match,
-			boost::regex("\\s*delete\\s+vertex\\s+(\\w+)\\s+in\\s+(\\w+)")
+			boost::regex("\\s*delete\\s+vertex\\s+(\\w+)\\s+in\\s+(\\w+)\\s*")
 		)
 	) {
 		std::string block_name = match[1];
 		std::string graph_name = match[2];
 
 		if (graphs.count(graph_name) == 0) {
-			throw GANException(375920, "Graph with this name does not exist.");
+			throw GANException(375920, "Graph with name " + graph_name  +  " does not exist.");
 		}
 
 		graphs[graph_name]->DeleteBlock(block_name);
@@ -691,7 +706,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		boost::regex_match(
 			query,
 			match,
-			boost::regex("\\s*delete\\s+vertex\\s+if\\s+exists\\s+(\\w+)\\s+in\\s+(\\w+)")
+			boost::regex("\\s*delete\\s+vertex\\s+if\\s+exists\\s+(\\w+)\\s+in\\s+(\\w+)\\s*")
 		)
 	) {
 		std::string block_name = match[1];
@@ -706,7 +721,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		boost::regex_match(
 			query,
 			match,
-			boost::regex("\\s*create\\s+edge\\s+(\\w+)\\s+in\\s+(\\w+)\\s+from\\s+(\\w+)\\s+to\\s+(\\w+)")
+			boost::regex("\\s*create\\s+edge\\s+(\\w+)\\s+in\\s+(\\w+)\\s+from\\s+(\\w+)\\s+to\\s+(\\w+)\\s*")
 		)
 	) {
 		std::string edge_name = match[1];
@@ -716,17 +731,17 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		int id = edges_table.MaxValue("Id") + 1;
 
 		if (graphs.count(graph_name) == 0) {
-			throw GANException(362796, "Graph with this name does not exist.");
+			throw GANException(362796, "Graph with name " + graph_name  +  " does not exist.");
 		}
 
-		graphs[graph_name]->AddEdgeInTables(
+		graphs[graph_name]->AddEdgeToTables(
 			graphs[graph_name]->CreateEdge(id, edge_name, from_name, to_name));
 		ChangeGraphsValid(graph_name, 0);
 	} else if (
 		boost::regex_match(
 			query,
 			match,
-			boost::regex("\\s*create\\s+edge\\s+if\\s+not\\s+exists\\s+(\\w+)\\s+in\\s+(\\w+)\\s+from\\s+(\\w+)\\s+to\\s+(\\w+)")
+			boost::regex("\\s*create\\s+edge\\s+if\\s+not\\s+exists\\s+(\\w+)\\s+in\\s+(\\w+)\\s+from\\s+(\\w+)\\s+to\\s+(\\w+)\\s*")
 		)
 	)  {
 		std::string edge_name = match[1];
@@ -736,11 +751,11 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		int id = edges_table.MaxValue("Id") + 1;
 
 		if (graphs.count(graph_name) == 0) {
-			throw GANException(362796, "Graph with this name does not exist.");
+			throw GANException(362796, "Graph with name " + graph_name  +  " does not exist.");
 		}
 
 		if (graphs[graph_name]->CanEdgeExist(to_name, edge_name)) {
-			graphs[graph_name]->AddEdgeInTables(
+			graphs[graph_name]->AddEdgeToTables(
 				graphs[graph_name]->CreateEdge(id, edge_name, from_name, to_name));
 
 			ChangeGraphsValid(graph_name, 0);
@@ -749,7 +764,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		boost::regex_match(
 			query,
 			match,
-			boost::regex("\\s*delete\\s+edge\\s+(\\w+)\\s+in\\s+(\\w+)\\s+from\\s+(\\w+)\\s+to\\s+(\\w+)")
+			boost::regex("\\s*delete\\s+edge\\s+(\\w+)\\s+in\\s+(\\w+)\\s+from\\s+(\\w+)\\s+to\\s+(\\w+)\\s*")
 		)
 	) {
 		std::string edge_name = match[1];
@@ -759,7 +774,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 
 
 		if (graphs.count(graph_name) == 0) {
-			throw GANException(362796, "Graph with this name does not exist.");
+			throw GANException(362796, "Graph with name " + graph_name  +  " does not exist.");
 		}
 
 		graphs[graph_name]->DeleteEdge(edge_name, from_name, to_name);
@@ -769,7 +784,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		boost::regex_match(
 			query,
 			match,
-			boost::regex("\\s*delete\\s+edge\\s+if\\s+exists\\s+edge\\s+(\\w+)\\s+in\\s+(\\w+)\\s+from\\s+(\\w+)\\s+to\\s+(\\w+)")
+			boost::regex("\\s*delete\\s+edge\\s+if\\s+exists\\s+edge\\s+(\\w+)\\s+in\\s+(\\w+)\\s+from\\s+(\\w+)\\s+to\\s+(\\w+)\\s*")
 		)
 	) {
 		std::string edge_name = match[1];
@@ -779,10 +794,10 @@ std::string WorkSpace::Respond(const std::string& query)  {
 
 
 		if (graphs.count(graph_name) == 0) {
-			throw GANException(362796, "Graph with this name does not exist.");
+			throw GANException(362796, "Graph with name " + graph_name  +  " does not exist.");
 		}
 
-		if (graphs[graph_name]->IsEdgeExist(to_name, edge_name)) {
+		if (graphs[graph_name]->DoesEdgeExist(to_name, edge_name)) {
 			graphs[graph_name]->DeleteEdge(edge_name, from_name, to_name);
 			ChangeGraphsValid(graph_name, 0);
 
@@ -791,14 +806,14 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		boost::regex_match(
 			query,
 			match,
-			boost::regex("\\s*deploy\\s+graph\\s+(\\w+)")
+			boost::regex("\\s*deploy\\s+graph\\s+(\\w+)\\s*")
 		)
 	) {
 		std::string graph_name = match[1];
 		if (graphs.count(graph_name) != 0) {
 			Verification(graph_name);
 		} else {
-			throw GANException(263702, "Graph with this name does not exist.");
+			throw GANException(263702, "Graph with name " + graph_name  +  " does not exist.");
 		}
 
 	} else {
@@ -808,7 +823,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 }
 
 
-void WorkSpace::AddGaphInTables(Graph* graph) {
+void WorkSpace::AddGaphToTables(Graph* graph) {
 	int graph_id = graph->GetGraphId();
 	std::string graph_name = graph->GetGraphName();
 	logger <<
@@ -819,13 +834,12 @@ void WorkSpace::AddGaphInTables(Graph* graph) {
 		+ " Valid:0";
 
 	graphs_table.Insert(graph->GetGraphId(), graph->GetGraphName(), 0);
-	logger << "Execute";
 	graphs_table.Execute();
 
 }
 
 Graph* WorkSpace::CreateGraph(const int graph_id, const std::string& graph_name) {
-	graphs[graph_name] = new Graph(
+	Graph* graph = new Graph(
 		graph_id,
 		graph_name,
 		&graphs_and_blocks_table,
@@ -834,15 +848,19 @@ Graph* WorkSpace::CreateGraph(const int graph_id, const std::string& graph_name)
 		&blocks_and_outgoing_edges_table
 
 	);
+	graphs[graph_name] = graph;
 	//* Два раза производится доступ по ключу, можно этого избежать в этой функции.
-	return graphs[graph_name];
+	//* исправленно
+	return graph;
 }
 
 
 void WorkSpace::DeleteGraph(const int graph_id, const std::string& graph_name) {
 	//* Надо во всех функциях проверить нет ли копипасты с доступом по одному и тому же ключу два раза
-	graphs[graph_name]->DeleteGraph();
-	delete graphs[graph_name];
+	//* сделано
+	Graph* graph = graphs[graph_name];
+	graph->DeleteGraph();
+	delete graph;
 	graphs.erase(graph_name);
 
 	logger << "Delete from Graphs where Id = " + std::to_string(graph_id);
@@ -852,14 +870,14 @@ void WorkSpace::DeleteGraph(const int graph_id, const std::string& graph_name) {
 }
 
 void WorkSpace::ChangeGraphsValid(const std::string& graph_name, const int valid) {
+	int graph_id = graphs[graph_name]->GetGraphId();
 	logger << "Insert into tablse Graphs Id:"
-		+ std::to_string(graphs[graph_name]->GetGraphId())
+		+ std::to_string(graph_id)
 		+ " GraphName:"
 		+ graph_name
 		+ " Valid:"
 		+ std::to_string(valid);
-	graphs_table.Insert(graphs[graph_name]->GetGraphId(), graph_name, valid);
-	logger << "Execute";
+	graphs_table.Insert(graph_id, graph_name, valid);
 	graphs_table.Execute();
 }
 

@@ -201,6 +201,12 @@ void DaemonBase::Daemon() {
 
 		shutdown(client_socketfd, 0);
 
+		if (query == "shutdown") {
+			break;
+		}
+
+
+
 		std::string message;
 
 		try {
