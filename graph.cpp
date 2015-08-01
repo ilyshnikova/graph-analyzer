@@ -843,10 +843,6 @@ Graph* WorkSpace::CreateGraph(const int graph_id, const std::string& graph_name)
 
 	);
 	graphs[graph_name] = graph;
-	//* Два раза производится доступ по ключу, можно этого избежать в этой функции.
-	//* исправленно
-	//* Грепни grep -E '\[.*\]' -r * и просмотри еще раз
-	//* вроде теперь все
 	return graph;
 }
 
