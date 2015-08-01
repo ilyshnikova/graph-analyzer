@@ -202,6 +202,8 @@ void DaemonBase::Daemon() {
 		shutdown(client_socketfd, 0);
 
 		if (query == "shutdown") {
+			SendMessage(client_socketfd, "Ok");
+			close(client_socketfd);
 			break;
 		}
 

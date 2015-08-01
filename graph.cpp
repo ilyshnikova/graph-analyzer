@@ -302,8 +302,9 @@ Block* Graph::CreateBlock(
 		Block* block = new Block(block_id, block_name, block_type);
 		blocks[block_name] = block;
 		return block;
+	} else {
+		return	blocks[block_name];
 	}
-	return	blocks[block_name];
 }
 
 void Graph::DeleteBlock(const std::string& block_name) {
@@ -420,8 +421,8 @@ Edge* Graph::CreateEdge(
 		Block* block_from = blocks[from];
 		Edge* edge = new Edge(edge_id, edge_name, block_from, block_to);
 
-		blocks[to]->AddIncomingEdge(edge);
-		blocks[from]->AddOutgoingEdge(edge, blocks_and_outgoing_edges_table);
+		block_to->AddIncomingEdge(edge);
+		block_from->AddOutgoingEdge(edge, blocks_and_outgoing_edges_table);
 
 		return edge;
 	}
