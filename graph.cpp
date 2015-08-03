@@ -597,7 +597,10 @@ void Graph::DeleteEdge(
 		Block* block_from = blocks[from];
 
 		Edge* edge = block_from->GetOutgoingEdge(edge_name);
-		edge = block_to->GetIncomingEdge(edge_name);
+		Edge* second_edge = block_to->GetIncomingEdge(edge_name);
+		if (edge->GetEdgeId() != second_edge->GetEdgeId()) {
+			throw GANException(258259, "Edge " + edge_name + " between blocks " + from + " and " + to + " does not exist.");
+		}
 		block_from->DeleteOutgoingEdge(edge_name, blocks_and_outgoing_edges_table);
 		block_to->DeleteIncomingEdge(edge_name);
 
@@ -704,7 +707,22 @@ size_t Graph::IncomingEdgesCount(const std::string& block_name) const {
 
 
 void Graph::InsertPoint(const Point& point, const std::string& block_name) {
+	if (!valid) {
+		throw GANException(207530, "Graph " + graph_name + "is not valid.");
+	}
+
 	if (blocks.count(block_name) != 0) {
+		if (IncomingEdgesCount(block_name) != 0) {
+			Block* block = blocks[block_name];
+			std::string edges = "";
+			for (auto it = block->incoming_edges.begin();
+				it != block->incoming_edges.end();
+				++it
+			) {
+				edges += "\n" + it->first;
+			}
+			throw GANException(197529, "Block " + block_name  +  " has incoming edges:" + edges);
+		}
 		blocks[block_name]->SendByAllEdges(point);
 	} else {
 		throw GANException(287103, "Block with name " + block_name + " does not exist.");
@@ -1032,6 +1050,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 
 		//* Нет проверки валидности графа
 		//* Ничего не происходит, когда точка пихается в вершину со входящими ребрами, а должно бросаться исключение
+		//* все это теперь проверятеся в InsertPiunt
 		graphs[graph_name]->InsertPointToAllPossibleBlocks(Point(series_name, value, time));
 	} else {
 		throw GANException(529352, "Incorrect query");
