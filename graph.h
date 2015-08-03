@@ -225,7 +225,8 @@ public:
 		Table* graphs_and_blocks_table,
 		Table* blocks_table,
 		Table* edges_table,
-		Table* blocks_and_outgoing_edges_table
+		Table* blocks_and_outgoing_edges_table,
+		const bool valid
 	);
 
 	void Load();
@@ -320,7 +321,7 @@ public:
 
 	void AddGaphToTables(Graph* grpah);
 
-	Graph* CreateGraph(const int graph_id, const std::string& graph_name);
+	Graph* CreateGraph(const int graph_id, const std::string& graph_name, const bool valid);
 
 	void DeleteGraph(const int graph_id, const std::string& graph_name);
 

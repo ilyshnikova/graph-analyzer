@@ -384,7 +384,8 @@ Graph::Graph(
 	Table* graphs_and_blocks_table,
 	Table* blocks_table,
 	Table* edges_table,
-	Table* blocks_and_outgoing_edges_table
+	Table* blocks_and_outgoing_edges_table,
+	const bool valid
 )
 : id(id)
 , graph_name(graph_name)
@@ -394,7 +395,7 @@ Graph::Graph(
 , blocks_table(blocks_table)
 , edges_table(edges_table)
 , blocks_and_outgoing_edges_table(blocks_and_outgoing_edges_table)
-, valid(false)
+, valid(valid)
 {
 Load();
 }
@@ -777,7 +778,7 @@ Graph::~Graph() {
 
 void WorkSpace::Load() {
 	for (Table::rows it = graphs_table.Select("1"); it != graphs_table.SelectEnd(); ++it) {
-		CreateGraph(int(it["Id"]), std::string(it["GraphName"]));
+		CreateGraph(int(it["Id"]), std::string(it["GraphName"]), (it["Valid"] == 0 ? false : true));
 	}
 }
 
@@ -814,7 +815,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 			throw GANException(128463, "Graph with name " + graph_name   +  " already exists.");
 		}
 
-		AddGaphToTables(CreateGraph(graph_id, graph_name));
+		AddGaphToTables(CreateGraph(graph_id, graph_name, 0));
 	} else if (
 		boost::regex_match(
 			query,
@@ -826,7 +827,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		std::string graph_name = match[1];
 
 		if (graphs.count(graph_name) == 0) {
-			AddGaphToTables(CreateGraph(graph_id, graph_name));
+			AddGaphToTables(CreateGraph(graph_id, graph_name, 0));
 		}
 	} else if (
 		boost::regex_match(
@@ -1100,15 +1101,15 @@ void WorkSpace::AddGaphToTables(Graph* graph) {
 
 }
 
-Graph* WorkSpace::CreateGraph(const int graph_id, const std::string& graph_name) {
+Graph* WorkSpace::CreateGraph(const int graph_id, const std::string& graph_name, const bool valid) {
 	Graph* graph = new Graph(
 		graph_id,
 		graph_name,
 		&graphs_and_blocks_table,
 		&blocks_table,
 		&edges_table,
-		&blocks_and_outgoing_edges_table
-
+		&blocks_and_outgoing_edges_table,
+		valid
 	);
 	graphs[graph_name] = graph;
 	return graph;
