@@ -7,6 +7,48 @@
 #include "graph.h"
 #include "logger.h"
 
+Point::Point()
+: series_name()
+, value()
+, time()
+, is_empty(true)
+{}
+
+
+Point::Point(
+	const std::string& series_name,
+	const double value,
+	const std::time_t& time
+)
+: series_name(series_name)
+, value(value)
+, time(time)
+, is_empty(false)
+{}
+
+std::string Point::GetSeriesName() const {
+	return series_name;
+}
+
+std::time_t Point::GetTime() const {
+	return time;
+}
+
+double Point::GetValue() const {
+	return value;
+}
+
+bool Point::IsEmpty()const  {
+	return is_empty;
+}
+
+Point Point::Empty() {
+	return Point();
+}
+
+
+
+
 /*  Edge   */
 Edge::Edge(const int id, const std::string& name, Block* from, Block* to)
 : id(id)
@@ -38,18 +80,87 @@ BlockBase::BlockBase(const std::unordered_set<std::string>& incoming_edges_names
 : incoming_edges_names(incoming_edges_names)
 {}
 
-/*   TestBlock   */
-
-TestBlock::TestBlock()
-: BlockBase({"test_edge"})
-{}
-
 
 /*   EmptyTestBlock    */
 
-EmptyTestBlock::EmptyTestBlock()
+
+EmptyBlock::EmptyBlock()
 : BlockBase({})
 {}
+
+
+Point EmptyBlock::Do(
+	std::unordered_map<std::string, Point>& values,
+	const std::time_t& time
+) {
+	return Point::Empty();
+}
+
+/*	Sum	*/
+
+
+std::unordered_set<std::string> Sum::CreateIncomingEdges(const int edges_count) const {
+	std::unordered_set<std::string> edges;
+	for (size_t i = 0; i < edges_count; ++i) {
+		edges.insert("arg" + std::to_string(i + 1));
+	}
+	return edges;
+}
+
+
+Sum::Sum(const int edges_count)
+: BlockBase(CreateIncomingEdges(edges_count))
+{}
+
+
+Point Sum::Do(
+	std::unordered_map<std::string, Point>& values,
+	const std::time_t& time
+) {
+	//* Название серии должно быть sum(series_1, series_2)
+	//* исправлено
+	std::string res_series_name = "sum(";
+	std::vector<std::string> series_names;
+	double res_value = double(0);
+	for (auto it = values.begin(); it != values.end(); ++it) {
+		series_names.push_back(it->second.GetSeriesName());
+		res_value += it->second.GetValue();
+	}
+	for (size_t i = 0; i < series_names.size(); ++i) {
+		res_series_name += series_names[i];
+		if (i + 1 != series_names.size()) {
+			res_series_name += ", ";
+		} else {
+			res_series_name += ")";
+		}
+	}
+	return Point(res_series_name, res_value, time);
+
+}
+
+
+/*	PrintToLogs	*/
+
+PrintToLogs::PrintToLogs()
+: BlockBase({"to_print"})
+{}
+
+
+Point PrintToLogs::Do(
+	std::unordered_map<std::string, Point>& values,
+	const std::time_t& time
+) {
+	for (auto it = values.begin(); it != values.end(); ++it) {
+		logger <<
+			"Point: series name: "
+			+ it->second.GetSeriesName()
+			+ " value: "
+			+ std::to_string(it->second.GetValue())
+			+ " time: "
+			+ std::to_string(it->second.GetTime());
+	}
+	return Point::Empty();
+}
 
 
 /*	Block	*/
@@ -68,13 +179,22 @@ Block::Block(
 , incoming_edges()
 , block_type(block_type)
 {
-	if (block_type == "TestBlock") {
-		block = new TestBlock();
-	} else if (block_type == "EmptyTestBlock") {
-		block = new EmptyTestBlock();
+	boost::smatch match;
+	if (boost::regex_match(
+			block_type,
+			match,
+			boost::regex("Sum(\\d+)")
+		)
+	) {
+		block = new Sum(std::stoi(match[1]));
+	} else if (block_type == "PrintToLogs") {
+		block = new PrintToLogs();
+	} else if (block_type == "EmptyBlock") {
+		block = new EmptyBlock();
 	} else {
 		throw GANException(649264, "Type " + block_type + " is incorret block type.");
 	}
+
 }
 
 std::string Block::GetBlockType() const {
@@ -100,7 +220,10 @@ bool Block::Verification() const {
 
 bool Block::DoesEdgeExist(std::string& incoming_edge_name) {
 	if (block->incoming_edges_names.count(incoming_edge_name) == 0) {
-		throw GANException(519720, "Edge with name " + incoming_edge_name  + " can't incoming to this block.");
+		throw GANException(
+			519720,
+			"Edge with name " + incoming_edge_name  + " can't incoming to block " +  block_name + "."
+		);
 	}
 
 	if (
@@ -115,7 +238,10 @@ bool Block::DoesEdgeExist(std::string& incoming_edge_name) {
 
 bool Block::CanEdgeExist(std::string& incoming_edge_name) {
 	if (block->incoming_edges_names.count(incoming_edge_name) == 0) {
-		throw GANException(519720, "Edge with name " + incoming_edge_name  + " can't incoming to this block.");
+		throw GANException(
+			512320,
+			"Edge with name " + incoming_edge_name  + " can't incoming to block " + block_name +  "."
+		);
 	}
 
 	if (
@@ -137,7 +263,14 @@ void Block::AddIncomingEdge(Edge* edge) {
 	) {
 		incoming_edges[edge_name] = edge;
 	} else {
-		throw GANException(238536, "Edge with name " + edge_name  +  " can't enter to this block.");
+		if (block->incoming_edges_names.count(edge_name) == 0) {
+			throw GANException(
+				238536,
+				"Edge with name " + edge_name  +  " can't enter to block " + block_type + "."
+			);
+		} else {
+			throw GANException(194527, "Edge with name " + edge_name  +  " already exist" );
+		}
 	}
 
 }
@@ -196,6 +329,46 @@ Edge* Block::GetIncomingEdge(const std::string& edge_name) {
 	}
 }
 
+bool Block::Check(const std::time_t& time) const {
+	for (
+		auto it = block->incoming_edges_names.begin();
+		it != block->incoming_edges_names.end();
+		++it
+	) {
+		if (data.at(time).count(*it) == 0) {
+			return false;
+		}
+	}
+	return true;
+}
+
+void Block::Insert(const Point& point, const std::string& edge_name) {
+	std::time_t time = point.GetTime();
+	data[time][edge_name] = point;
+	if (Check(time)) {
+		Point result =  block->Do(data[time], time);
+		data.erase(time);
+
+		if (!result.IsEmpty()) {
+			SendByAllEdges(result);
+		}
+	}
+}
+
+
+void Block::SendByAllEdges(const Point& point) const {
+	for (
+		auto it = outgoing_edges.begin();
+		it != outgoing_edges.end();
+		++it
+	) {
+		it->second->To()->Insert(point, it->first);
+	}
+
+}
+
+
+
 Block::~Block() {
 	for (auto it = outgoing_edges.begin(); it != outgoing_edges.end(); ++it) {
 		delete it->second;
@@ -211,7 +384,8 @@ Graph::Graph(
 	Table* graphs_and_blocks_table,
 	Table* blocks_table,
 	Table* edges_table,
-	Table* blocks_and_outgoing_edges_table
+	Table* blocks_and_outgoing_edges_table,
+	const bool valid
 )
 : id(id)
 , graph_name(graph_name)
@@ -221,7 +395,7 @@ Graph::Graph(
 , blocks_table(blocks_table)
 , edges_table(edges_table)
 , blocks_and_outgoing_edges_table(blocks_and_outgoing_edges_table)
-
+, valid(valid)
 {
 Load();
 }
@@ -231,6 +405,9 @@ std::string Graph::GetGraphName() const {
 	return graph_name;
 }
 
+bool Graph::GetGraphValid() const {
+	return valid;
+}
 
 
 void Graph::Load() {
@@ -444,7 +621,10 @@ void Graph::DeleteEdge(
 		Block* block_from = blocks[from];
 
 		Edge* edge = block_from->GetOutgoingEdge(edge_name);
-		edge = block_to->GetIncomingEdge(edge_name);
+		Edge* second_edge = block_to->GetIncomingEdge(edge_name);
+		if (edge->GetEdgeId() != second_edge->GetEdgeId()) {
+			throw GANException(258259, "Edge " + edge_name + " between blocks " + from + " and " + to + " does not exist.");
+		}
 		block_from->DeleteOutgoingEdge(edge_name, blocks_and_outgoing_edges_table);
 		block_to->DeleteIncomingEdge(edge_name);
 
@@ -540,6 +720,53 @@ void Graph::Verification() {
 
 }
 
+
+size_t Graph::IncomingEdgesCount(const std::string& block_name) const {
+	if (blocks.count(block_name) != 0) {
+		return blocks.at(block_name)->incoming_edges.size();
+	} else {
+		throw GANException(226503, "Block with name " + block_name + " does not exist.");
+	}
+}
+
+
+void Graph::InsertPoint(const Point& point, const std::string& block_name) {
+	if (!valid) {
+		throw GANException(207530, "Graph " + graph_name + " is not valid, run 'deploy graph " + graph_name + "'.");
+	}
+
+	if (blocks.count(block_name) != 0) {
+		if (IncomingEdgesCount(block_name) != 0) {
+			Block* block = blocks[block_name];
+			std::string edges = "";
+			for (auto it = block->incoming_edges.begin();
+				it != block->incoming_edges.end();
+				++it
+			) {
+				edges += "\n" + it->first;
+			}
+			throw GANException(197529, "Block " + block_name  +  " has incoming edges:" + edges);
+		}
+		blocks[block_name]->SendByAllEdges(point);
+	} else {
+		throw GANException(287103, "Block with name " + block_name + " does not exist.");
+	}
+}
+
+
+void Graph::InsertPointToAllPossibleBlocks(const Point& point) {
+	for (auto it = blocks.begin(); it != blocks.end(); ++it) {
+		if (IncomingEdgesCount(it->first) == 0) {
+			InsertPoint(point, it->first);
+		}
+	}
+}
+
+void Graph::ChangeGraphsValid(const bool new_valid) {
+	valid = new_valid;
+}
+
+
 Graph::~Graph() {
 	for (auto it = blocks.begin(); it != blocks.end(); ++it) {
 		delete it->second;
@@ -551,7 +778,7 @@ Graph::~Graph() {
 
 void WorkSpace::Load() {
 	for (Table::rows it = graphs_table.Select("1"); it != graphs_table.SelectEnd(); ++it) {
-		CreateGraph(int(it["Id"]), std::string(it["GraphName"]));
+		CreateGraph(int(it["Id"]), std::string(it["GraphName"]), (it["Valid"] == 0 ? false : true));
 	}
 }
 
@@ -588,7 +815,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 			throw GANException(128463, "Graph with name " + graph_name   +  " already exists.");
 		}
 
-		AddGaphToTables(CreateGraph(graph_id, graph_name));
+		AddGaphToTables(CreateGraph(graph_id, graph_name, 0));
 	} else if (
 		boost::regex_match(
 			query,
@@ -600,7 +827,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		std::string graph_name = match[1];
 
 		if (graphs.count(graph_name) == 0) {
-			AddGaphToTables(CreateGraph(graph_id, graph_name));
+			AddGaphToTables(CreateGraph(graph_id, graph_name, 0));
 		}
 	} else if (
 		boost::regex_match(
@@ -647,7 +874,10 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		}
 		Graph* graph = graphs[graph_name];
 		if (graph->In(block_name)) {
-			throw GANException(428352, "Block with name" + block_name  + " already exists in this graph.");
+			throw GANException(
+				428352,
+				"Block with name" + block_name  + " already exists in graph " + graph_name +  "."
+			);
 		}
 
 		int block_id = blocks_table.MaxValue("Id") + 1;
@@ -810,6 +1040,45 @@ std::string WorkSpace::Respond(const std::string& query)  {
 			throw GANException(263702, "Graph with name " + graph_name  +  " does not exist.");
 		}
 
+	} else if (
+		boost::regex_match(
+			query,
+			match,
+			boost::regex("\\s*insert\\s+point\\s+'(\\w+)':(\\d+):(\\-{0,1}\\d*.{0,1}\\d*)\\s+into\\s+block\\s+(\\w+)\\s+of\\s+graph\\s+(\\w+)\\s*")
+		)
+	) {
+		std::string series_name = match[1];
+		std::time_t time = std::time_t(std::stoi(match[2]));
+		double value = std::stod(match[3]);
+		std::string block_name = match[4];
+		std::string graph_name = match[5];
+
+		if (graphs.count(graph_name) == 0) {
+			throw GANException(195702, "Graph with name " + graph_name  +  " does not exist.");
+		}
+
+		graphs[graph_name]->InsertPoint(Point(series_name, value, time), block_name);
+
+	} else if (
+		boost::regex_match(
+			query,
+			match,
+			boost::regex("\\s*insert\\s+point\\s+'(\\w+)':(\\d+):(\\-{0,1}\\d*.{0,1}\\d*)\\s+into\\s+graph\\s+(\\w+)\\s*")
+		)
+	) {
+		std::string series_name = match[1];
+		std::time_t time = std::time_t(std::stoi(match[2]));
+		double value = std::stod(match[3]);
+		std::string graph_name = match[4];
+
+		if (graphs.count(graph_name) == 0) {
+			throw GANException(195702, "Graph with name " + graph_name  +  " does not exist.");
+		}
+
+		//* Нет проверки валидности графа
+		//* Ничего не происходит, когда точка пихается в вершину со входящими ребрами, а должно бросаться исключение
+		//* все это теперь проверятеся в InsertPoint
+		graphs[graph_name]->InsertPointToAllPossibleBlocks(Point(series_name, value, time));
 	} else {
 		throw GANException(529352, "Incorrect query");
 	}
@@ -832,15 +1101,15 @@ void WorkSpace::AddGaphToTables(Graph* graph) {
 
 }
 
-Graph* WorkSpace::CreateGraph(const int graph_id, const std::string& graph_name) {
+Graph* WorkSpace::CreateGraph(const int graph_id, const std::string& graph_name, const bool valid) {
 	Graph* graph = new Graph(
 		graph_id,
 		graph_name,
 		&graphs_and_blocks_table,
 		&blocks_table,
 		&edges_table,
-		&blocks_and_outgoing_edges_table
-
+		&blocks_and_outgoing_edges_table,
+		valid
 	);
 	graphs[graph_name] = graph;
 	return graph;
@@ -859,15 +1128,16 @@ void WorkSpace::DeleteGraph(const int graph_id, const std::string& graph_name) {
 
 }
 
-void WorkSpace::ChangeGraphsValid(const std::string& graph_name, const int valid) {
+void WorkSpace::ChangeGraphsValid(const std::string& graph_name, const int graphs_valid) {
+	graphs[graph_name]->ChangeGraphsValid((graphs_valid == 0 ? false : true));
 	int graph_id = graphs[graph_name]->GetGraphId();
 	logger << "Insert into tablse Graphs Id:"
 		+ std::to_string(graph_id)
 		+ " GraphName:"
 		+ graph_name
 		+ " Valid:"
-		+ std::to_string(valid);
-	graphs_table.Insert(graph_id, graph_name, valid);
+		+ std::to_string(graphs_valid);
+	graphs_table.Insert(graph_id, graph_name, graphs_valid);
 	graphs_table.Execute();
 }
 
