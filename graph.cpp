@@ -118,11 +118,21 @@ Point Sum::Do(
 	const std::time_t& time
 ) {
 	//* Название серии должно быть sum(series_1, series_2)
-	std::string res_series_name = "summ_of";
+	//* исправлено
+	std::string res_series_name = "summ(";
+	std::vector<std::string> series_names;
 	double res_value = 0;
 	for (auto it = values.begin(); it != values.end(); ++it) {
-		res_series_name += "_" + it->second.GetSeriesName();
+		series_names.push_back(it->second.GetSeriesName());
 		res_value += it->second.GetValue();
+	}
+	for (size_t i = 0; i < series_names.size(); ++i) {
+		res_series_name += series_names[i];
+		if (i + 1 == series_names.size()) {
+			res_series_name += ", ";
+		} else {
+			res_series_name += ")";
+		}
 	}
 	return Point(res_series_name, res_value, time);
 
@@ -708,7 +718,7 @@ size_t Graph::IncomingEdgesCount(const std::string& block_name) const {
 
 void Graph::InsertPoint(const Point& point, const std::string& block_name) {
 	if (!valid) {
-		throw GANException(207530, "Graph " + graph_name + "is not valid.");
+		throw GANException(207530, "Graph " + graph_name + "is not valid, run 'deploy graph " + graph_name + "'.");
 	}
 
 	if (blocks.count(block_name) != 0) {
@@ -1050,7 +1060,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 
 		//* Нет проверки валидности графа
 		//* Ничего не происходит, когда точка пихается в вершину со входящими ребрами, а должно бросаться исключение
-		//* все это теперь проверятеся в InsertPiunt
+		//* все это теперь проверятеся в InsertPoint
 		graphs[graph_name]->InsertPointToAllPossibleBlocks(Point(series_name, value, time));
 	} else {
 		throw GANException(529352, "Incorrect query");
