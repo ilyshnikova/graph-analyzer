@@ -16,25 +16,29 @@
 
 class Point {
 private:
-	int id;
 	std::string series_name;
 	double value;
 	std::time_t time;
+	bool is_empty;
 
 public:
+	Point();
 
 	Point(
-		const int id,
 		const std::string& series_name,
 		const double value,
 		const std::time_t& time
 	);
 
-	std::string GetSeriesNme() const;
+	std::string GetSeriesName() const;
 
-	int GetTime() const;
+	std::time_t GetTime() const;
 
 	double GetValue() const;
+
+	bool IsEmpty() const;
+
+	static Point Empty();
 };
 
 /*    Edge     */
@@ -65,38 +69,62 @@ public:
 /*      BlockBase       */
 class BlockBase {
 private:
-//	virtual Point Do(const std::time_t& time);
-
-//	virtual bool Check(const std::time_t& time) const;
 
 public:
 	std::unordered_set<std::string> incoming_edges_names;
 
 	BlockBase(const std::unordered_set<std::string>& incoming_edges_names);
+
+	virtual Point Do(
+		std::unordered_map<std::string, Point>& values,
+		const std::time_t& time
+	) = 0;
+
 };
 
-class TestBlock : public BlockBase {
+
+class EmptyBlock : public BlockBase {
 private:
 
-//	Point Do(const std::time_t& time);
+	Point Do(
+		std::unordered_map<std::string, Point>& values,
+		const std::time_t& time
+	);
 
-//	bool Check(const std::time_t& time) const;
 public:
-	TestBlock();
+	EmptyBlock();
 
 };
 
-class EmptyTestBlock : public BlockBase {
+
+class Sum : public BlockBase {
 private:
 
-//	Point Do(const std::time_t& time);
+	std::unordered_set<std::string> CreateIncomingEdges(const int edges_name) const;
 
-//	bool Check(const std::time_t& time) const;
 public:
-	EmptyTestBlock();
+	Sum(const int edges_cout);
+
+	Point Do(
+		std::unordered_map<std::string, Point>& values,
+		const std::time_t& time
+	);
 
 };
 
+
+class PrintToLogs : public BlockBase {
+private:
+
+public:
+	PrintToLogs();
+
+	Point Do(
+		std::unordered_map<std::string, Point>& values,
+		const std::time_t& time
+	);
+
+};
 
 /*	Block	*/
 
@@ -105,7 +133,7 @@ private:
 	BlockBase* block;
 	int id;
 	std::string block_name;
-	std::unordered_map<int, std::unordered_map<std::string, Point> > data;
+	std::unordered_map<std::time_t, std::unordered_map<std::string, Point> > data;
 	std::string block_type;
 
 public:
@@ -135,11 +163,7 @@ public:
 
 	void DeleteOutgoingEdge(const std::string& edge_name, Table* blocks_and_outgoing_edges_table);
 
-	void Insert(const Point& point, const std::string& edge_name);
-
 	bool Verification() const;
-
-	void Save();
 
 	bool DoesEdgeExist(std::string& incoming_edge_name);
 
@@ -155,7 +179,17 @@ public:
 		const std::string& to
 	);
 
+//	void Save();
+
+	void Insert(const Point& point, const std::string& edge_name);
+
+	void SendByAllEdges(const Point& point) const;
+
+	bool Check(const std::time_t& time) const;
+
 	void DeleteEdge(Edge* edge);
+
+
 
 	~Block();
 
@@ -174,6 +208,7 @@ private:
 	Table* blocks_table;
 	Table* edges_table;
 	Table* blocks_and_outgoing_edges_table;
+	bool valid;
 
 
 
@@ -198,6 +233,8 @@ public:
 	int GetGraphId() const;
 
 	std::string GetGraphName() const;
+
+	bool GetGraphValid() const;
 
 	void CreateVertex(const std::string& block_type, const std::string& block_name);
 
@@ -248,6 +285,14 @@ public:
 
 	void DeleteEdge(Edge* edge_name);
 
+	void InsertPoint(const Point& point, const std::string& block_name);
+
+	size_t IncomingEdgesCount(const std::string& block_name) const;
+
+	void InsertPointToAllPossibleBlocks(const Point& point);
+
+	void ChangeGraphsValid(const bool new_valid);
+
 	~Graph();
 
 };
@@ -282,6 +327,8 @@ public:
 	void ChangeGraphsValid(const std::string& graph_name, const int valid);
 
 	void Verification(const std::string& graph_name);
+
+
 
 	~WorkSpace();
 
