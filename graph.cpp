@@ -119,16 +119,16 @@ Point Sum::Do(
 ) {
 	//* Название серии должно быть sum(series_1, series_2)
 	//* исправлено
-	std::string res_series_name = "summ(";
+	std::string res_series_name = "sum(";
 	std::vector<std::string> series_names;
-	double res_value = 0;
+	double res_value = double(0);
 	for (auto it = values.begin(); it != values.end(); ++it) {
 		series_names.push_back(it->second.GetSeriesName());
 		res_value += it->second.GetValue();
 	}
 	for (size_t i = 0; i < series_names.size(); ++i) {
 		res_series_name += series_names[i];
-		if (i + 1 == series_names.size()) {
+		if (i + 1 != series_names.size()) {
 			res_series_name += ", ";
 		} else {
 			res_series_name += ")";
@@ -220,7 +220,10 @@ bool Block::Verification() const {
 
 bool Block::DoesEdgeExist(std::string& incoming_edge_name) {
 	if (block->incoming_edges_names.count(incoming_edge_name) == 0) {
-		throw GANException(519720, "Edge with name " + incoming_edge_name  + " can't incoming to this block.");
+		throw GANException(
+			519720,
+			"Edge with name " + incoming_edge_name  + " can't incoming to block " +  block_name + "."
+		);
 	}
 
 	if (
@@ -235,7 +238,10 @@ bool Block::DoesEdgeExist(std::string& incoming_edge_name) {
 
 bool Block::CanEdgeExist(std::string& incoming_edge_name) {
 	if (block->incoming_edges_names.count(incoming_edge_name) == 0) {
-		throw GANException(519720, "Edge with name " + incoming_edge_name  + " can't incoming to this block.");
+		throw GANException(
+			512320,
+			"Edge with name " + incoming_edge_name  + " can't incoming to block " + block_name +  "."
+		);
 	}
 
 	if (
@@ -257,7 +263,14 @@ void Block::AddIncomingEdge(Edge* edge) {
 	) {
 		incoming_edges[edge_name] = edge;
 	} else {
-		throw GANException(238536, "Edge with name " + edge_name  +  " can't enter to this block.");
+		if (block->incoming_edges_names.count(edge_name) == 0) {
+			throw GANException(
+				238536,
+				"Edge with name " + edge_name  +  " can't enter to block " + block_type + "."
+			);
+		} else {
+			throw GANException(194527, "Edge with name " + edge_name  +  " already exist" );
+		}
 	}
 
 }
@@ -718,7 +731,7 @@ size_t Graph::IncomingEdgesCount(const std::string& block_name) const {
 
 void Graph::InsertPoint(const Point& point, const std::string& block_name) {
 	if (!valid) {
-		throw GANException(207530, "Graph " + graph_name + "is not valid, run 'deploy graph " + graph_name + "'.");
+		throw GANException(207530, "Graph " + graph_name + " is not valid, run 'deploy graph " + graph_name + "'.");
 	}
 
 	if (blocks.count(block_name) != 0) {
@@ -860,7 +873,10 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		}
 		Graph* graph = graphs[graph_name];
 		if (graph->In(block_name)) {
-			throw GANException(428352, "Block with name" + block_name  + " already exists in this graph.");
+			throw GANException(
+				428352,
+				"Block with name" + block_name  + " already exists in graph " + graph_name +  "."
+			);
 		}
 
 		int block_id = blocks_table.MaxValue("Id") + 1;
@@ -1027,12 +1043,12 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		boost::regex_match(
 			query,
 			match,
-			boost::regex("\\s*insert\\s+point\\s+'(\\w+)':(\\d+):(\\d+)\\s+into\\s+block\\s+(\\w+)\\s+of\\s+graph\\s+(\\w+)\\s*")
+			boost::regex("\\s*insert\\s+point\\s+'(\\w+)':(\\d+):(\\-{0,1}\\d*.{0,1}\\d*)\\s+into\\s+block\\s+(\\w+)\\s+of\\s+graph\\s+(\\w+)\\s*")
 		)
 	) {
 		std::string series_name = match[1];
 		std::time_t time = std::time_t(std::stoi(match[2]));
-		int value = std::stoi(match[3]);
+		double value = std::stod(match[3]);
 		std::string block_name = match[4];
 		std::string graph_name = match[5];
 
@@ -1046,12 +1062,12 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		boost::regex_match(
 			query,
 			match,
-			boost::regex("\\s*insert\\s+point\\s+'(\\w+)':(\\d+):(\\d+)\\s+into\\s+graph\\s+(\\w+)\\s*")
+			boost::regex("\\s*insert\\s+point\\s+'(\\w+)':(\\d+):(\\-{0,1}\\d*.{0,1}\\d*)\\s+into\\s+graph\\s+(\\w+)\\s*")
 		)
 	) {
 		std::string series_name = match[1];
 		std::time_t time = std::time_t(std::stoi(match[2]));
-		int value = std::stoi(match[3]);
+		double value = std::stod(match[3]);
 		std::string graph_name = match[4];
 
 		if (graphs.count(graph_name) == 0) {
