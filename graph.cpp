@@ -117,6 +117,7 @@ Point Sum::Do(
 	std::unordered_map<std::string, Point>& values,
 	const std::time_t& time
 ) {
+	//* Название серии должно быть sum(series_1, series_2)
 	std::string res_series_name = "summ_of";
 	double res_value = 0;
 	for (auto it = values.begin(); it != values.end(); ++it) {
@@ -1029,7 +1030,8 @@ std::string WorkSpace::Respond(const std::string& query)  {
 			throw GANException(195702, "Graph with name " + graph_name  +  " does not exist.");
 		}
 
-
+		//* Нет проверки валидности графа
+		//* Ничего не происходит, когда точка пихается в вершину со входящими ребрами, а должно бросаться исключение
 		graphs[graph_name]->InsertPointToAllPossibleBlocks(Point(series_name, value, time));
 	} else {
 		throw GANException(529352, "Incorrect query");
