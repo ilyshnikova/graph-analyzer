@@ -77,7 +77,8 @@ public:
 
 	virtual Point Do(
 		std::unordered_map<std::string, Point>& values,
-		const std::time_t& time
+		const std::time_t& time,
+		const std::unordered_map<std::string, StringType>& param_values
 	) = 0;
 
 };
@@ -88,7 +89,8 @@ private:
 
 	Point Do(
 		std::unordered_map<std::string, Point>& values,
-		const std::time_t& time
+		const std::time_t& time,
+		const std::unordered_map<std::string, StringType>& param_values
 	);
 
 public:
@@ -107,7 +109,8 @@ public:
 
 	Point Do(
 		std::unordered_map<std::string, Point>& values,
-		const std::time_t& time
+		const std::time_t& time,
+		const std::unordered_map<std::string, StringType>& param_values
 	);
 
 };
@@ -121,7 +124,21 @@ public:
 
 	Point Do(
 		std::unordered_map<std::string, Point>& values,
-		const std::time_t& time
+		const std::time_t& time,
+		const std::unordered_map<std::string, StringType>& param_values
+	);
+
+};
+
+class TimeShift : public BlockBase {
+private:
+public:
+	TimeShift();
+
+	Point Do(
+		std::unordered_map<std::string, Point>& values,
+		const std::time_t& time,
+		const std::unordered_map<std::string, StringType>& param_values
 	);
 
 };
@@ -135,6 +152,9 @@ private:
 	std::string block_name;
 	std::unordered_map<std::time_t, std::unordered_map<std::string, Point> > data;
 	std::string block_type;
+
+	std::unordered_set<std::string> param_names;
+	std::unordered_map<std::string, StringType> param_values;
 
 public:
 
@@ -163,7 +183,7 @@ public:
 
 	void DeleteOutgoingEdge(const std::string& edge_name, Table* blocks_and_outgoing_edges_table);
 
-	bool Verification() const;
+	void Verification() const;
 
 	bool DoesEdgeExist(std::string& incoming_edge_name);
 
@@ -189,7 +209,7 @@ public:
 
 	void DeleteEdge(Edge* edge);
 
-
+	void AddParam(const std::string& param_name, const StringType& param_value);
 
 	~Block();
 
@@ -208,6 +228,7 @@ private:
 	Table* blocks_table;
 	Table* edges_table;
 	Table* blocks_and_outgoing_edges_table;
+	Table* blocks_params_table;
 	bool valid;
 
 
@@ -226,6 +247,7 @@ public:
 		Table* blocks_table,
 		Table* edges_table,
 		Table* blocks_and_outgoing_edges_table,
+		Table* blocks_params_table,
 		const bool valid
 	);
 
@@ -294,6 +316,14 @@ public:
 
 	void ChangeGraphsValid(const bool new_valid);
 
+	void AddParamToTable(
+		const std::string& param_name,
+		const StringType& param_value,
+		const std::string& block_name
+	);
+
+	void AddParam(const std::string& param_name, const StringType& param_value, const std::string& block_name);
+
 	~Graph();
 
 };
@@ -309,6 +339,7 @@ private:
 	Table blocks_table;
 	Table edges_table;
 	Table blocks_and_outgoing_edges_table;
+	Table blocks_params_table;
 
 
 
