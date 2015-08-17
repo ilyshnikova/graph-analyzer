@@ -11,6 +11,7 @@
 #include "mysql_connection.h"
 #include "gan-exception.h"
 #include "logger.h"
+#include "base64.h"
 
 
 /*   StringType    */
@@ -19,15 +20,50 @@ StringType::StringType()
 : value()
 {}
 
+std::string StringType::GetValue() const {
+	return value;
+}
+
 
 StringType::StringType(const std::string& value)
 : value(value)
-{}
+{
+}
 
 
 StringType::StringType(const int value)
 : value(std::to_string(value))
-{}
+{
+}
+
+StringType::StringType(const double v)
+: value(std::to_string(v))
+{
+}
+
+StringType::StringType(const std::time_t value)
+: value(std::to_string((long long int)value))
+{
+
+}
+
+void StringType::CreateObjects(const std::vector<std::string>& parts, const size_t index) const {
+	if (index != parts.size()) {
+		GANException(465235, "Incorrect count of elements.");
+	}
+}
+
+void StringType::CreateObject(const std::string& st, int* element) const {
+	*element = std::stoi(base64_decode(st));
+}
+
+void StringType::CreateObject(const std::string& st, double* element) const {
+	*element = std::stod(base64_decode(st));
+}
+
+void StringType::CreateObject(const std::string& st, std::time_t* element) const {
+	*element = std::time_t(std::stoll(base64_decode(st)));
+}
 
 
 StringType::operator int() const {
@@ -36,6 +72,10 @@ StringType::operator int() const {
 
 StringType::operator std::string() const {
 	return value;
+}
+
+std::string StringType::ToString(std::vector<std::string>* parts) {
+	return "";
 }
 
 
@@ -76,7 +116,7 @@ std::string StringField::GetSqlDef() const {
 }
 
 
-std::vector<std::string> Table::Split(const std::string& string, const char separator) const {
+std::vector<std::string> Split(const std::string& string, const char separator) {
 	std::vector<std::string> result;
 	std::string substr;
 
@@ -84,12 +124,15 @@ std::vector<std::string> Table::Split(const std::string& string, const char sepa
 		if (string[i] == separator) {
 			result.push_back(substr);
 			substr = "";
+			if (i + 1 == string.size()) {
+				result.push_back(substr);
+			}
+		} else if (i + 1 == string.size()) {
+			result.push_back(substr + string[i]);
 		} else {
 			substr += string[i];
 		}
 	}
-
-	result.push_back(substr);
 
 	return result;
 }
@@ -147,7 +190,7 @@ Table::Table(const std::string& description)
 
 	sql::Driver *driver;
 	driver = get_driver_instance();
-	con = driver->connect("162.216.17.226", "root", "rootfps123987");
+	con = driver->connect("127.0.0.1", "root", "");
 
 	con->setSchema("gandb");
 
@@ -219,7 +262,6 @@ Table& Table::Execute() {
 			query += insert_query[i] + (i + 1 == insert_query.size() ? "" : ", ");
 		}
 
-		logger << "from mysql.cpp: query = " + query;
 		insert_query.clear();
 
 		sql::Statement* stmt = con->createStatement();
@@ -236,7 +278,8 @@ Table::Rows Table::SelectEnd() const {
 
 
 Table::Rows Table::Select(const std::string& query_where) {
-	logger << "from mysql.cpp: query = select * from " + table_name + " where " + query_where;
+
+	logger << "from mysql.cpp Select query where "  + query_where;
 
 	sql::PreparedStatement *pstmt = con->prepareStatement(
 		"select * from "
@@ -280,7 +323,7 @@ StringType Table::MaxValue(const std::string& field_name) const {
 	sql::ResultSet *res = pstmt->executeQuery();
 	res->next();
 
-	return StringType(res->getString(field_name));
+	return StringType(std::string(res->getString(field_name)));
 }
 
 

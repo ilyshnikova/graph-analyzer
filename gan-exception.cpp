@@ -3,11 +3,11 @@
 GANException::GANException(const int id, const std::string& information)
 : std::exception()
 , id(id)
-, information(information)
+, information(std::string("ERROR ") + std::to_string(id) + std::string(" : ") + information)
 {}
 
 const char * GANException::what() const throw() {
-	return ("ERROR " + std::to_string(id) + " : " + information).c_str();
+	return information.c_str();
 }
 
 GANException::~GANException() throw() {}

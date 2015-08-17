@@ -14,6 +14,13 @@
 
 #include "mysql_connection.h"
 #include "gan-exception.h"
+#include "base64.h"
+#include "logger.h"
+
+
+
+std::vector<std::string> Split(const std::string& string, const char separator);
+
 
 class StringType {
 private:
@@ -21,13 +28,166 @@ private:
 public:
 	StringType();
 
+	std::string GetValue() const;
+
 	StringType(const std::string& value);
 
 	StringType(const int value);
 
+	StringType(const double value);
+
+	StringType(const std::time_t value);
+
+	template
+	<typename T>
+	StringType(const std::vector<T>& vector)
+	:value()
+	{
+		for (size_t i = 0; i < vector.size(); ++i) {
+			std::string element = std::string(StringType(vector[i]));
+
+			value +=
+				base64_encode(
+					reinterpret_cast<const unsigned char*>(element.c_str()),
+					element.size()
+				)
+				+ (i + 1 == vector.size() ? "" : ",");
+		}
+
+	}
+
+	template
+	<typename K, typename V>
+	StringType(const std::unordered_map<K,V>& map)
+	:value()
+	{
+		std::vector<std::string> elements(map.size());
+		size_t i = 0;
+		for (auto it = map.cbegin(); it != map.cend(); ++it) {
+			std::string key = std::string(StringType(it->first));
+			std::string val = std::string(StringType(it->second));
+			elements[i++] =
+				base64_encode(
+					reinterpret_cast<const unsigned char*>(key.c_str()),
+					key.size()
+				)
+				+ std::string(":")
+				+ base64_encode(
+					reinterpret_cast<const unsigned char*>(val.c_str()),
+					val.size()
+				);
+		}
+
+		for (size_t i = 0; i < elements.size(); ++i) {
+			value +=
+				elements[i]
+				+ (i + 1 == elements.size() ? "" : ",");
+		}
+
+	}
+
+
 	operator int() const;
 
 	operator std::string() const;
+
+	template
+	<typename... Args, typename T>
+	void ToString(std::vector<std::string>* parts, const T element, Args... args) {
+		parts->push_back(std::string(StringType(element)));
+		ToString(parts, args...);
+	}
+
+	std::string ToString(std::vector<std::string>* parts);
+
+	template
+	<typename... Args>
+	StringType(Args... args)
+	{
+		std::vector<std::string> parts;
+		ToString(&parts, args...);
+
+		for (size_t i = 0; i < parts.size(); ++i) {
+			value +=
+				base64_encode(
+					reinterpret_cast<const unsigned char*>(parts[i].c_str()),
+					parts[i].size()
+				)
+				+ (i + 1 == parts.size() ? "" : ",");
+		}
+	}
+
+
+	template
+	<typename... Args>
+	void FromString(Args... args) {
+		CreateObjects(Split(value, ','), 0, args...);
+	}
+
+
+	template
+	<typename... Args, typename T>
+	void CreateObjects(const std::vector<std::string>& parts, const size_t index, T* element, Args... args) const  {
+
+		CreateObject(parts[index], element);
+		CreateObjects(parts, index + 1, args...);
+	}
+
+
+	void CreateObject(const std::string& st, int* element) const;
+
+	void CreateObject(const std::string& st, double* element) const;
+
+	void CreateObject(const std::string& st, std::string* element) const;
+
+	void CreateObject(const std::string& st, std::time_t* element) const;
+
+
+	template
+	<typename T>
+	void CreateObject(
+		const std::string& st,
+		std::vector<T>* element
+	) const {
+		logger << "vector " + st;
+		std::vector<std::string> vectors_parts = Split(base64_decode(st), ',');
+		logger << std::to_string(vectors_parts.size()) + " size";
+		std::vector<T> vector(vectors_parts.size());
+		for (size_t i = 0; i < vectors_parts.size(); ++i) {
+
+			CreateObject(
+				vectors_parts[i],
+				&vector[i]
+			);
+		}
+		*element = vector;
+	}
+
+
+	template
+	<typename K, typename V>
+	void CreateObject(
+		const std::string& st,
+		std::unordered_map<K,V>* element
+	) const {
+		std::vector<std::string> maps_parts = Split(base64_decode(st), ',');
+		std::unordered_map<K,V> map;
+		for (size_t i = 0 ; i < maps_parts.size(); ++i) {
+			std::vector<std::string> key_and_element = Split(maps_parts[i], ':');
+			K key;
+			V val;
+			CreateObject(key_and_element[0], &key);
+			CreateObject(key_and_element[1], &val);
+			map[key] = val;
+		}
+
+		*element = map;
+	}
+
+
+
+	void CreateObjects(const std::vector<std::string>& parts, const size_t index) const;
+
 
 };
 
@@ -98,7 +258,6 @@ public:
 
 	typedef Rows rows;
 
-	std::vector<std::string> Split(const std::string& string, const char separator) const;
 
 	void AddFields(std::vector<Field*>* fields, const std::string& part, std::string* query);
 
