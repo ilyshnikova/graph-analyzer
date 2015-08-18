@@ -219,7 +219,7 @@ void DaemonBase::Daemon() {
 		try {
 			message = Respond(query);
 		} catch (std::exception& e) {
-			message = e.what();
+			message = std::string(e.what());
 		}
 
 		logger << "answer = " + message;

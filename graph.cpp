@@ -75,24 +75,78 @@ std::string Edge::GetEdgeName() const {
 
 
 /*   BlockBase    */
+//
+//BlockBase::BlockBase(
+//	const std::unordered_set<std::string>& incoming_edges_names
+//)
+//: incoming_edges_names(incoming_edges_names)
+//, block_type()
+//{}
 
-BlockBase::BlockBase(const std::unordered_set<std::string>& incoming_edges_names)
+BlockBase::BlockBase(
+	const std::unordered_set<std::string>& incoming_edges_names,
+	const std::string& block_type,
+	const std::unordered_set<std::string>& params_names,
+	const std::unordered_map<std::string, StringType>& param_values
+)
 : incoming_edges_names(incoming_edges_names)
+, block_type(block_type)
+, params_names(params_names)
+, param_values(param_values)
 {}
 
+std::string BlockBase::GetBlockType() const {
+	return block_type;
+}
+
+
+std::string BlockBase::ToString() const {
+	return std::string("");
+}
+
+void BlockBase::FromString(const std::string&) {}
+
+
+std::string BlockBase::Join(const std::vector<std::string>& strings, const std::string separator) const {
+	std::string result;
+	for (size_t i = 0 ; i < strings.size(); ++i) {
+		result += strings[i] + (i + 1 == strings.size() ? "" : separator);
+	}
+
+	return result;
+}
+
+
+std::string BlockBase::GetResultSeriesName(
+	const std::unordered_map<std::string, Point>& values
+) const {
+	std::string series_name = block_type + std::string("(");
+
+	std::vector<std::string> names;
+	for (auto it = incoming_edges_names.begin(); it != incoming_edges_names.end(); ++it) {
+		names.push_back(values.at(*it).GetSeriesName());
+	}
+
+	std::vector<std::string> params;
+
+	for (auto it = param_values.cbegin(); it != param_values.cend(); ++it) {
+		params.push_back(it->second);
+	}
+
+	return series_name + Join(names, ",") + (params.size() == 0 ? "" : ";" +  Join(params, ",")) + ")";
+}
 
 /*   EmptyTestBlock    */
 
 
-EmptyBlock::EmptyBlock()
-: BlockBase({})
+EmptyBlock::EmptyBlock(const std::string& block_type)
+: BlockBase({}, block_type, {}, {})
 {}
 
 
 Point EmptyBlock::Do(
-	std::unordered_map<std::string, Point>& values,
-	const std::time_t& time,
-	const std::unordered_map<std::string, StringType>& param_values
+	const std::unordered_map<std::string, Point>& values,
+	const std::time_t& time
 ) {
 	return Point::Empty();
 }
@@ -109,49 +163,37 @@ std::unordered_set<std::string> Sum::CreateIncomingEdges(const int edges_count) 
 }
 
 
-Sum::Sum(const int edges_count)
-: BlockBase(CreateIncomingEdges(edges_count))
+Sum::Sum(const int edges_count, const std::string& block_type)
+: BlockBase(CreateIncomingEdges(edges_count), block_type, {}, {})
 {}
 
 
 Point Sum::Do(
-	std::unordered_map<std::string, Point>& values,
-	const std::time_t& time,
-	const std::unordered_map<std::string, StringType>& param_values
+	const std::unordered_map<std::string, Point>& values,
+	const std::time_t& time
 ) {
-	std::string res_series_name = "sum(";
-	std::vector<std::string> series_names;
 	double res_value = double(0);
-	for (auto it = values.begin(); it != values.end(); ++it) {
-		series_names.push_back(it->second.GetSeriesName());
+	for (auto it = values.cbegin(); it != values.cend(); ++it) {
 		res_value += it->second.GetValue();
 	}
-	for (size_t i = 0; i < series_names.size(); ++i) {
-		res_series_name += series_names[i];
-		if (i + 1 != series_names.size()) {
-			res_series_name += ", ";
-		} else {
-			res_series_name += ")";
-		}
-	}
-	return Point(res_series_name, res_value, time);
+
+	return Point(GetResultSeriesName(values), res_value, time);
 
 }
 
 
 /*	PrintToLogs	*/
 
-PrintToLogs::PrintToLogs()
-: BlockBase({"to_print"})
+PrintToLogs::PrintToLogs(const std::string& block_type)
+: BlockBase({"to_print"}, block_type, {}, {})
 {}
 
 
 Point PrintToLogs::Do(
-	std::unordered_map<std::string, Point>& values,
-	const std::time_t& time,
-	const std::unordered_map<std::string, StringType>& param_values
+	const std::unordered_map<std::string, Point>& values,
+	const std::time_t& time
 ) {
-	for (auto it = values.begin(); it != values.end(); ++it) {
+	for (auto it = values.cbegin(); it != values.cend(); ++it) {
 		logger <<
 			"Point: series name: "
 			+ it->second.GetSeriesName()
@@ -166,18 +208,138 @@ Point PrintToLogs::Do(
 /*	TimeShift	*/
 
 
-TimeShift::TimeShift()
-:BlockBase({"to_shift"})
+TimeShift::TimeShift(const std::string& block_type)
+:BlockBase({"to_shift"}, block_type, {"time_shift"}, {})
 {}
 
 Point TimeShift::Do(
-	std::unordered_map<std::string, Point>& values,
-	const std::time_t& time,
-	const std::unordered_map<std::string, StringType>& param_values
+	const std::unordered_map<std::string, Point>& values,
+	const std::time_t& time
 ) {
-	Point point = values.begin()->second;
-	return Point(point.GetSeriesName(), point.GetValue(), point.GetTime() + int(param_values.at("time_shift")));
+	Point point = values.cbegin()->second;
+	return Point(
+		GetResultSeriesName(values),
+		point.GetValue(),
+		point.GetTime() + int(param_values.at("time_shift"))
+	);
 }
+
+/*	TimePeriodAggregator	*/
+
+TimePeriodAggregator::TimePeriodAggregator(const std::string& block_type)
+: BlockBase(
+	{"to_aggregate"},
+	block_type,
+	{"round_time", "keep_history_interval", "min_bucket_points"},
+	{{"round_time", 3600}, {"keep_history_interval", 3600 * 24}}
+)
+{}
+
+
+void TimePeriodAggregator::CleanHistory(const int keep_history_interval) {
+	std::vector<std::time_t> times_to_delete;
+	for (auto it = sums.begin(); it != sums.end(); ++it) {
+		if (std::time(0) - it->first > keep_history_interval) {
+			times_to_delete.push_back(it->first);
+		}
+	}
+
+	for (size_t i = 0; i < times_to_delete.size(); ++i) {
+		sums.erase(times_to_delete[i]);
+		points_count.erase(times_to_delete[i]);
+	}
+}
+
+
+Point TimePeriodAggregator::Do(
+	const std::unordered_map<std::string, Point>& values,
+	const std::time_t& time
+) {
+	int round_time = param_values.at("round_time");
+	int keep_history_interval = param_values.at("keep_history_interval");
+	int min_bucket_points = param_values.at("min_bucket_points");
+
+	for (auto it = values.cbegin(); it != values.cend(); ++it) {
+		Point point = it->second;
+		std::time_t rounded_time = point.GetTime() - point.GetTime() % round_time;
+
+		sums[rounded_time] += point.GetValue();
+		logger <<
+			"Do in block TimePeriodAggregator: points count -- "
+			+ std::to_string(points_count[rounded_time])
+			+ "  with value -- "
+			+ std::to_string(sums[rounded_time]);
+
+		if (++points_count[rounded_time] >= min_bucket_points) {
+			Point point_to_return(
+				GetResultSeriesName(values),
+				sums[rounded_time],
+				rounded_time
+			);
+			sums.erase(rounded_time);
+			points_count.erase(rounded_time);
+			CleanHistory(keep_history_interval);
+			return point_to_return;
+		}
+	}
+	return Point::Empty();
+}
+
+std::string TimePeriodAggregator::ToString() const {
+	return StringType(points_count, sums);
+}
+
+void TimePeriodAggregator::FromString(const std::string& elements_string) {
+	StringType(elements_string).FromString(&points_count, &sums);
+}
+
+
+
+
+/*	BlockCacheUpdaterBuffer	*/
+
+BlockCacheUpdaterBuffer::BlockCacheUpdaterBuffer()
+: blocks()
+, blocks_table(NULL)
+, last_update_time(time(0))
+, timeout(60)
+, max_blocks_count(5000)
+{}
+
+
+BlockCacheUpdaterBuffer&  BlockCacheUpdaterBuffer::SetTable(Table* table) {
+	blocks_table = table;
+	return *this;
+}
+
+void BlockCacheUpdaterBuffer::PushUpdate(const int block_id, Block* block) {
+	blocks[block_id] = block;
+	logger <<
+		"timeout = "
+		+ std::to_string(std::time(0) - last_update_time)
+		+ "(" + std::to_string(std::time(0)) + ", " + std::to_string(last_update_time)  + ")"
+		+ " blocks count = "
+		+ std::to_string(blocks.size());
+	if (std::time(0) - last_update_time > timeout || max_blocks_count < blocks.size()) {
+		Update();
+		last_update_time = std::time(0);
+	}
+}
+
+void BlockCacheUpdaterBuffer::Update() {
+	for (auto it = blocks.begin(); it != blocks.end(); ++it) {
+		blocks_table->Insert(
+			it->first,
+			it->second->GetBlockName(),
+			it->second->GetBlockType(),
+			it->second->ToString()
+		);
+	}
+	blocks_table->Execute();
+	blocks.clear();
+}
+
+
 
 
 /*	Block	*/
@@ -186,7 +348,9 @@ Point TimeShift::Do(
 Block::Block(
 	const int id,
 	const std::string& block_name,
-	const std::string& block_type
+	const std::string& block_type,
+	Table* blocks_table,
+	BlockCacheUpdaterBuffer* block_buffer
 )
 : block()
 , id(id)
@@ -194,33 +358,41 @@ Block::Block(
 , data()
 , outgoing_edges()
 , incoming_edges()
-, block_type(block_type)
-, param_names()
-, param_values()
+, blocks_table(blocks_table)
+, block_buffer(block_buffer)
 {
 	boost::smatch match;
-	if (boost::regex_match(
+	if (
+		boost::regex_match(
 			block_type,
 			match,
 			boost::regex("Sum(\\d+)")
 		)
 	) {
-		block = new Sum(std::stoi(match[1]));
+		block = new Sum(std::stoi(match[1]), block_type);
 	} else if (block_type == "PrintToLogs") {
-		block = new PrintToLogs();
+		block = new PrintToLogs(block_type);
 	} else if (block_type == "EmptyBlock") {
-		block = new EmptyBlock();
+		block = new EmptyBlock(block_type);
 	} else if (block_type == "TimeShift") {
-		block = new TimeShift();
-		param_names = {"time_shift"};
+		block = new TimeShift(block_type);
+	} else if (block_type == "TimePeriodAggregator") {
+		block = new TimePeriodAggregator(block_type);
 	} else {
 		throw GANException(649264, "Type " + block_type + " is incorret block type.");
 	}
 
 }
 
+
+void Block::Load(const std::string& cache) {
+	block->FromString(cache);
+}
+
+
+
 std::string Block::GetBlockType() const {
-	return block_type;
+	return block->GetBlockType();
 }
 
 int Block::GetBlockId() const {
@@ -238,8 +410,8 @@ void Block::Verification() const {
 
 		}
 	}
-	for (auto it = param_names.begin(); it != param_names.end(); ++it) {
-		if (param_values.count(*it) == 0) {
+	for (auto it = block->params_names.begin(); it != block->params_names.end(); ++it) {
+		if (block->param_values.count(*it) == 0) {
 			throw GANException(29752, "Block " + block_name + " does not has all params.");
 		}
 	}
@@ -293,7 +465,7 @@ void Block::AddIncomingEdge(Edge* edge) {
 		if (block->incoming_edges_names.count(edge_name) == 0) {
 			throw GANException(
 				238536,
-				"Edge with name " + edge_name  +  " can't enter to block " + block_type + "."
+				"Edge with name " + edge_name  +  " can't enter to block " + block->block_type + "."
 			);
 		} else {
 			throw GANException(194527, "Edge with name " + edge_name  +  " already exist" );
@@ -373,7 +545,8 @@ void Block::Insert(const Point& point, const std::string& edge_name) {
 	std::time_t time = point.GetTime();
 	data[time][edge_name] = point;
 	if (Check(time)) {
-		Point result =  block->Do(data[time], time, param_values);
+		Point result =  block->Do(data[time], time);
+		block_buffer->PushUpdate(id, this);
 		data.erase(time);
 
 		if (!result.IsEmpty()) {
@@ -396,13 +569,18 @@ void Block::SendByAllEdges(const Point& point) const {
 
 
 void Block::AddParam(const std::string& param_name, const StringType& param_value) {
-	if (param_names.count(param_name) == 0) {
+	if (block->params_names.count(param_name) == 0) {
 		throw GANException(
 			382654,
-			"Param with name " + param_name + " in block " + block_name + " with type " +  block_type + " does not exist."
+			"Param with name " + param_name + " in block " + block_name + " with type " +  block->block_type + " does not exist."
 		);
 	}
-	param_values[param_name] = param_value;
+	block->param_values[param_name] = param_value;
+}
+
+
+std::string Block::ToString() {
+	return block->ToString();
 }
 
 
@@ -411,6 +589,7 @@ Block::~Block() {
 		delete it->second;
 	}
 }
+
 
 
 /*     Graph     */
@@ -423,7 +602,8 @@ Graph::Graph(
 	Table* edges_table,
 	Table* blocks_and_outgoing_edges_table,
 	Table* blocks_params_table,
-	const bool valid
+	const bool valid,
+	BlockCacheUpdaterBuffer* block_buffer
 )
 : id(id)
 , graph_name(graph_name)
@@ -435,8 +615,9 @@ Graph::Graph(
 , blocks_and_outgoing_edges_table(blocks_and_outgoing_edges_table)
 , blocks_params_table(blocks_params_table)
 , valid(valid)
+, block_buffer(block_buffer)
 {
-Load();
+	Load();
 }
 
 
@@ -456,7 +637,12 @@ void Graph::Load() {
 		++it
 	){
 		auto block_info = blocks_table->Select("Id = " + std::to_string(it["BlockId"]));
-		CreateBlock(block_info["Type"], block_info["Id"], block_info["BlockName"]);
+		Block* block = CreateBlock(block_info["Type"], block_info["Id"], block_info["BlockName"]);
+		if (std::string(block_info["Cache"]) != std::string("")) {
+			block->Load(
+				block_info["Cache"]
+			);
+		}
 
 	}
 	for (auto block_it = blocks.begin(); block_it != blocks.end(); ++block_it) {
@@ -523,13 +709,14 @@ Block* Graph::CreateBlock(
 ) {
 
 	if (blocks.count(block_name) == 0) {
-		Block* block = new Block(block_id, block_name, block_type);
+		Block* block = new Block(block_id, block_name, block_type, blocks_table, block_buffer);
 		blocks[block_name] = block;
 		return block;
 	} else {
 		return	blocks[block_name];
 	}
 }
+
 
 void Graph::DeleteBlock(const std::string& block_name) {
 	if (blocks.count(block_name) != 0) {
@@ -713,7 +900,6 @@ std::string Graph::BFSFindCycle(
 		std::vector<std::string> new_use_now;
 		for (size_t i = 0; i < use_now.size(); ++i) {
 			Block* block = blocks[use_now[i]];
-			logger << use_now[i];
 			for (
 				auto edge = block->outgoing_edges.begin();
 				edge != block->outgoing_edges.end();
@@ -854,6 +1040,7 @@ Graph::~Graph() {
 /*   WorkSpace    */
 
 void WorkSpace::Load() {
+	logger << "Load in WorkSpace";
 	for (Table::rows it = graphs_table.Select("1"); it != graphs_table.SelectEnd(); ++it) {
 		CreateGraph(int(it["Id"]), std::string(it["GraphName"]), (it["Valid"] == 0 ? false : true));
 	}
@@ -863,12 +1050,14 @@ WorkSpace::WorkSpace()
 : graphs()
 , graphs_table("GraphsTable|Id:int|GraphName:string,Valid:int")
 , graphs_and_blocks_table("GraphsAndBlocks|GraphId:int,BlockId:int|")
-, blocks_table("Blocks|Id:int|BlockName:string,Type:string,State:string")
+, blocks_table("Blocks|Id:int|BlockName:string,Type:string,Cache:string")
 , edges_table("Edges|Id:int|EdgeName:string,ToBlock:int")
 , blocks_and_outgoing_edges_table("BlocksAndOutgoingEdges|BlockId:int,EdgeId:int|")
 , blocks_params_table("BlocksParams|BlockId:int,ParamName:string|ParamValue:string")
 , DaemonBase("127.0.0.1", "8081", 0)
+, block_buffer()
 {
+	block_buffer.SetTable(&blocks_table);
 	Load();
 	Daemon();
 }
@@ -1122,7 +1311,10 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		boost::regex_match(
 			query,
 			match,
-			boost::regex("\\s*insert\\s+point\\s+'(\\w+)':(\\d+):(\\-{0,1}\\d*.{0,1}\\d*)\\s+into\\s+block\\s+(\\w+)\\s+of\\s+graph\\s+(\\w+)\\s*")
+			//* Название серии может содержать любые символы, даже пробельные, здесь \\w не годится
+			//* исправлено
+			//* надо любые символы, а у тебя только пробельные символы и обычные
+			boost::regex("\\s*insert\\s+point\\s+'(.+)':(\\d+):(\\-{0,1}\\d*.{0,1}\\d*)\\s+into\\s+block\\s+(\\w+)\\s+of\\s+graph\\s+(\\w+)\\s*")
 		)
 	) {
 		std::string series_name = match[1];
@@ -1141,7 +1333,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		boost::regex_match(
 			query,
 			match,
-			boost::regex("\\s*insert\\s+point\\s+'(\\w+)':(\\d+):(\\-{0,1}\\d*.{0,1}\\d*)\\s+into\\s+graph\\s+(\\w+)\\s*")
+			boost::regex("\\s*insert\\s+point\\s+'(.+)':(\\d+):(\\-{0,1}\\d*.{0,1}\\d*)\\s+into\\s+graph\\s+(\\w+)\\s*")
 		)
 	) {
 		std::string series_name = match[1];
@@ -1152,7 +1344,6 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		if (graphs.count(graph_name) == 0) {
 			throw GANException(195702, "Graph with name " + graph_name  +  " does not exist.");
 		}
-
 		graphs[graph_name]->InsertPointToAllPossibleBlocks(Point(series_name, value, time));
 	} else  if (
 		boost::regex_match(
@@ -1178,7 +1369,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 	} else {
 		throw GANException(529352, "Incorrect query");
 	}
-	return "Ok";
+	return "Ok\0";
 }
 
 
@@ -1206,7 +1397,8 @@ Graph* WorkSpace::CreateGraph(const int graph_id, const std::string& graph_name,
 		&edges_table,
 		&blocks_and_outgoing_edges_table,
 		&blocks_params_table,
-		valid
+		valid,
+		&block_buffer
 	);
 	graphs[graph_name] = graph;
 	return graph;
