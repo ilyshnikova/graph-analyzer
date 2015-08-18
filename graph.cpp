@@ -1312,7 +1312,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 			//* Название серии может содержать любые символы, даже пробельные, здесь \\w не годится
 			//* исправлено
 			//* надо любые символы, а у тебя только пробельные символы и обычные
-			boost::regex("\\s*insert\\s+point\\s+'([\\w|\\s]+)':(\\d+):(\\-{0,1}\\d*.{0,1}\\d*)\\s+into\\s+block\\s+(\\w+)\\s+of\\s+graph\\s+(\\w+)\\s*")
+			boost::regex("\\s*insert\\s+point\\s+'(.+)':(\\d+):(\\-{0,1}\\d*.{0,1}\\d*)\\s+into\\s+block\\s+(\\w+)\\s+of\\s+graph\\s+(\\w+)\\s*")
 		)
 	) {
 		std::string series_name = match[1];
@@ -1331,7 +1331,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		boost::regex_match(
 			query,
 			match,
-			boost::regex("\\s*insert\\s+point\\s+'([\\w|\\s]+)':(\\d+):(\\-{0,1}\\d*.{0,1}\\d*)\\s+into\\s+graph\\s+(\\w+)\\s*")
+			boost::regex("\\s*insert\\s+point\\s+'(.+)':(\\d+):(\\-{0,1}\\d*.{0,1}\\d*)\\s+into\\s+graph\\s+(\\w+)\\s*")
 		)
 	) {
 		std::string series_name = match[1];
