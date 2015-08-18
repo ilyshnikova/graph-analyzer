@@ -45,9 +45,3 @@ base64.o: base64.cpp
 
 clean:
 	rm -rf *.o mysql-test client test-server gan-server
-
-test.o: test.cpp
-	g++ -std=c++0x -g -c -lboost_serialization  test.cpp
-
-test: mysql.o gan-exception.o logger.o test.o base64.o
-	g++ -std=c++0x -g -lmysqlcppconn -lboost_serialization  mysql.o base64.o gan-exception.o logger.o test.o -o test
