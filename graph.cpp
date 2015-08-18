@@ -75,21 +75,30 @@ std::string Edge::GetEdgeName() const {
 
 
 /*   BlockBase    */
-
-BlockBase::BlockBase(
-	const std::unordered_set<std::string>& incoming_edges_names
-)
-: incoming_edges_names(incoming_edges_names)
-, block_name()
-{}
+//
+//BlockBase::BlockBase(
+//	const std::unordered_set<std::string>& incoming_edges_names
+//)
+//: incoming_edges_names(incoming_edges_names)
+//, block_type()
+//{}
 
 BlockBase::BlockBase(
 	const std::unordered_set<std::string>& incoming_edges_names,
-	const std::string& block_name
+	const std::string& block_type,
+	const std::unordered_set<std::string>& params_names,
+	const std::unordered_map<std::string, StringType>& param_values
 )
 : incoming_edges_names(incoming_edges_names)
-, block_name(block_name)
+, block_type(block_type)
+, params_names(params_names)
+, param_values(param_values)
 {}
+
+std::string BlockBase::GetBlockType() const {
+	return block_type;
+}
+
 
 std::string BlockBase::ToString() const {
 	return std::string("");
@@ -109,10 +118,9 @@ std::string BlockBase::Join(const std::vector<std::string>& strings, const std::
 
 
 std::string BlockBase::GetResultSeriesName(
-	const std::unordered_map<std::string, Point>& values,
-	const std::unordered_map<std::string, StringType>& param_values
+	const std::unordered_map<std::string, Point>& values
 ) const {
-	std::string series_name = block_name + std::string("(");
+	std::string series_name = block_type + std::string("(");
 
 	std::vector<std::string> names;
 	for (auto it = incoming_edges_names.begin(); it != incoming_edges_names.end(); ++it) {
@@ -131,15 +139,14 @@ std::string BlockBase::GetResultSeriesName(
 /*   EmptyTestBlock    */
 
 
-EmptyBlock::EmptyBlock()
-: BlockBase({})
+EmptyBlock::EmptyBlock(const std::string& block_type)
+: BlockBase({}, block_type, {}, {})
 {}
 
 
 Point EmptyBlock::Do(
 	const std::unordered_map<std::string, Point>& values,
-	const std::time_t& time,
-	const std::unordered_map<std::string, StringType>& param_values
+	const std::time_t& time
 ) {
 	return Point::Empty();
 }
@@ -156,37 +163,35 @@ std::unordered_set<std::string> Sum::CreateIncomingEdges(const int edges_count) 
 }
 
 
-Sum::Sum(const int edges_count)
-: BlockBase(CreateIncomingEdges(edges_count), std::string("sum"))
+Sum::Sum(const int edges_count, const std::string& block_type)
+: BlockBase(CreateIncomingEdges(edges_count), block_type, {}, {})
 {}
 
 
 Point Sum::Do(
 	const std::unordered_map<std::string, Point>& values,
-	const std::time_t& time,
-	const std::unordered_map<std::string, StringType>& param_values
+	const std::time_t& time
 ) {
 	double res_value = double(0);
 	for (auto it = values.cbegin(); it != values.cend(); ++it) {
 		res_value += it->second.GetValue();
 	}
 
-	return Point(GetResultSeriesName(values, param_values), res_value, time);
+	return Point(GetResultSeriesName(values), res_value, time);
 
 }
 
 
 /*	PrintToLogs	*/
 
-PrintToLogs::PrintToLogs()
-: BlockBase({"to_print"})
+PrintToLogs::PrintToLogs(const std::string& block_type)
+: BlockBase({"to_print"}, block_type, {}, {})
 {}
 
 
 Point PrintToLogs::Do(
 	const std::unordered_map<std::string, Point>& values,
-	const std::time_t& time,
-	const std::unordered_map<std::string, StringType>& param_values
+	const std::time_t& time
 ) {
 	for (auto it = values.cbegin(); it != values.cend(); ++it) {
 		logger <<
@@ -203,33 +208,39 @@ Point PrintToLogs::Do(
 /*	TimeShift	*/
 
 
-TimeShift::TimeShift()
-:BlockBase({"to_shift"}, std::string("time_shift"))
+TimeShift::TimeShift(const std::string& block_type)
+:BlockBase({"to_shift"}, block_type, {"time_shift"}, {})
 {}
 
 Point TimeShift::Do(
 	const std::unordered_map<std::string, Point>& values,
-	const std::time_t& time,
-	const std::unordered_map<std::string, StringType>& param_values
+	const std::time_t& time
 ) {
 	Point point = values.cbegin()->second;
 	return Point(
-		GetResultSeriesName(values, param_values),
+		GetResultSeriesName(values),
 		point.GetValue(),
 		point.GetTime() + int(param_values.at("time_shift"))
 	);
 }
 
-/*	TimePeriodAggrigator	*/
+/*	TimePeriodAggregator	*/
 
 //* 1) Опечатка, надо писать Aggregator, тоже самое со словом aggregator
+//* исправлено
 //* 2) Имя блока надо пробросить из Block::Block(), а не тут
-TimePeriodAggrigator::TimePeriodAggrigator()
-: BlockBase({"to_aggrigate"}, std::string("aggrigate"))
+//* исправлено
+TimePeriodAggregator::TimePeriodAggregator(const std::string& block_type)
+: BlockBase(
+	{"to_aggregate"},
+	block_type,
+	{"round_time", "keep_history_interval", "min_bucket_points"},
+	{{"round_time", 3600}, {"keep_history_interval", 3600 * 24}}
+)
 {}
 
 
-void TimePeriodAggrigator::CleanHistory(const int keep_history_interval) {
+void TimePeriodAggregator::CleanHistory(const int keep_history_interval) {
 	std::vector<std::time_t> times_to_delete;
 	for (auto it = sums.begin(); it != sums.end(); ++it) {
 		if (std::time(0) - it->first > keep_history_interval) {
@@ -244,10 +255,9 @@ void TimePeriodAggrigator::CleanHistory(const int keep_history_interval) {
 }
 
 
-Point TimePeriodAggrigator::Do(
+Point TimePeriodAggregator::Do(
 	const std::unordered_map<std::string, Point>& values,
-	const std::time_t& time,
-	const std::unordered_map<std::string, StringType>& param_values
+	const std::time_t& time
 ) {
 	int round_time = param_values.at("round_time");
 	int keep_history_interval = param_values.at("keep_history_interval");
@@ -259,15 +269,16 @@ Point TimePeriodAggrigator::Do(
 
 		sums[rounded_time] += point.GetValue();
 		logger <<
-			"Do in block TimePeriodAggrigator: points count -- "
+			"Do in block TimePeriodAggregator: points count -- "
 			+ std::to_string(points_count[rounded_time])
 			+ "  with value -- "
 			+ std::to_string(sums[rounded_time]);
 
 		//* Тут надо >= вместо строгого неравенства
-		if (++points_count[rounded_time] > min_bucket_points) {
+		//* исправлено
+		if (++points_count[rounded_time] >= min_bucket_points) {
 			Point point_to_return(
-				GetResultSeriesName(values, param_values),
+				GetResultSeriesName(values),
 				sums[rounded_time],
 				rounded_time
 			);
@@ -280,11 +291,11 @@ Point TimePeriodAggrigator::Do(
 	return Point::Empty();
 }
 
-std::string TimePeriodAggrigator::ToString() const {
+std::string TimePeriodAggregator::ToString() const {
 	return StringType(points_count, sums);
 }
 
-void TimePeriodAggrigator::FromString(const std::string& elements_string) {
+void TimePeriodAggregator::FromString(const std::string& elements_string) {
 	StringType(elements_string).FromString(&points_count, &sums);
 }
 
@@ -349,36 +360,33 @@ Block::Block(
 : block()
 , id(id)
 //* Эту переменную надо удалить, хранить имя блока в публичной переменной в BlockBase
+//* удалено
 , block_name(block_name)
 , data()
 , outgoing_edges()
 , incoming_edges()
-, block_type(block_type)
-, params_names()
-, param_values()
 , blocks_table(blocks_table)
 {
 	boost::smatch match;
-	if (boost::regex_match(
+	if (
+		boost::regex_match(
 			block_type,
 			match,
 			boost::regex("Sum(\\d+)")
 		)
 	) {
-		block = new Sum(std::stoi(match[1]));
+		block = new Sum(std::stoi(match[1]), block_type);
 	} else if (block_type == "PrintToLogs") {
-		block = new PrintToLogs();
+		block = new PrintToLogs(block_type);
 	} else if (block_type == "EmptyBlock") {
-		block = new EmptyBlock();
+		block = new EmptyBlock(block_type);
 	} else if (block_type == "TimeShift") {
-		block = new TimeShift();
-		params_names = {"time_shift"};
-	} else if (block_type == "TimePeriodAggrigator") {
-		block = new TimePeriodAggrigator();
+		block = new TimeShift(block_type);
+	} else if (block_type == "TimePeriodAggregator") {
+		block = new TimePeriodAggregator(block_type);
 		//* В общем коде не должно быть логики, относящейся к частным блокам,
 		//* надо перенести эти две переменные в публичную часть BlockBase
-		params_names = {"round_time", "keep_history_interval", "min_bucket_points"};
-		param_values = {{"round_time", 3600}, {"keep_history_interval", 3600 * 24}};
+		//* перенесла
 	} else {
 		throw GANException(649264, "Type " + block_type + " is incorret block type.");
 	}
@@ -393,7 +401,7 @@ void Block::Load(const std::string& cache) {
 
 
 std::string Block::GetBlockType() const {
-	return block_type;
+	return block->GetBlockType();
 }
 
 int Block::GetBlockId() const {
@@ -411,8 +419,8 @@ void Block::Verification() const {
 
 		}
 	}
-	for (auto it = params_names.begin(); it != params_names.end(); ++it) {
-		if (param_values.count(*it) == 0) {
+	for (auto it = block->params_names.begin(); it != block->params_names.end(); ++it) {
+		if (block->param_values.count(*it) == 0) {
 			throw GANException(29752, "Block " + block_name + " does not has all params.");
 		}
 	}
@@ -466,7 +474,7 @@ void Block::AddIncomingEdge(Edge* edge) {
 		if (block->incoming_edges_names.count(edge_name) == 0) {
 			throw GANException(
 				238536,
-				"Edge with name " + edge_name  +  " can't enter to block " + block_type + "."
+				"Edge with name " + edge_name  +  " can't enter to block " + block->block_type + "."
 			);
 		} else {
 			throw GANException(194527, "Edge with name " + edge_name  +  " already exist" );
@@ -546,7 +554,7 @@ void Block::Insert(const Point& point, const std::string& edge_name, BlockCacheU
 	std::time_t time = point.GetTime();
 	data[time][edge_name] = point;
 	if (Check(time)) {
-		Point result =  block->Do(data[time], time, param_values);
+		Point result =  block->Do(data[time], time);
 		block_buffer->PushUpdate(id, this);
 		data.erase(time);
 
@@ -570,13 +578,13 @@ void Block::SendByAllEdges(const Point& point, BlockCacheUpdaterBuffer* block_bu
 
 
 void Block::AddParam(const std::string& param_name, const StringType& param_value) {
-	if (params_names.count(param_name) == 0) {
+	if (block->params_names.count(param_name) == 0) {
 		throw GANException(
 			382654,
-			"Param with name " + param_name + " in block " + block_name + " with type " +  block_type + " does not exist."
+			"Param with name " + param_name + " in block " + block_name + " with type " +  block->block_type + " does not exist."
 		);
 	}
-	param_values[param_name] = param_value;
+	block->param_values[param_name] = param_value;
 }
 
 
@@ -1313,7 +1321,8 @@ std::string WorkSpace::Respond(const std::string& query)  {
 			query,
 			match,
 			//* Название серии может содержать любые символы, даже пробельные, здесь \\w не годится
-			boost::regex("\\s*insert\\s+point\\s+'(\\w+)':(\\d+):(\\-{0,1}\\d*.{0,1}\\d*)\\s+into\\s+block\\s+(\\w+)\\s+of\\s+graph\\s+(\\w+)\\s*")
+			//* исправлено
+			boost::regex("\\s*insert\\s+point\\s+'([\\w|\\s]+)':(\\d+):(\\-{0,1}\\d*.{0,1}\\d*)\\s+into\\s+block\\s+(\\w+)\\s+of\\s+graph\\s+(\\w+)\\s*")
 		)
 	) {
 		std::string series_name = match[1];
@@ -1332,7 +1341,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		boost::regex_match(
 			query,
 			match,
-			boost::regex("\\s*insert\\s+point\\s+'(\\w+)':(\\d+):(\\-{0,1}\\d*.{0,1}\\d*)\\s+into\\s+graph\\s+(\\w+)\\s*")
+			boost::regex("\\s*insert\\s+point\\s+'([\\w|\\s]+)':(\\d+):(\\-{0,1}\\d*.{0,1}\\d*)\\s+into\\s+graph\\s+(\\w+)\\s*")
 		)
 	) {
 		std::string series_name = match[1];

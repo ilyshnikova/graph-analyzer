@@ -69,25 +69,36 @@ public:
 /*      BlockBase       */
 class BlockBase {
 private:
-	std::string block_name;
 
 public:
+
+	std::string block_type;
+
 	std::unordered_set<std::string> incoming_edges_names;
 
-	BlockBase(
-		const std::unordered_set<std::string>& incoming_edges_names
-	);
+	std::unordered_set<std::string> params_names;
+	std::unordered_map<std::string, StringType> param_values;
+
+
+
+//	BlockBase(
+//		const std::unordered_set<std::string>& incoming_edges_names
+//	);
 
 	BlockBase(
 		const std::unordered_set<std::string>& incoming_edges_names,
-		const std::string& block_name
+		const std::string& block_name,
+		const std::unordered_set<std::string>& params_names,
+		const std::unordered_map<std::string, StringType>& param_values
+
 	);
 
 
+	std::string GetBlockType() const;
+
 	virtual Point Do(
 		const std::unordered_map<std::string, Point>& values,
-		const std::time_t& time,
-		const std::unordered_map<std::string, StringType>& param_values
+		const std::time_t& time
 	) = 0;
 
 
@@ -98,8 +109,7 @@ public:
 	std::string Join(const std::vector<std::string>& strings, const std::string separator) const;
 
 	std::string GetResultSeriesName(
-	const std::unordered_map<std::string, Point>& values,
-	const std::unordered_map<std::string, StringType>& param_values
+	const std::unordered_map<std::string, Point>& values
 ) const;
 
 };
@@ -112,12 +122,11 @@ private:
 
 	Point Do(
 		const std::unordered_map<std::string, Point>& values,
-		const std::time_t& time,
-		const std::unordered_map<std::string, StringType>& param_values
+		const std::time_t& time
 	);
 
 public:
-	EmptyBlock();
+	EmptyBlock(const std::string& block_type);
 
 };
 
@@ -129,12 +138,11 @@ private:
 	std::unordered_set<std::string> CreateIncomingEdges(const int edges_name) const;
 
 public:
-	Sum(const int edges_cout);
+	Sum(const int edges_cout, const std::string& block_type);
 
 	Point Do(
 		const std::unordered_map<std::string, Point>& values,
-		const std::time_t& time,
-		const std::unordered_map<std::string, StringType>& param_values
+		const std::time_t& time
 	);
 
 };
@@ -146,12 +154,11 @@ class PrintToLogs : public BlockBase {
 private:
 
 public:
-	PrintToLogs();
+	PrintToLogs(const std::string& block_type);
 
 	Point Do(
 		const std::unordered_map<std::string, Point>& values,
-		const std::time_t& time,
-		const std::unordered_map<std::string, StringType>& param_values
+		const std::time_t& time
 	);
 
 };
@@ -163,31 +170,29 @@ public:
 class TimeShift : public BlockBase {
 private:
 public:
-	TimeShift();
+	TimeShift(const std::string& block_type);
 
 	Point Do(
 		const std::unordered_map<std::string, Point>& values,
-		const std::time_t& time,
-		const std::unordered_map<std::string, StringType>& param_values
+		const std::time_t& time
 	);
 
 };
 
-/*	TimePeriodAggrigator	*/
+/*	TimePeriodAggregator	*/
 
-class TimePeriodAggrigator : public BlockBase {
+class TimePeriodAggregator : public BlockBase {
 private:
 	std::unordered_map<std::time_t, int> points_count;
 	std::unordered_map<std::time_t, double>  sums;
 
 public:
 
-	TimePeriodAggrigator();
+	TimePeriodAggregator(const std::string& block_type);
 
 	Point Do(
 		const std::unordered_map<std::string, Point>& values,
-		const std::time_t& time,
-		const std::unordered_map<std::string, StringType>& param_values
+		const std::time_t& time
 	);
 
 	void CleanHistory(const int min_bucket_points);
@@ -229,10 +234,7 @@ private:
 	int id;
 	std::string block_name;
 	std::unordered_map<std::time_t, std::unordered_map<std::string, Point> > data;
-	std::string block_type;
 
-	std::unordered_set<std::string> params_names;
-	std::unordered_map<std::string, StringType> param_values;
 
 	Table* blocks_table;
 
