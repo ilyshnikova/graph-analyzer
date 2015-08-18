@@ -283,7 +283,7 @@ public:
 		query[static_cast<int>(query.size()) - 1] = ')';
 
 		insert_query.push_back(query);
-		if (std::time(0) - time_of_last_execute > timeout || insert_query.size() > line_count) {
+		if (std::time(0) - time_of_last_execute > timeout || int(insert_query.size()) > line_count) {
 			Execute();
 		}
 		return *this;
