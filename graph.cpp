@@ -222,7 +222,8 @@ Point TimeShift::Do(
 
 /*	TimePeriodAggrigator	*/
 
-
+//* 1) Опечатка, надо писать Aggregator, тоже самое со словом aggregator
+//* 2) Имя блока надо пробросить из Block::Block(), а не тут
 TimePeriodAggrigator::TimePeriodAggrigator()
 : BlockBase({"to_aggrigate"}, std::string("aggrigate"))
 {}
@@ -263,6 +264,7 @@ Point TimePeriodAggrigator::Do(
 			+ "  with value -- "
 			+ std::to_string(sums[rounded_time]);
 
+		//* Тут надо >= вместо строгого неравенства
 		if (++points_count[rounded_time] > min_bucket_points) {
 			Point point_to_return(
 				GetResultSeriesName(values, param_values),
@@ -346,6 +348,7 @@ Block::Block(
 )
 : block()
 , id(id)
+//* Эту переменную надо удалить, хранить имя блока в публичной переменной в BlockBase
 , block_name(block_name)
 , data()
 , outgoing_edges()
@@ -372,6 +375,8 @@ Block::Block(
 		params_names = {"time_shift"};
 	} else if (block_type == "TimePeriodAggrigator") {
 		block = new TimePeriodAggrigator();
+		//* В общем коде не должно быть логики, относящейся к частным блокам,
+		//* надо перенести эти две переменные в публичную часть BlockBase
 		params_names = {"round_time", "keep_history_interval", "min_bucket_points"};
 		param_values = {{"round_time", 3600}, {"keep_history_interval", 3600 * 24}};
 	} else {
@@ -1307,6 +1312,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		boost::regex_match(
 			query,
 			match,
+			//* Название серии может содержать любые символы, даже пробельные, здесь \\w не годится
 			boost::regex("\\s*insert\\s+point\\s+'(\\w+)':(\\d+):(\\-{0,1}\\d*.{0,1}\\d*)\\s+into\\s+block\\s+(\\w+)\\s+of\\s+graph\\s+(\\w+)\\s*")
 		)
 	) {
