@@ -297,9 +297,7 @@ BlockCacheUpdaterBuffer::BlockCacheUpdaterBuffer()
 , last_update_time(time(0))
 , timeout(60)
 , max_blocks_count(5000)
-{
-	logger << std::to_string(last_update_time)  + " <- last_update_time";
-}
+{}
 
 
 BlockCacheUpdaterBuffer&  BlockCacheUpdaterBuffer::SetTable(Table* table) {
@@ -316,7 +314,6 @@ void BlockCacheUpdaterBuffer::PushUpdate(const int block_id, Block* block) {
 		+ " blocks count = "
 		+ std::to_string(blocks.size());
 	if (std::time(0) - last_update_time > timeout || max_blocks_count < blocks.size()) {
-		logger << "THERE";
 		Update();
 		last_update_time = std::time(0);
 	}
@@ -645,7 +642,6 @@ void Graph::Load() {
 
 	}
 	for (auto block_it = blocks.begin(); block_it != blocks.end(); ++block_it) {
-		logger << "add edge";
 		Block* block = block_it->second;
 		for (
 			auto it = blocks_and_outgoing_edges_table->Select(
@@ -988,7 +984,6 @@ void Graph::InsertPoint(const Point& point, const std::string& block_name) {
 void Graph::InsertPointToAllPossibleBlocks(const Point& point) {
 	for (auto it = blocks.begin(); it != blocks.end(); ++it) {
 		if (IncomingEdgesCount(it->first) == 0) {
-			logger << std::to_string(point.GetValue());
 			InsertPoint(point, it->first);
 		}
 	}
@@ -1337,7 +1332,6 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		std::string series_name = match[1];
 		std::time_t time = std::time_t(std::stoi(match[2]));
 		double value = std::stod(match[3]);
-		logger << "value: " + std::to_string(value);
 		std::string graph_name = match[4];
 
 		if (graphs.count(graph_name) == 0) {
