@@ -349,7 +349,8 @@ Block::Block(
 	const int id,
 	const std::string& block_name,
 	const std::string& block_type,
-	Table* blocks_table
+	Table* blocks_table,
+	BlockCacheUpdaterBuffer* block_buffer
 )
 : block()
 , id(id)
@@ -358,6 +359,7 @@ Block::Block(
 , outgoing_edges()
 , incoming_edges()
 , blocks_table(blocks_table)
+, block_buffer(block_buffer)
 {
 	boost::smatch match;
 	if (
@@ -539,7 +541,7 @@ bool Block::Check(const std::time_t& time) const {
 	return true;
 }
 
-void Block::Insert(const Point& point, const std::string& edge_name, BlockCacheUpdaterBuffer* block_buffer) {
+void Block::Insert(const Point& point, const std::string& edge_name) {
 	std::time_t time = point.GetTime();
 	data[time][edge_name] = point;
 	if (Check(time)) {
@@ -548,19 +550,19 @@ void Block::Insert(const Point& point, const std::string& edge_name, BlockCacheU
 		data.erase(time);
 
 		if (!result.IsEmpty()) {
-			SendByAllEdges(result, block_buffer);
+			SendByAllEdges(result);
 		}
 	}
 }
 
 
-void Block::SendByAllEdges(const Point& point, BlockCacheUpdaterBuffer* block_buffer) const {
+void Block::SendByAllEdges(const Point& point) const {
 	for (
 		auto it = outgoing_edges.begin();
 		it != outgoing_edges.end();
 		++it
 	) {
-		it->second->To()->Insert(point, it->first, block_buffer);
+		it->second->To()->Insert(point, it->first);
 	}
 
 }
@@ -707,7 +709,7 @@ Block* Graph::CreateBlock(
 ) {
 
 	if (blocks.count(block_name) == 0) {
-		Block* block = new Block(block_id, block_name, block_type, blocks_table);
+		Block* block = new Block(block_id, block_name, block_type, blocks_table, block_buffer);
 		blocks[block_name] = block;
 		return block;
 	} else {
@@ -976,7 +978,7 @@ void Graph::InsertPoint(const Point& point, const std::string& block_name) {
 			}
 			throw GANException(197529, "Block " + block_name  +  " has incoming edges:" + edges);
 		}
-		blocks[block_name]->SendByAllEdges(point, block_buffer);
+		blocks[block_name]->SendByAllEdges(point);
 	} else {
 		throw GANException(287103, "Block with name " + block_name + " does not exist.");
 	}

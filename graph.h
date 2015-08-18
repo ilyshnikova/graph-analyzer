@@ -80,11 +80,6 @@ public:
 	std::unordered_map<std::string, StringType> param_values;
 
 
-
-//	BlockBase(
-//		const std::unordered_set<std::string>& incoming_edges_names
-//	);
-
 	BlockBase(
 		const std::unordered_set<std::string>& incoming_edges_names,
 		const std::string& block_name,
@@ -234,7 +229,7 @@ private:
 	int id;
 	std::string block_name;
 	std::unordered_map<std::time_t, std::unordered_map<std::string, Point> > data;
-
+	BlockCacheUpdaterBuffer* block_buffer;
 
 	Table* blocks_table;
 
@@ -247,7 +242,9 @@ public:
 		const int id,
 		const std::string& block_name,
 		const std::string& block_type,
-		Table* blocks_table
+		Table* blocks_table,
+		BlockCacheUpdaterBuffer* block_buffer
+
 	);
 
 	void Load(const std::string& cache);
@@ -285,9 +282,9 @@ public:
 	);
 
 
-	void Insert(const Point& point, const std::string& edge_name, BlockCacheUpdaterBuffer* block_buffer);
+	void Insert(const Point& point, const std::string& edge_name);
 
-	void SendByAllEdges(const Point& point, BlockCacheUpdaterBuffer* block_buffer) const;
+	void SendByAllEdges(const Point& point) const;
 
 	bool Check(const std::time_t& time) const;
 
