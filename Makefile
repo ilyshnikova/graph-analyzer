@@ -1,4 +1,4 @@
-all: mysql-test client test-server gan-server test
+all: mysql-test client test-server gan-server
 
 gan-exception.o: gan-exception.cpp
 	g++ -c -g -std=c++0x gan-exception.cpp
