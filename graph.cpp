@@ -226,10 +226,6 @@ Point TimeShift::Do(
 
 /*	TimePeriodAggregator	*/
 
-//* 1) Опечатка, надо писать Aggregator, тоже самое со словом aggregator
-//* исправлено
-//* 2) Имя блока надо пробросить из Block::Block(), а не тут
-//* исправлено
 TimePeriodAggregator::TimePeriodAggregator(const std::string& block_type)
 : BlockBase(
 	{"to_aggregate"},
@@ -274,8 +270,6 @@ Point TimePeriodAggregator::Do(
 			+ "  with value -- "
 			+ std::to_string(sums[rounded_time]);
 
-		//* Тут надо >= вместо строгого неравенства
-		//* исправлено
 		if (++points_count[rounded_time] >= min_bucket_points) {
 			Point point_to_return(
 				GetResultSeriesName(values),
@@ -359,8 +353,6 @@ Block::Block(
 )
 : block()
 , id(id)
-//* Эту переменную надо удалить, хранить имя блока в публичной переменной в BlockBase
-//* удалено
 , block_name(block_name)
 , data()
 , outgoing_edges()
@@ -384,9 +376,6 @@ Block::Block(
 		block = new TimeShift(block_type);
 	} else if (block_type == "TimePeriodAggregator") {
 		block = new TimePeriodAggregator(block_type);
-		//* В общем коде не должно быть логики, относящейся к частным блокам,
-		//* надо перенести эти две переменные в публичную часть BlockBase
-		//* перенесла
 	} else {
 		throw GANException(649264, "Type " + block_type + " is incorret block type.");
 	}
@@ -1322,6 +1311,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 			match,
 			//* Название серии может содержать любые символы, даже пробельные, здесь \\w не годится
 			//* исправлено
+			//* надо любые символы, а у тебя только пробельные символы и обычные
 			boost::regex("\\s*insert\\s+point\\s+'([\\w|\\s]+)':(\\d+):(\\-{0,1}\\d*.{0,1}\\d*)\\s+into\\s+block\\s+(\\w+)\\s+of\\s+graph\\s+(\\w+)\\s*")
 		)
 	) {
