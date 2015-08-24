@@ -20,7 +20,9 @@ void Testing(const std::string& dir) {
 		YAML::Node doc;
 		parser.GetNextDocument(doc);
 		doc >> bt;
-		bt.Testing();
+		if (!bt.Testing()) {
+			return;
+		}
 	}
 }
 

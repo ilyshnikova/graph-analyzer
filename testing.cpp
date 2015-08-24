@@ -139,14 +139,14 @@ void operator >> (const YAML::Node& node, BlockTesting& bt) {
 }
 
 
-void BlockTesting::Testing() {
+bool  BlockTesting::Testing() {
 	for (size_t i = 0; i < tests.size(); ++i) {
 		std::cout << "\ntest series number: " << std::to_string(i) << "\n";
 		if (!tests[i].Testing(block)) {
-			std::cout << "THERE\n";
-			return;
+			return false;
 		}
 	}
+	return true;
 
 }
 

@@ -50,7 +50,7 @@ struct BlockTesting {
 
 	BlockTesting(const std::string& block_type);
 
-	void Testing();
+	bool Testing();
 
 	~BlockTesting();
 
