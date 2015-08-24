@@ -1,0 +1,21 @@
+- params: {'round_time' : 1000, 'keep_history_interval' : 10000, 'min_bucket_points' : 2}
+  incoming_points:
+    -
+      - edge_name: 'to_aggregate'
+        series_name: 'first'
+        value: 1
+        time : 1
+    -
+      - edge_name: 'to_aggregate'
+        series_name: 'first'
+        value: 1
+        time: 2
+
+  outgoing_points:
+    - series_name: ''
+      value: 0
+      time: 0
+    - series_name: 'TimePeriodAggregator(first;1000,2,10000)'
+      value: 2
+      time: 0
+

@@ -42,10 +42,25 @@ bool Point::IsEmpty()const  {
 	return is_empty;
 }
 
+bool Point::operator!=(const Point& other) const {
+	return series_name != other.GetSeriesName() || value != other.GetValue() || time != other.GetTime();
+}
+
 Point Point::Empty() {
 	return Point();
 }
 
+std::ostream& operator<< (std::ostream& out, const Point& point) {
+	out << " Point( "
+		<< " series_name: "
+		<< point.GetSeriesName()
+		<< " value: "
+		<< point.GetValue()
+		<< " time: "
+		<< point.GetTime()
+		<< ") ";
+	return out;
+}
 
 
 
@@ -361,6 +376,11 @@ Block::Block(
 , blocks_table(blocks_table)
 , block_buffer(block_buffer)
 {
+	block = GetBlock(block_type);
+}
+
+
+BlockBase* Block::GetBlock(const std::string& block_type)  {
 	boost::smatch match;
 	if (
 		boost::regex_match(
@@ -369,15 +389,15 @@ Block::Block(
 			boost::regex("Sum(\\d+)")
 		)
 	) {
-		block = new Sum(std::stoi(match[1]), block_type);
+		return new Sum(std::stoi(match[1]), block_type);
 	} else if (block_type == "PrintToLogs") {
-		block = new PrintToLogs(block_type);
+		return new PrintToLogs(block_type);
 	} else if (block_type == "EmptyBlock") {
-		block = new EmptyBlock(block_type);
+		return new EmptyBlock(block_type);
 	} else if (block_type == "TimeShift") {
-		block = new TimeShift(block_type);
+		return new TimeShift(block_type);
 	} else if (block_type == "TimePeriodAggregator") {
-		block = new TimePeriodAggregator(block_type);
+		return new TimePeriodAggregator(block_type);
 	} else {
 		throw GANException(649264, "Type " + block_type + " is incorret block type.");
 	}

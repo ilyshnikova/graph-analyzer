@@ -38,7 +38,13 @@ public:
 
 	bool IsEmpty() const;
 
+	bool operator!=(const Point& other) const;
+
 	static Point Empty();
+
+
+	friend std::ostream& operator<< (std::ostream& out, const Point& point);
+
 };
 
 /*    Edge     */
@@ -79,7 +85,6 @@ public:
 	std::unordered_set<std::string> params_names;
 	std::unordered_map<std::string, StringType> param_values;
 
-
 	BlockBase(
 		const std::unordered_set<std::string>& incoming_edges_names,
 		const std::string& block_name,
@@ -88,6 +93,8 @@ public:
 
 	);
 
+
+	BlockBase* GetBlock(const std::string& block_type) const;
 
 	std::string GetBlockType() const;
 
@@ -237,6 +244,8 @@ public:
 
 	std::unordered_map<std::string, Edge*> incoming_edges;
 	std::unordered_map<std::string, Edge*> outgoing_edges;
+
+	static BlockBase* GetBlock(const std::string& block_type) ;
 
 	Block(
 		const int id,
