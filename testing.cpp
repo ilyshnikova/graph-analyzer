@@ -113,13 +113,6 @@ void operator >> (const YAML::Node& node, Test& test) {
 		test.outgoing_points[i] = tpoint.point;
 	}
 
-
-	std::cout << "got tests: ";
-	for (size_t i = 0; i < test.incoming_points.size(); ++i)  {
-		for (auto it = test.incoming_points[i].begin(); it != test.incoming_points[i].end(); ++it) {
-			std::cout << it->first << " " << it->second << "\n";
-		}
-	}
 }
 
 
@@ -131,7 +124,6 @@ BlockTesting::BlockTesting(const std::string& block_type)
 
 void operator >> (const YAML::Node& node, BlockTesting& bt) {
 	bt.tests = std::vector<Test>(node.size());
-	std::cout << "Tests count " << node.size() << "\n";
 	for (size_t i = 0; i < node.size(); ++i) {
 		 node[i] >> bt.tests[i];
 	}
