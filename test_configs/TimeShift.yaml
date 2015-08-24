@@ -1,0 +1,40 @@
+- params: {"time_shift" : 1}
+  incoming_points:
+    -
+      - edge_name: 'to_shift'
+        series_name: 'first'
+        value: 1
+        time : 1
+    -
+      - edge_name: 'to_shift'
+        series_name: 'first'
+        value: 1
+        time: 2
+
+  outgoing_points:
+    - series_name: 'TimeShift(first;1)'
+      value: 1
+      time: 2
+    - series_name: 'TimeShift(first;1)'
+      value: 1
+      time: 3
+- params: {"time_shift" : -1}
+  incoming_points:
+    -
+      - edge_name: 'to_shift'
+        series_name: 'first'
+        value: 1
+        time: 1
+    -
+      - edge_name: 'to_shift'
+        series_name: 'first'
+        value: 1
+        time: 2
+
+  outgoing_points:
+    - series_name: 'TimeShift(first;-1)'
+      value: 1
+      time: 0
+    - series_name: 'TimeShift(first;-1)'
+      value: 1
+      time: 1

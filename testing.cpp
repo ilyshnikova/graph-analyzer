@@ -80,7 +80,7 @@ bool Test::Testing(BlockBase* block) const {
 		}
 
 	}
-
+	*block = *(Block::GetBlock(block->GetBlockType()));
 	return true;
 }
 
