@@ -42,7 +42,8 @@ void operator >> (const YAML::Node& node, IncomingPoint& point) {
 }
 
 
-bool Test::Testing(BlockBase* block) const {
+bool Test::Testing(const std::string& block_type) const {
+ 	BlockBase* block = Block(1, "", block_type, NULL).GetBlock();
 	block->param_values = params;
 	for (size_t i = 0; i < incoming_points.size(); ++i) {
 		std::unordered_map<std::string, Point> values = incoming_points[i];
@@ -80,7 +81,6 @@ bool Test::Testing(BlockBase* block) const {
 		}
 
 	}
-	*block = *(Block::GetBlock(block->GetBlockType()));
 	return true;
 }
 
@@ -118,7 +118,7 @@ void operator >> (const YAML::Node& node, Test& test) {
 
 
 BlockTesting::BlockTesting(const std::string& block_type)
-: block(Block::GetBlock(block_type))
+: block_type(block_type)
 , tests()
 {}
 
@@ -134,7 +134,7 @@ void operator >> (const YAML::Node& node, BlockTesting& bt) {
 bool  BlockTesting::Testing() {
 	for (size_t i = 0; i < tests.size(); ++i) {
 		std::cout << "\ntest series number: " << std::to_string(i) << "\n";
-		if (!tests[i].Testing(block)) {
+		if (!tests[i].Testing(block_type)) {
 			return false;
 		}
 	}
@@ -142,8 +142,29 @@ bool  BlockTesting::Testing() {
 
 }
 
-BlockTesting::~BlockTesting() {
-	delete block;
+
+void Testing(const std::string& dir) {
+	ExecuteHandler eh((std::string("ls ") + dir).c_str());
+	std::string file;
+	while (eh >> file) {
+		std::string block_type;
+		for (size_t i = 0; i < file.size() - 5; ++i) {
+			block_type += file[i];
+		}
+		BlockTesting bt(block_type);
+		std::ifstream fin(dir + "/" + file);
+		YAML::Parser parser(fin);
+		YAML::Node doc;
+		parser.GetNextDocument(doc);
+		doc >> bt;
+		if (!bt.Testing()) {
+			return;
+		}
+	}
 }
 
 
+int main() {
+	Testing("./test_configs");
+	return 0;
+}

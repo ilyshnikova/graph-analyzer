@@ -12,6 +12,16 @@
 #include "gan-exception.h"
 
 
+/*	AnswerTable	*/
+
+struct AnswerTable {
+	std::string status;
+	std::vector<std::string> head;
+	std::vector<std::vector<std::string> > rows;
+
+	std::string ToString() const;
+};
+
 /*      Point       */
 
 class Point {
@@ -38,6 +48,7 @@ public:
 
 	bool IsEmpty() const;
 
+	bool operator==(const Point& other) const;
 	bool operator!=(const Point& other) const;
 
 	static Point Empty();
@@ -94,7 +105,7 @@ public:
 	);
 
 
-	BlockBase* GetBlock(const std::string& block_type) const;
+	virtual BlockBase* GetBlock(const std::string& block_type) const = 0;
 
 	std::string GetBlockType() const;
 
@@ -108,11 +119,14 @@ public:
 
 	virtual void FromString(const std::string& elements_string);
 
-	std::string Join(const std::vector<std::string>& strings, const std::string separator) const;
+	static std::string Join(const std::vector<std::string>& strings, const std::string separator);
 
 	std::string GetResultSeriesName(
-	const std::unordered_map<std::string, Point>& values
-) const;
+		const std::unordered_map<std::string, Point>& values
+	) const;
+
+
+	virtual std::string Description() const = 0;
 
 };
 
@@ -128,8 +142,11 @@ private:
 	);
 
 public:
-	EmptyBlock(const std::string& block_type);
+	EmptyBlock();
 
+	BlockBase* GetBlock(const std::string& block_type) const;
+
+	std::string Description() const;
 };
 
 /*	Sum	*/
@@ -140,13 +157,16 @@ private:
 	std::unordered_set<std::string> CreateIncomingEdges(const int edges_name) const;
 
 public:
-	Sum(const int edges_cout, const std::string& block_type);
+	Sum(const int edges_cout);
 
 	Point Do(
 		const std::unordered_map<std::string, Point>& values,
 		const std::time_t& time
 	);
 
+	BlockBase* GetBlock(const std::string& block_type) const;
+
+	std::string Description() const;
 };
 
 
@@ -156,13 +176,16 @@ class PrintToLogs : public BlockBase {
 private:
 
 public:
-	PrintToLogs(const std::string& block_type);
+	PrintToLogs();
 
 	Point Do(
 		const std::unordered_map<std::string, Point>& values,
 		const std::time_t& time
 	);
 
+	BlockBase* GetBlock(const std::string& block_type) const;
+
+	std::string Description() const;
 };
 
 
@@ -172,12 +195,16 @@ public:
 class TimeShift : public BlockBase {
 private:
 public:
-	TimeShift(const std::string& block_type);
+	TimeShift();
 
 	Point Do(
 		const std::unordered_map<std::string, Point>& values,
 		const std::time_t& time
 	);
+
+	BlockBase* GetBlock(const std::string& block_type) const;
+
+	std::string Description() const;
 
 };
 
@@ -190,7 +217,7 @@ private:
 
 public:
 
-	TimePeriodAggregator(const std::string& block_type);
+	TimePeriodAggregator();
 
 	Point Do(
 		const std::unordered_map<std::string, Point>& values,
@@ -203,7 +230,9 @@ public:
 
 	void FromString(const std::string& elements_string);
 
+	BlockBase* GetBlock(const std::string& block_type) const;
 
+	std::string Description() const;
 };
 
 /*	BlockCacheUpdaterBuffer	*/
@@ -236,22 +265,25 @@ private:
 	int id;
 	std::string block_name;
 	std::unordered_map<std::time_t, std::unordered_map<std::string, Point> > data;
+	std::vector<BlockBase*> blocks;
 	BlockCacheUpdaterBuffer* block_buffer;
 
-	Table* blocks_table;
-
 public:
+
 
 	std::unordered_map<std::string, Edge*> incoming_edges;
 	std::unordered_map<std::string, Edge*> outgoing_edges;
 
-	static BlockBase* GetBlock(const std::string& block_type) ;
+	BlockBase* GetBlock(const std::string& block_type) const;
+
+	BlockBase* GetBlock() const;
+
+	std::string GetAllBlocksDescriptions() const;
 
 	Block(
 		const int id,
 		const std::string& block_name,
 		const std::string& block_type,
-		Table* blocks_table,
 		BlockCacheUpdaterBuffer* block_buffer
 
 	);
@@ -270,7 +302,7 @@ public:
 
 	void AddOutgoingEdgeToTable(Edge* edge, Table* blocks_and_outgoing_edges_table);
 
-	void AddOutgoingEdge(Edge* edge, Table* blocks_and_outgoing_edges_table);
+	void AddOutgoingEdge(Edge* edge);
 
 	void DeleteOutgoingEdge(const std::string& edge_name, Table* blocks_and_outgoing_edges_table);
 
@@ -302,6 +334,10 @@ public:
 	void AddParam(const std::string& param_name, const StringType& param_value);
 
 	std::string ToString();
+
+	std::vector<std::vector<std::string> > GetParams() const;
+
+	std::vector<std::vector<std::string> > GetPossibleEdges() const;
 
 	~Block();
 
@@ -416,9 +452,20 @@ public:
 		const std::string& block_name
 	);
 
+	std::vector<std::vector<std::string> > GetBlocksNames() const;
+
+	std::vector<std::vector<std::string> > GetBlocksParams(const std::string& block_name) const;
+
 	void AddParam(const std::string& param_name, const StringType& param_value, const std::string& block_name);
 
+	std::vector<std::vector<std::string> > GetEdges() const;
+
+	std::vector<std::vector<std::string> > GetPossibleEdges(const std::string& block_name) const;
+
+	std::string GetBlockType(const std::string& block_name) const;
+
 	~Graph();
+
 
 };
 

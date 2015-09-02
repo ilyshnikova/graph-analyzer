@@ -37,22 +37,20 @@ struct Test {
 	std::vector<std::unordered_map<std::string, Point> > incoming_points;
 	std::vector<Point> outgoing_points;
 
-	bool Testing(BlockBase* block) const;
+	bool Testing(const std::string& block_type) const;
 
 	friend void operator >> (const YAML::Node& node, Test& test);
 };
 
 
 struct BlockTesting {
-	BlockBase* block;
+	std::string block_type;
 	std::vector<Test> tests;
 
 
 	BlockTesting(const std::string& block_type);
 
 	bool Testing();
-
-	~BlockTesting();
 
 	friend void operator >> (const YAML::Node& node, BlockTesting& bt);
 

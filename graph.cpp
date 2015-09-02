@@ -7,6 +7,25 @@
 #include "graph.h"
 #include "logger.h"
 
+/*	AnswerTable	*/
+
+
+std::string AnswerTable::ToString() const {
+	std::vector<std::string> string_rows;
+	for (size_t i = 0; i < rows.size(); ++i) {
+		string_rows.push_back(BlockBase::Join(rows[i], std::string("\t")));
+	}
+
+	return 	status
+		+ (head.size() == 0 ? "" : std::string("\n") + BlockBase::Join(head, std::string("\t")))
+		+ (rows.size() == 0 ? "" : std::string("\n"))
+		+ BlockBase::Join(string_rows, std::string("\n"));
+
+}
+
+
+/*	Point	*/
+
 Point::Point()
 : series_name()
 , value()
@@ -42,8 +61,12 @@ bool Point::IsEmpty()const  {
 	return is_empty;
 }
 
+bool Point::operator==(const Point& other) const {
+	return series_name == other.GetSeriesName() && value == other.GetValue() && time == other.GetTime();
+}
+
 bool Point::operator!=(const Point& other) const {
-	return series_name != other.GetSeriesName() || value != other.GetValue() || time != other.GetTime();
+	return !(*this == other);
 }
 
 Point Point::Empty() {
@@ -90,13 +113,7 @@ std::string Edge::GetEdgeName() const {
 
 
 /*   BlockBase    */
-//
-//BlockBase::BlockBase(
-//	const std::unordered_set<std::string>& incoming_edges_names
-//)
-//: incoming_edges_names(incoming_edges_names)
-//, block_type()
-//{}
+
 
 BlockBase::BlockBase(
 	const std::unordered_set<std::string>& incoming_edges_names,
@@ -122,7 +139,7 @@ std::string BlockBase::ToString() const {
 void BlockBase::FromString(const std::string&) {}
 
 
-std::string BlockBase::Join(const std::vector<std::string>& strings, const std::string separator) const {
+std::string BlockBase::Join(const std::vector<std::string>& strings, const std::string separator) {
 	std::string result;
 	for (size_t i = 0 ; i < strings.size(); ++i) {
 		result += strings[i] + (i + 1 == strings.size() ? "" : separator);
@@ -151,11 +168,11 @@ std::string BlockBase::GetResultSeriesName(
 	return series_name + Join(names, ",") + (params.size() == 0 ? "" : ";" +  Join(params, ",")) + ")";
 }
 
-/*   EmptyTestBlock    */
+/*   EmptyBlock    */
 
 
-EmptyBlock::EmptyBlock(const std::string& block_type)
-: BlockBase({}, block_type, {}, {})
+EmptyBlock::EmptyBlock()
+: BlockBase({}, "EmptyBlock", {}, {})
 {}
 
 
@@ -164,6 +181,17 @@ Point EmptyBlock::Do(
 	const std::time_t& time
 ) {
 	return Point::Empty();
+}
+
+BlockBase* EmptyBlock::GetBlock(const std::string& type) const {
+	if (block_type == type) {
+		return new EmptyBlock();
+	}
+	return NULL;
+}
+
+std::string EmptyBlock::Description() const {
+	return "\tEmptyBlock: This block is used for inserting points into graph.";
 }
 
 /*	Sum	*/
@@ -178,8 +206,8 @@ std::unordered_set<std::string> Sum::CreateIncomingEdges(const int edges_count) 
 }
 
 
-Sum::Sum(const int edges_count, const std::string& block_type)
-: BlockBase(CreateIncomingEdges(edges_count), block_type, {}, {})
+Sum::Sum(const int edges_count)
+: BlockBase(CreateIncomingEdges(edges_count), std::string("Sum") + std::to_string(edges_count), {}, {})
 {}
 
 
@@ -197,10 +225,33 @@ Point Sum::Do(
 }
 
 
+BlockBase* Sum::GetBlock(const std::string& type) const {
+	boost::smatch match;
+	if (
+		boost::regex_match(
+			type,
+			match,
+			boost::regex("Sum(\\d+)")
+		)
+	) {
+		return new Sum(std::stoi(match[1]));
+	}
+	return NULL;
+}
+
+std::string Sum::Description() const {
+	return std::string("\tSumN : This block is used for summarize incoming  points values.\n")
+		+ "\t\tN - param that specifying count of edges.\n"
+		+ "\t\tIncoming edges: arg1,\n"
+		+ "\t\t\t\t...,\n"
+		+ "\t\t\t\targN.";
+}
+
+
 /*	PrintToLogs	*/
 
-PrintToLogs::PrintToLogs(const std::string& block_type)
-: BlockBase({"to_print"}, block_type, {}, {})
+PrintToLogs::PrintToLogs()
+: BlockBase({"to_print"}, "PrintToLogs", {}, {})
 {}
 
 
@@ -220,11 +271,26 @@ Point PrintToLogs::Do(
 	return Point::Empty();
 }
 
+BlockBase* PrintToLogs::GetBlock(const std::string& type) const {
+	if (block_type == type) {
+		return new PrintToLogs();
+	}
+	return NULL;
+}
+
+
+std::string PrintToLogs::Description() const {
+	return std::string("\tPrintToLogs : This block is used for ptinting point to log.\n")
+		+ "\t\tIncoming edges: to_print.";
+}
+
+
+
 /*	TimeShift	*/
 
 
-TimeShift::TimeShift(const std::string& block_type)
-:BlockBase({"to_shift"}, block_type, {"time_shift"}, {})
+TimeShift::TimeShift()
+:BlockBase({"to_shift"}, "TimeShift", {"time_shift"}, {})
 {}
 
 Point TimeShift::Do(
@@ -239,12 +305,28 @@ Point TimeShift::Do(
 	);
 }
 
+BlockBase* TimeShift::GetBlock(const std::string& type) const {
+	if (block_type == type) {
+		return new TimeShift();
+	}
+	return NULL;
+}
+
+
+std::string TimeShift::Description() const {
+	return std::string("\tTimeShift : This block is used for shifting points times to some value.\n")
+		+ "\t\tIncoming edges: to_print.\n"
+		+ "\t\tPrams: time_shift -- shift value.\n";
+}
+
+
+
 /*	TimePeriodAggregator	*/
 
-TimePeriodAggregator::TimePeriodAggregator(const std::string& block_type)
+TimePeriodAggregator::TimePeriodAggregator()
 : BlockBase(
 	{"to_aggregate"},
-	block_type,
+	"TimePeriodAggregator",
 	{"round_time", "keep_history_interval", "min_bucket_points"},
 	{{"round_time", 3600}, {"keep_history_interval", 3600 * 24}}
 )
@@ -309,6 +391,22 @@ void TimePeriodAggregator::FromString(const std::string& elements_string) {
 }
 
 
+BlockBase* TimePeriodAggregator::GetBlock(const std::string& type) const {
+	if (block_type == type) {
+		return new TimePeriodAggregator();
+	}
+	return NULL;
+}
+
+
+std::string TimePeriodAggregator::Description() const {
+	return std::string("\tTimePeriodAggregator : This block rounding points time and summarize points values with same worth\n")
+		+ "\t\tIncoming edges: to_aggregate.\n"
+		+ "\t\tParams: round_time -- rounding precision,\n"
+		+ "\t\t\tkeep_history_interval -- points with greater than this time will not be taken into account,\n"
+		+ "\t\t\tmin_bucket_points -- minimum number of points with same time, which required for creating outgoing point.";
+}
+
 
 
 /*	BlockCacheUpdaterBuffer	*/
@@ -354,9 +452,6 @@ void BlockCacheUpdaterBuffer::Update() {
 	blocks.clear();
 }
 
-
-
-
 /*	Block	*/
 
 
@@ -364,7 +459,6 @@ Block::Block(
 	const int id,
 	const std::string& block_name,
 	const std::string& block_type,
-	Table* blocks_table,
 	BlockCacheUpdaterBuffer* block_buffer
 )
 : block()
@@ -373,34 +467,34 @@ Block::Block(
 , data()
 , outgoing_edges()
 , incoming_edges()
-, blocks_table(blocks_table)
 , block_buffer(block_buffer)
+, blocks({
+	new Sum(1),
+	new PrintToLogs(),
+	new EmptyBlock(),
+	new TimeShift(),
+	new TimePeriodAggregator()
+})
 {
-	block = GetBlock(block_type);
+	for (size_t i = 0; i < blocks.size(); ++i) {
+		block = blocks[i]->GetBlock(block_type);
+		if (block != NULL) {
+			return;
+		}
+	}
+	throw GANException(649264, "Type " + block_type + " is incorret block type.");
 }
 
+BlockBase* Block::GetBlock() const {
+	return block;
+}
 
-BlockBase* Block::GetBlock(const std::string& block_type)  {
-	boost::smatch match;
-	if (
-		boost::regex_match(
-			block_type,
-			match,
-			boost::regex("Sum(\\d+)")
-		)
-	) {
-		return new Sum(std::stoi(match[1]), block_type);
-	} else if (block_type == "PrintToLogs") {
-		return new PrintToLogs(block_type);
-	} else if (block_type == "EmptyBlock") {
-		return new EmptyBlock(block_type);
-	} else if (block_type == "TimeShift") {
-		return new TimeShift(block_type);
-	} else if (block_type == "TimePeriodAggregator") {
-		return new TimePeriodAggregator(block_type);
-	} else {
-		throw GANException(649264, "Type " + block_type + " is incorret block type.");
+std::string Block::GetAllBlocksDescriptions() const {
+	std::string res;
+	for (size_t i = 0; i < blocks.size(); ++i) {
+		res += blocks[i]->Description() + "\n";
 	}
+	return res;
 
 }
 
@@ -515,7 +609,7 @@ void Block::AddOutgoingEdgeToTable(Edge* edge, Table* blocks_and_outgoing_edges_
 }
 
 
-void Block::AddOutgoingEdge(Edge* edge, Table* blocks_and_outgoing_edges_table) {
+void Block::AddOutgoingEdge(Edge* edge) {
 	outgoing_edges[edge->GetEdgeName()] = edge;
 
 }
@@ -561,6 +655,8 @@ bool Block::Check(const std::time_t& time) const {
 	return true;
 }
 
+
+
 void Block::Insert(const Point& point, const std::string& edge_name) {
 	std::time_t time = point.GetTime();
 	data[time][edge_name] = point;
@@ -603,10 +699,33 @@ std::string Block::ToString() {
 	return block->ToString();
 }
 
+std::vector<std::vector<std::string> > Block::GetParams() const {
+	std::vector<std::vector<std::string> > params;
+
+	for (auto it = block->params_names.begin(); it != block->params_names.end(); ++it) {
+		params.push_back({
+			*it,
+			(block->param_values.count(*it) == 0 ? std::string("") : std::string(block->param_values[*it]))
+		});
+	}
+
+	return params;
+}
+
+std::vector<std::vector<std::string> > Block::GetPossibleEdges() const {
+	std::vector<std::vector<std::string> > edges;
+	for (auto it = block->incoming_edges_names.cbegin(); it != block->incoming_edges_names.cend(); ++it) {
+		edges.push_back({*it});
+	}
+	return edges;
+}
 
 Block::~Block() {
 	for (auto it = outgoing_edges.begin(); it != outgoing_edges.end(); ++it) {
 		delete it->second;
+	}
+	for (size_t i = 0; i < blocks.size(); ++i) {
+		delete blocks[i];
 	}
 }
 
@@ -729,7 +848,7 @@ Block* Graph::CreateBlock(
 ) {
 
 	if (blocks.count(block_name) == 0) {
-		Block* block = new Block(block_id, block_name, block_type, blocks_table, block_buffer);
+		Block* block = new Block(block_id, block_name, block_type, block_buffer);
 		blocks[block_name] = block;
 		return block;
 	} else {
@@ -853,7 +972,7 @@ Edge* Graph::CreateEdge(
 		Edge* edge = new Edge(edge_id, edge_name, block_from, block_to);
 
 		block_to->AddIncomingEdge(edge);
-		block_from->AddOutgoingEdge(edge, blocks_and_outgoing_edges_table);
+		block_from->AddOutgoingEdge(edge);
 
 		return edge;
 	}
@@ -1023,7 +1142,7 @@ void Graph::AddParamToTable(
 	const std::string& block_name
 ) {
 	if (blocks.count(block_name) == 0) {
-		throw GANException(283719, "Block with name " + block_name + "does not exist.");
+		throw GANException(283719, "Block with name " + block_name + " does not exist.");
 	}
 
 	int block_id = blocks[block_name]->GetBlockId();
@@ -1044,9 +1163,60 @@ void Graph::AddParam(const std::string& param_name, const StringType& param_valu
 	if (blocks.count(block_name) == 0) {
 		throw GANException(283719, "Block with name " + block_name + "does not exist.");
 	}
+
 	blocks[block_name]->AddParam(param_name, param_value);
 
 
+}
+
+
+std::vector<std::vector<std::string> > Graph::GetBlocksNames() const {
+	std::vector<std::vector<std::string> > blocks_names_table;
+
+	for (auto it = blocks.cbegin(); it != blocks.cend(); ++it) {
+		blocks_names_table.push_back({it->first, it->second->GetBlockType()});
+	}
+	return blocks_names_table;
+}
+
+std::vector<std::vector<std::string> > Graph::GetBlocksParams(const std::string& block_name) const {
+	if (blocks.count(block_name) == 0) {
+		throw GANException(234245, "Block with name " + block_name + " does not exist.");
+	}
+	return blocks.at(block_name)->GetParams();
+}
+
+std::vector<std::vector<std::string> > Graph::GetEdges() const {
+	std::vector<std::vector<std::string> > edges;
+	for (auto it = blocks.cbegin(); it != blocks.cend(); ++it) {
+		Block* block = it->second;
+		for (auto edge = block->outgoing_edges.begin(); edge != block->outgoing_edges.end(); ++edge) {
+			edges.push_back({
+				block->GetBlockName(),
+				edge->first,
+				edge->second->To()->GetBlockName()
+			});
+		}
+	}
+	return edges;
+}
+
+
+std::vector<std::vector<std::string> > Graph::GetPossibleEdges(const std::string& block_name) const {
+	if (blocks.count(block_name) == 0) {
+		throw GANException(234245, "Block with name " + block_name + " does not exist.");
+	}
+
+	return blocks.at(block_name)->GetPossibleEdges();
+}
+
+
+std::string Graph::GetBlockType(const std::string& block_name) const {
+	if (blocks.count(block_name) == 0) {
+		throw GANException(234245, "Block with name " + block_name + " does not exist.");
+	}
+
+	return blocks.at(block_name)->GetBlockType();
 }
 
 
@@ -1149,7 +1319,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		boost::regex_match(
 			query,
 			match,
-			boost::regex("\\s*create\\s+vertex\\s+(\\w+):(\\w+)\\s+in\\s+(\\w+)\\s*")
+			boost::regex("\\s*create\\s+block\\s+(\\w+):(\\w+)\\s+in\\s+graph\\s+(\\w+)\\s*")
 		)
 	) {
 		std::string block_name = match[1];
@@ -1163,7 +1333,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		if (graph->In(block_name)) {
 			throw GANException(
 				428352,
-				"Block with name" + block_name  + " already exists in graph " + graph_name +  "."
+				"Block with name " + block_name  + " already exists in graph " + graph_name +  "."
 			);
 		}
 
@@ -1177,7 +1347,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		boost::regex_match(
 			query,
 			match,
-			boost::regex("\\s*create\\s+vertex\\s+if\\s+not\\s+exists\\s+(\\w+):(\\w+)\\s+in\\s+(\\w+)\\s*")
+			boost::regex("\\s*create\\s+block\\s+if\\s+not\\s+exists\\s+(\\w+):(\\w+)\\s+in\\s+graph\\s+(\\w+)\\s*")
 		)
 	) {
 		std::string block_name = match[1];
@@ -1200,7 +1370,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		boost::regex_match(
 			query,
 			match,
-			boost::regex("\\s*delete\\s+vertex\\s+(\\w+)\\s+in\\s+(\\w+)\\s*")
+			boost::regex("\\s*delete\\s+block\\s+(\\w+)\\s+in\\s+graph\\s+(\\w+)\\s*")
 		)
 	) {
 		std::string block_name = match[1];
@@ -1217,7 +1387,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		boost::regex_match(
 			query,
 			match,
-			boost::regex("\\s*delete\\s+vertex\\s+if\\s+exists\\s+(\\w+)\\s+in\\s+(\\w+)\\s*")
+			boost::regex("\\s*delete\\s+block\\s+if\\s+exists\\s+(\\w+)\\s+in\\s+graph\\s+(\\w+)\\s*")
 		)
 	) {
 		std::string block_name = match[1];
@@ -1232,7 +1402,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		boost::regex_match(
 			query,
 			match,
-			boost::regex("\\s*create\\s+edge\\s+(\\w+)\\s+in\\s+(\\w+)\\s+from\\s+(\\w+)\\s+to\\s+(\\w+)\\s*")
+			boost::regex("\\s*create\\s+edge\\s+(\\w+)\\s+in\\s+graph\\s+(\\w+)\\s+from\\s+(\\w+)\\s+to\\s+(\\w+)\\s*")
 		)
 	) {
 		std::string edge_name = match[1];
@@ -1252,7 +1422,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		boost::regex_match(
 			query,
 			match,
-			boost::regex("\\s*create\\s+edge\\s+if\\s+not\\s+exists\\s+(\\w+)\\s+in\\s+(\\w+)\\s+from\\s+(\\w+)\\s+to\\s+(\\w+)\\s*")
+			boost::regex("\\s*create\\s+edge\\s+if\\s+not\\s+exists\\s+(\\w+)\\s+in\\s+graph\\s+(\\w+)\\s+from\\s+(\\w+)\\s+to\\s+(\\w+)\\s*")
 		)
 	)  {
 		std::string edge_name = match[1];
@@ -1275,7 +1445,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		boost::regex_match(
 			query,
 			match,
-			boost::regex("\\s*delete\\s+edge\\s+(\\w+)\\s+in\\s+(\\w+)\\s+from\\s+(\\w+)\\s+to\\s+(\\w+)\\s*")
+			boost::regex("\\s*delete\\s+edge\\s+(\\w+)\\s+in\\s+graph\\s+(\\w+)\\s+from\\s+(\\w+)\\s+to\\s+(\\w+)\\s*")
 		)
 	) {
 		std::string edge_name = match[1];
@@ -1295,7 +1465,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		boost::regex_match(
 			query,
 			match,
-			boost::regex("\\s*delete\\s+edge\\s+if\\s+exists\\s+edge\\s+(\\w+)\\s+in\\s+(\\w+)\\s+from\\s+(\\w+)\\s+to\\s+(\\w+)\\s*")
+			boost::regex("\\s*delete\\s+edge\\s+if\\s+exists\\s+edge\\s+(\\w+)\\s+in\\s+graph\\s+(\\w+)\\s+from\\s+(\\w+)\\s+to\\s+(\\w+)\\s*")
 		)
 	) {
 		std::string edge_name = match[1];
@@ -1366,7 +1536,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		boost::regex_match(
 			query,
 			match,
-			boost::regex("\\s*modify\\s+param\\s+(\\w+)\\s+to\\s+(\\w+)\\s+of\\s+block\\s+(\\w+)\\s+of\\s+graph\\s+(\\w+)\\s*")
+			boost::regex("\\s*modify\\s+param\\s+(\\w+)\\s+to\\s+(\\w+)\\s+in\\s+block\\s+(\\w+)\\s+of\\s+graph\\s+(\\w+)\\s*")
 		)
 	) {
 		std::string param_name = match[1];
@@ -1382,7 +1552,154 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		graph->AddParamToTable(param_name, param_value, block_name);
 		ChangeGraphsValid(graph_name, 0);
 
+	} else if (
+		boost::regex_match(
+			query,
+			match,
+			boost::regex("\\s*show\\s+graphs\\s*")
+		)
+	) {
+		AnswerTable ans;
+		ans.head = {"GraphName"};
 
+		for (auto it = graphs.begin(); it != graphs.end(); ++it) {
+			ans.rows.push_back({it->first});
+		}
+		ans.status = "Ok";
+
+		return  ans.ToString();
+
+	} else if (
+		boost::regex_match(
+			query,
+			match,
+			boost::regex("\\s*show\\s+blocks\\s+of\\s+graph\\s+(\\w+)\\s*")
+		)
+	) {
+		std::string graph_name = match[1];
+
+		if (graphs.count(graph_name) == 0) {
+			throw GANException(135264, "Graph with name " + graph_name  +  " does not exist.");
+		}
+		AnswerTable ans;
+		ans.head = {"Name", "Type"};
+		ans.rows = graphs[graph_name]->GetBlocksNames();
+		ans.status = "Ok";
+		return ans.ToString();
+
+	} else if (
+		boost::regex_match(
+			query,
+			match,
+			boost::regex("\\s*show\\s+params\\s+of\\s+block\\s+(\\w+)\\s+of\\s+graph\\s+(\\w+)\\s*")
+		)
+	) {
+		std::string block_name = match[1];
+		std::string graph_name = match[2];
+		if (graphs.count(graph_name) == 0) {
+			throw GANException(135264, "Graph with name " + graph_name  +  " does not exist.");
+		}
+
+		AnswerTable ans;
+		ans.head = {"Name", "Value"};
+		ans.rows = graphs[graph_name]->GetBlocksParams(block_name);
+		ans.status = "Ok";
+		return ans.ToString();
+	} else if (
+		boost::regex_match(
+			query,
+			match,
+			boost::regex("\\s*show\\s+edges\\s+of\\s+graph\\s+(\\w+)\\s*")
+		)
+	) {
+		std::string graph_name = match[1];
+
+		if (graphs.count(graph_name) == 0) {
+			throw GANException(135264, "Graph with name " + graph_name  +  " does not exist.");
+		}
+		AnswerTable ans;
+		ans.head = {"FromName", "EdgeName", "ToName"};
+		ans.rows = graphs[graph_name]->GetEdges();
+		ans.status = "Ok";
+		return ans.ToString();
+	} else if (
+		boost::regex_match(
+			query,
+			match,
+			boost::regex("\\s*is\\s+graph\\s+(\\w+)\\s+deployed\\s*")
+		)
+	) {
+
+		std::string graph_name = match[1];
+
+		if (graphs.count(graph_name) == 0) {
+			throw GANException(135264, "Graph with name " + graph_name  +  " does not exist.");
+		}
+		AnswerTable ans;
+		ans.head = {"GraphDeployed"};
+		ans.rows = {{((graphs[graph_name]->GetGraphValid() == 1) ? std::string("Yes") : std::string("No"))}};
+		ans.status = "Ok";
+		return ans.ToString();
+	} else if (
+		boost::regex_match(
+			query,
+			match,
+			boost::regex("\\s*show\\s+possible\\s+edges\\s+of\\s+block\\s+(\\w+)\\s+of\\s+graph\\s+(\\w+)\\s*")
+		)
+	) {
+		std::string block_name = match[1];
+		std::string graph_name = match[2];
+		if (graphs.count(graph_name) == 0) {
+			throw GANException(135264, "Graph with name " + graph_name  +  " does not exist.");
+		}
+
+		AnswerTable ans;
+		ans.head = {"EdgeName"};
+		ans.rows = graphs[graph_name]->GetPossibleEdges(block_name);
+		ans.status = "Ok";
+		return ans.ToString();
+
+	} else  if (
+		boost::regex_match(
+			query,
+			match,
+			boost::regex("\\s*show\\s+block\\s+type\\s+of\\s+block\\s+(\\w+)\\s+of\\s+graph\\s+(\\w+)\\s*")
+		)
+	) {
+		std::string block_name = match[1];
+		std::string graph_name = match[2];
+		if (graphs.count(graph_name) == 0) {
+			throw GANException(135264, "Graph with name " + graph_name  +  " does not exist.");
+		}
+		AnswerTable ans;
+		ans.head = {"BlockType"};
+		ans.rows = {{graphs[graph_name]->GetBlockType(block_name)}};
+		ans.status = "Ok";
+		return ans.ToString();
+	} else if (
+		boost::regex_match(
+			query,
+			match,
+			boost::regex("\\s*help\\s*")
+		)
+	) {
+		return std::string("Ok\n")
+			+ "Queries:\n\tCreation/Deletion of objects:\n"
+			+ "\t\tcreate|delete graph [if [not] exists] <graph_name>\n"
+			+ "\t\tcreate|delete block [if [not] exists] <vertes_name>[:<vertex_type>] in graph <graph_name>\n"
+			+ "\t\tcreate|delete edge [if [not] exists] <edge_name> in graph <graph_name> from <from_vertex_name> to <to_vertex_name>\n"
+			+ "\tWork with graph:\n"
+			+ "\t\tdeploy graph <graph_name> -- verify the absence of cycles and availability of all incoming edges in blocks\n"
+			+ "\t\tis graph <graph_name> deployed -- return result of last graphs verification\n"
+			+ "\t\tinsert point '<series_name>':<time>:<double_value> into [block <block_name> of] graph <graph_name> -- insert point to all blocks without incoming edges or to current block\n"
+			+ "\t\tmodify param <param_name> to <param_value> in block <block_name> of graph <graph_name>\n"
+			+ "\tShow Graph Structure:\n"
+			+ "\t\tshow graphs\n"
+			+ "\t\tshow blocks|edges of graph <graph_name>\n"
+			+ "\t\tshow params|possible edges of block <block_name> of graph <graph_name>\n"
+			+ "\t\tshow block type of block <block_name> of graph <graph_name>\n"
+			+ "\t\thelp\n"
+			+ "Blocks:\n" + Block(1,"","EmptyBlock",NULL).GetAllBlocksDescriptions();
 	} else {
 		throw GANException(529352, "Incorrect query");
 	}
