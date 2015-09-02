@@ -267,7 +267,6 @@ private:
 	std::unordered_map<std::time_t, std::unordered_map<std::string, Point> > data;
 	std::vector<BlockBase*> blocks;
 	BlockCacheUpdaterBuffer* block_buffer;
-//	Table* blocks_table;
 
 public:
 
@@ -279,15 +278,12 @@ public:
 
 	BlockBase* GetBlock() const;
 
-	BlockCacheUpdaterBuffer* GetBuffer() const;
-
 	std::string GetAllBlocksDescriptions() const;
 
 	Block(
 		const int id,
 		const std::string& block_name,
 		const std::string& block_type,
-		Table* blocks_table,
 		BlockCacheUpdaterBuffer* block_buffer
 
 	);
@@ -341,7 +337,7 @@ public:
 
 	std::vector<std::vector<std::string> > GetParams() const;
 
-	std::vector<std::vector<std::string> > GetPermissibleEdges() const;
+	std::vector<std::vector<std::string> > GetPossibleEdges() const;
 
 	~Block();
 
@@ -464,7 +460,7 @@ public:
 
 	std::vector<std::vector<std::string> > GetEdges() const;
 
-	std::vector<std::vector<std::string> > GetPermissibleEdges(const std::string& block_name) const;
+	std::vector<std::vector<std::string> > GetPossibleEdges(const std::string& block_name) const;
 
 	std::string GetBlockType(const std::string& block_name) const;
 

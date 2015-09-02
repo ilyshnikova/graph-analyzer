@@ -459,7 +459,6 @@ Block::Block(
 	const int id,
 	const std::string& block_name,
 	const std::string& block_type,
-	Table* blocks_table,
 	BlockCacheUpdaterBuffer* block_buffer
 )
 : block()
@@ -468,7 +467,6 @@ Block::Block(
 , data()
 , outgoing_edges()
 , incoming_edges()
-//, blocks_table(blocks_table)
 , block_buffer(block_buffer)
 , blocks({
 	new Sum(1),
@@ -498,10 +496,6 @@ std::string Block::GetAllBlocksDescriptions() const {
 	}
 	return res;
 
-}
-
-BlockCacheUpdaterBuffer* Block::GetBuffer() const {
-	return block_buffer;
 }
 
 
@@ -718,7 +712,7 @@ std::vector<std::vector<std::string> > Block::GetParams() const {
 	return params;
 }
 
-std::vector<std::vector<std::string> > Block::GetPermissibleEdges() const {
+std::vector<std::vector<std::string> > Block::GetPossibleEdges() const {
 	std::vector<std::vector<std::string> > edges;
 	for (auto it = block->incoming_edges_names.cbegin(); it != block->incoming_edges_names.cend(); ++it) {
 		edges.push_back({*it});
@@ -854,7 +848,7 @@ Block* Graph::CreateBlock(
 ) {
 
 	if (blocks.count(block_name) == 0) {
-		Block* block = new Block(block_id, block_name, block_type, blocks_table, block_buffer);
+		Block* block = new Block(block_id, block_name, block_type, block_buffer);
 		blocks[block_name] = block;
 		return block;
 	} else {
@@ -1148,7 +1142,7 @@ void Graph::AddParamToTable(
 	const std::string& block_name
 ) {
 	if (blocks.count(block_name) == 0) {
-		throw GANException(283719, "Block with name " + block_name + "does not exist.");
+		throw GANException(283719, "Block with name " + block_name + " does not exist.");
 	}
 
 	int block_id = blocks[block_name]->GetBlockId();
@@ -1187,7 +1181,7 @@ std::vector<std::vector<std::string> > Graph::GetBlocksNames() const {
 
 std::vector<std::vector<std::string> > Graph::GetBlocksParams(const std::string& block_name) const {
 	if (blocks.count(block_name) == 0) {
-		throw GANException(234245, "Block with name " + block_name + "does not exist.");
+		throw GANException(234245, "Block with name " + block_name + " does not exist.");
 	}
 	return blocks.at(block_name)->GetParams();
 }
@@ -1208,18 +1202,18 @@ std::vector<std::vector<std::string> > Graph::GetEdges() const {
 }
 
 
-std::vector<std::vector<std::string> > Graph::GetPermissibleEdges(const std::string& block_name) const {
+std::vector<std::vector<std::string> > Graph::GetPossibleEdges(const std::string& block_name) const {
 	if (blocks.count(block_name) == 0) {
-		throw GANException(234245, "Block with name " + block_name + "does not exist.");
+		throw GANException(234245, "Block with name " + block_name + " does not exist.");
 	}
 
-	return blocks.at(block_name)->GetPermissibleEdges();
+	return blocks.at(block_name)->GetPossibleEdges();
 }
 
 
 std::string Graph::GetBlockType(const std::string& block_name) const {
 	if (blocks.count(block_name) == 0) {
-		throw GANException(234245, "Block with name " + block_name + "does not exist.");
+		throw GANException(234245, "Block with name " + block_name + " does not exist.");
 	}
 
 	return blocks.at(block_name)->GetBlockType();
@@ -1325,7 +1319,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		boost::regex_match(
 			query,
 			match,
-			boost::regex("\\s*create\\s+vertex\\s+(\\w+):(\\w+)\\s+in\\s+(\\w+)\\s*")
+			boost::regex("\\s*create\\s+block\\s+(\\w+):(\\w+)\\s+in\\s+graph\\s+(\\w+)\\s*")
 		)
 	) {
 		std::string block_name = match[1];
@@ -1339,7 +1333,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		if (graph->In(block_name)) {
 			throw GANException(
 				428352,
-				"Block with name" + block_name  + " already exists in graph " + graph_name +  "."
+				"Block with name " + block_name  + " already exists in graph " + graph_name +  "."
 			);
 		}
 
@@ -1353,7 +1347,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		boost::regex_match(
 			query,
 			match,
-			boost::regex("\\s*create\\s+vertex\\s+if\\s+not\\s+exists\\s+(\\w+):(\\w+)\\s+in\\s+(\\w+)\\s*")
+			boost::regex("\\s*create\\s+block\\s+if\\s+not\\s+exists\\s+(\\w+):(\\w+)\\s+in\\s+graph\\s+(\\w+)\\s*")
 		)
 	) {
 		std::string block_name = match[1];
@@ -1376,7 +1370,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		boost::regex_match(
 			query,
 			match,
-			boost::regex("\\s*delete\\s+vertex\\s+(\\w+)\\s+in\\s+(\\w+)\\s*")
+			boost::regex("\\s*delete\\s+block\\s+(\\w+)\\s+in\\s+graph\\s+(\\w+)\\s*")
 		)
 	) {
 		std::string block_name = match[1];
@@ -1393,7 +1387,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		boost::regex_match(
 			query,
 			match,
-			boost::regex("\\s*delete\\s+vertex\\s+if\\s+exists\\s+(\\w+)\\s+in\\s+(\\w+)\\s*")
+			boost::regex("\\s*delete\\s+block\\s+if\\s+exists\\s+(\\w+)\\s+in\\s+graph\\s+(\\w+)\\s*")
 		)
 	) {
 		std::string block_name = match[1];
@@ -1408,7 +1402,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		boost::regex_match(
 			query,
 			match,
-			boost::regex("\\s*create\\s+edge\\s+(\\w+)\\s+in\\s+(\\w+)\\s+from\\s+(\\w+)\\s+to\\s+(\\w+)\\s*")
+			boost::regex("\\s*create\\s+edge\\s+(\\w+)\\s+in\\s+graph\\s+(\\w+)\\s+from\\s+(\\w+)\\s+to\\s+(\\w+)\\s*")
 		)
 	) {
 		std::string edge_name = match[1];
@@ -1428,7 +1422,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		boost::regex_match(
 			query,
 			match,
-			boost::regex("\\s*create\\s+edge\\s+if\\s+not\\s+exists\\s+(\\w+)\\s+in\\s+(\\w+)\\s+from\\s+(\\w+)\\s+to\\s+(\\w+)\\s*")
+			boost::regex("\\s*create\\s+edge\\s+if\\s+not\\s+exists\\s+(\\w+)\\s+in\\s+graph\\s+(\\w+)\\s+from\\s+(\\w+)\\s+to\\s+(\\w+)\\s*")
 		)
 	)  {
 		std::string edge_name = match[1];
@@ -1451,7 +1445,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		boost::regex_match(
 			query,
 			match,
-			boost::regex("\\s*delete\\s+edge\\s+(\\w+)\\s+in\\s+(\\w+)\\s+from\\s+(\\w+)\\s+to\\s+(\\w+)\\s*")
+			boost::regex("\\s*delete\\s+edge\\s+(\\w+)\\s+in\\s+graph\\s+(\\w+)\\s+from\\s+(\\w+)\\s+to\\s+(\\w+)\\s*")
 		)
 	) {
 		std::string edge_name = match[1];
@@ -1471,7 +1465,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		boost::regex_match(
 			query,
 			match,
-			boost::regex("\\s*delete\\s+edge\\s+if\\s+exists\\s+edge\\s+(\\w+)\\s+in\\s+(\\w+)\\s+from\\s+(\\w+)\\s+to\\s+(\\w+)\\s*")
+			boost::regex("\\s*delete\\s+edge\\s+if\\s+exists\\s+edge\\s+(\\w+)\\s+in\\s+graph\\s+(\\w+)\\s+from\\s+(\\w+)\\s+to\\s+(\\w+)\\s*")
 		)
 	) {
 		std::string edge_name = match[1];
@@ -1542,7 +1536,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		boost::regex_match(
 			query,
 			match,
-			boost::regex("\\s*modify\\s+param\\s+(\\w+)\\s+to\\s+(\\w+)\\s+of\\s+block\\s+(\\w+)\\s+of\\s+graph\\s+(\\w+)\\s*")
+			boost::regex("\\s*modify\\s+param\\s+(\\w+)\\s+to\\s+(\\w+)\\s+in\\s+block\\s+(\\w+)\\s+of\\s+graph\\s+(\\w+)\\s*")
 		)
 	) {
 		std::string param_name = match[1];
@@ -1566,7 +1560,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		)
 	) {
 		AnswerTable ans;
-		ans.head = {"GraphsName"};
+		ans.head = {"GraphName"};
 
 		for (auto it = graphs.begin(); it != graphs.end(); ++it) {
 			ans.rows.push_back({it->first});
@@ -1632,7 +1626,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		boost::regex_match(
 			query,
 			match,
-			boost::regex("\\s*is\\s+graph\\s+(\\w+)\\s+valid\\s*")
+			boost::regex("\\s*is\\s+graph\\s+(\\w+)\\s+deployed\\s*")
 		)
 	) {
 
@@ -1650,7 +1644,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		boost::regex_match(
 			query,
 			match,
-			boost::regex("\\s*show\\s+permissible\\s+edges\\s+in\\s+block\\s+(\\w+)\\s+from\\s+graph\\s+(\\w+)\\s*")
+			boost::regex("\\s*show\\s+possible\\s+edges\\s+in\\s+block\\s+(\\w+)\\s+from\\s+graph\\s+(\\w+)\\s*")
 		)
 	) {
 		std::string block_name = match[1];
@@ -1661,7 +1655,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 
 		AnswerTable ans;
 		ans.head = {"EdgeName"};
-		ans.rows = graphs[graph_name]->GetPermissibleEdges(block_name);
+		ans.rows = graphs[graph_name]->GetPossibleEdges(block_name);
 		ans.status = "Ok";
 		return ans.ToString();
 
@@ -1692,20 +1686,20 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		return std::string("Ok\n")
 			+ "Queries:\n\tCreation/Deletion of objects:\n"
 			+ "\t\tcreate|delete graph [if [not] exists] <graph_name>\n"
-			+ "\t\tcreate|delete vertex [if [not] exists] <vertes_name>[:<vertex_type>] in <graph_name>\n"
-			+ "\t\tcreate|delete edge [if [not] exists] <edge_name> in <graph_name> from <from_vertex_name> to <to_vertex_name>\n"
+			+ "\t\tcreate|delete block [if [not] exists] <vertes_name>[:<vertex_type>] in graph <graph_name>\n"
+			+ "\t\tcreate|delete edge [if [not] exists] <edge_name> in graph <graph_name> from <from_vertex_name> to <to_vertex_name>\n"
 			+ "\tWork with graph:\n"
 			+ "\t\tdeploy graph <graph_name> -- verify the absence of cycles and availability of all incoming edges in blocks\n"
-			+ "\t\tis graph <graph_name> valid -- return result of last graphs verification\n"
+			+ "\t\tis graph <graph_name> deployed -- return result of last graphs verification\n"
 			+ "\t\tinsert point '<series_name>':<time>:<double_value> into [block <block_name> of] graph <graph_name> -- insert point to all blocks without incoming edges or to current block\n"
 			+ "\t\tmodify param <param_name> to <param_value> of block <block_name> of graph <graph_name>\n"
 			+ "\tShow Graph Structure:\n"
 			+ "\t\tshow graphs\n"
 			+ "\t\tshow blocks|edges in graph <graph_name>\n"
-			+ "\t\tshow params|permissible edges in block <block_name> from graph <graph_name>\n"
+			+ "\t\tshow params|possible edges in block <block_name> from graph <graph_name>\n"
 			+ "\t\tshow block type of block <block_name> from graph <graph_name>\n"
 			+ "\t\thelp\n"
-			+ "Blocks:\n" + Block(1,"","EmptyBlock",NULL,NULL).GetAllBlocksDescriptions();
+			+ "Blocks:\n" + Block(1,"","EmptyBlock",NULL).GetAllBlocksDescriptions();
 	} else {
 		throw GANException(529352, "Incorrect query");
 	}
