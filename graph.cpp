@@ -1573,7 +1573,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		boost::regex_match(
 			query,
 			match,
-			boost::regex("\\s*show\\s+blocks\\s+in\\s+graph\\s+(\\w+)\\s*")
+			boost::regex("\\s*show\\s+blocks\\s+of\\s+graph\\s+(\\w+)\\s*")
 		)
 	) {
 		std::string graph_name = match[1];
@@ -1591,7 +1591,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		boost::regex_match(
 			query,
 			match,
-			boost::regex("\\s*show\\s+params\\s+in\\s+block\\s+(\\w+)\\s+from\\s+graph\\s+(\\w+)\\s*")
+			boost::regex("\\s*show\\s+params\\s+in\\s+block\\s+(\\w+)\\s+of\\s+graph\\s+(\\w+)\\s*")
 		)
 	) {
 		std::string block_name = match[1];
@@ -1609,7 +1609,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		boost::regex_match(
 			query,
 			match,
-			boost::regex("\\s*show\\s+edges\\s+in\\s+graph\\s+(\\w+)\\s*")
+			boost::regex("\\s*show\\s+edges\\s+of\\s+graph\\s+(\\w+)\\s*")
 		)
 	) {
 		std::string graph_name = match[1];
@@ -1644,7 +1644,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		boost::regex_match(
 			query,
 			match,
-			boost::regex("\\s*show\\s+possible\\s+edges\\s+in\\s+block\\s+(\\w+)\\s+from\\s+graph\\s+(\\w+)\\s*")
+			boost::regex("\\s*show\\s+possible\\s+edges\\s+in\\s+block\\s+(\\w+)\\s+of\\s+graph\\s+(\\w+)\\s*")
 		)
 	) {
 		std::string block_name = match[1];
@@ -1663,7 +1663,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		boost::regex_match(
 			query,
 			match,
-			boost::regex("\\s*show\\s+block\\s+type\\s+of\\s+block\\s+(\\w+)\\s+from\\s+graph\\s+(\\w+)\\s*")
+			boost::regex("\\s*show\\s+block\\s+type\\s+of\\s+block\\s+(\\w+)\\s+of\\s+graph\\s+(\\w+)\\s*")
 		)
 	) {
 		std::string block_name = match[1];
@@ -1695,9 +1695,9 @@ std::string WorkSpace::Respond(const std::string& query)  {
 			+ "\t\tmodify param <param_name> to <param_value> of block <block_name> of graph <graph_name>\n"
 			+ "\tShow Graph Structure:\n"
 			+ "\t\tshow graphs\n"
-			+ "\t\tshow blocks|edges in graph <graph_name>\n"
-			+ "\t\tshow params|possible edges in block <block_name> from graph <graph_name>\n"
-			+ "\t\tshow block type of block <block_name> from graph <graph_name>\n"
+			+ "\t\tshow blocks|edges of graph <graph_name>\n"
+			+ "\t\tshow params|possible edges in block <block_name> of graph <graph_name>\n"
+			+ "\t\tshow block type of block <block_name> of graph <graph_name>\n"
 			+ "\t\thelp\n"
 			+ "Blocks:\n" + Block(1,"","EmptyBlock",NULL).GetAllBlocksDescriptions();
 	} else {
