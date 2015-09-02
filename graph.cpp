@@ -1636,7 +1636,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 			throw GANException(135264, "Graph with name " + graph_name  +  " does not exist.");
 		}
 		AnswerTable ans;
-		ans.head = {"GraphValid"};
+		ans.head = {"GraphDeployed"};
 		ans.rows = {{((graphs[graph_name]->GetGraphValid() == 1) ? std::string("Yes") : std::string("No"))}};
 		ans.status = "Ok";
 		return ans.ToString();
@@ -1692,7 +1692,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 			+ "\t\tdeploy graph <graph_name> -- verify the absence of cycles and availability of all incoming edges in blocks\n"
 			+ "\t\tis graph <graph_name> deployed -- return result of last graphs verification\n"
 			+ "\t\tinsert point '<series_name>':<time>:<double_value> into [block <block_name> of] graph <graph_name> -- insert point to all blocks without incoming edges or to current block\n"
-			+ "\t\tmodify param <param_name> to <param_value> of block <block_name> of graph <graph_name>\n"
+			+ "\t\tmodify param <param_name> to <param_value> in block <block_name> of graph <graph_name>\n"
 			+ "\tShow Graph Structure:\n"
 			+ "\t\tshow graphs\n"
 			+ "\t\tshow blocks|edges of graph <graph_name>\n"
