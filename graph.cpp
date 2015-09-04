@@ -3,6 +3,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <limits>
 #include "gan-exception.h"
 #include "graph.h"
 #include "logger.h"
@@ -74,8 +75,8 @@ Point Point::Empty() {
 }
 
 std::ostream& operator<< (std::ostream& out, const Point& point) {
-	out << " Point( "
-		<< " series_name: "
+	out << " Point("
+		<< "series_name: "
 		<< point.GetSeriesName()
 		<< " value: "
 		<< point.GetValue()
@@ -168,6 +169,284 @@ std::string BlockBase::GetResultSeriesName(
 	return series_name + Join(names, ",") + (params.size() == 0 ? "" : ";" +  Join(params, ",")) + ")";
 }
 
+
+/*	Reducer 	*/
+
+std::unordered_set<std::string> Reducer::CreateIncomingEdges(const int edges_count, const std::string& edges_name_type) const {
+	std::unordered_set<std::string> edges;
+	for (size_t i = 0; i < edges_count; ++i) {
+		edges.insert(edges_name_type + std::to_string(i + 1));
+	}
+	return edges;
+
+}
+
+Reducer::Reducer(
+	const std::string& block_type,
+	const std::string& edges_name_type,
+	const int edges_count
+)
+: base_block_type(block_type)
+, BlockBase(CreateIncomingEdges(edges_count, edges_name_type), block_type + std::to_string(edges_count), {}, {})
+{}
+
+Point Reducer::Do(
+	const std::unordered_map<std::string, Point>& values,
+	const std::time_t& time
+) {
+	double res_value = StartValue();
+	for (auto it = values.cbegin(); it != values.cend(); ++it) {
+		res_value = BaseFunction(res_value, it->second.GetValue());
+	}
+
+	return Point(GetResultSeriesName(values), res_value, time);
+
+}
+
+BlockBase* Reducer::GetBlock(const std::string& type) const {
+	return NULL;
+}
+
+std::string Reducer::Description() const {
+	return "";
+
+}
+
+/*	Sum	*/
+
+Sum::Sum(const int edges_count)
+: Reducer("Sum", "arg", edges_count)
+{}
+
+double Sum::BaseFunction(const double first, const double second) const {
+	return first + second;
+}
+
+double Sum::StartValue() const {
+	return double(0);
+}
+
+BlockBase* Sum::GetBlock(const std::string& type) const {
+	boost::smatch match;
+	if (
+		boost::regex_match(
+			type,
+			match,
+			boost::regex("Sum(\\d+)")
+		)
+	) {
+		return new Sum(std::stoi(match[1]));
+	}
+	return NULL;
+
+}
+
+std::string Sum::Description() const {
+	return std::string("\tSumN : This block is used for summarize incoming  points values.\n")
+		+ "\t\tN - param that specifying count of edges.\n"
+		+ "\t\tIncoming edges: arg1,\n"
+		+ "\t\t\t\t...,\n"
+		+ "\t\t\t\targN.";
+}
+
+
+/*	And	*/
+
+And::And(const int edges_count)
+: Reducer("And", "arg", edges_count)
+{}
+
+double And::BaseFunction(const double first, const double second) const {
+	return first && second;
+}
+
+double And::StartValue() const {
+	return double(1);
+}
+
+BlockBase* And::GetBlock(const std::string& type) const {
+	boost::smatch match;
+	if (
+		boost::regex_match(
+			type,
+			match,
+			boost::regex("And(\\d+)")
+		)
+	) {
+		return new And(std::stoi(match[1]));
+	}
+	return NULL;
+
+}
+
+std::string And::Description() const {
+	return std::string("\tAndN : This block is used for logical and with incoming points values.\n")
+		+ "\t\tN - param that specifying count of edges.\n"
+		+ "\t\tIncoming edges: arg1,\n"
+		+ "\t\t\t\t...,\n"
+		+ "\t\t\t\targN.";
+}
+
+
+/*	Or	*/
+
+Or::Or(const int edges_count)
+: Reducer("Or", "arg", edges_count)
+{}
+
+double Or::BaseFunction(const double first, const double second) const {
+	return first || second;
+}
+
+double Or::StartValue() const {
+	return double(0);
+}
+
+BlockBase* Or::GetBlock(const std::string& type) const {
+	boost::smatch match;
+	if (
+		boost::regex_match(
+			type,
+			match,
+			boost::regex("Or(\\d+)")
+		)
+	) {
+		return new Or(std::stoi(match[1]));
+	}
+	return NULL;
+
+}
+
+std::string Or::Description() const {
+	return std::string("\tOrN : This block is used for logical or with incoming points values.\n")
+		+ "\t\tN - param that specifying count of edges.\n"
+		+ "\t\tIncoming edges: arg1,\n"
+		+ "\t\t\t\t...,\n"
+		+ "\t\t\t\targN.";
+}
+
+/*	Min	*/
+
+Min::Min(const int edges_count)
+: Reducer("Min", "arg", edges_count)
+{}
+
+double Min::BaseFunction(const double first, const double second) const {
+	if (first < second) {
+		return first;
+	}
+	return second;
+}
+
+double Min::StartValue() const {
+	return std::numeric_limits<double>::max();
+}
+
+BlockBase* Min::GetBlock(const std::string& type) const {
+	boost::smatch match;
+	if (
+		boost::regex_match(
+			type,
+			match,
+			boost::regex("Min(\\d+)")
+		)
+	) {
+		return new Min(std::stoi(match[1]));
+	}
+	return NULL;
+
+}
+
+std::string Min::Description() const {
+	return std::string("\tMinN : This block returns incoming points with min values.\n")
+		+ "\t\tN - param that specifying count of edges.\n"
+		+ "\t\tIncoming edges: arg1,\n"
+		+ "\t\t\t\t...,\n"
+		+ "\t\t\t\targN.";
+}
+
+
+/*	Max	*/
+
+Max::Max(const int edges_count)
+: Reducer("Max", "arg", edges_count)
+{}
+
+double Max::BaseFunction(const double first, const double second) const {
+	if (first > second) {
+		return first;
+	}
+	return second;
+}
+
+double Max::StartValue() const {
+	return std::numeric_limits<double>::min();
+}
+
+BlockBase* Max::GetBlock(const std::string& type) const {
+	boost::smatch match;
+	if (
+		boost::regex_match(
+			type,
+			match,
+			boost::regex("Max(\\d+)")
+		)
+	) {
+		return new Max(std::stoi(match[1]));
+	}
+	return NULL;
+
+}
+
+std::string Max::Description() const {
+	return std::string("\tMaxN : This block returns incoming points with max values..\n")
+		+ "\t\tN - param that specifying count of edges.\n"
+		+ "\t\tIncoming edges: arg1,\n"
+		+ "\t\t\t\t...,\n"
+		+ "\t\t\t\targN.";
+}
+
+/*	Multiplication	*/
+
+Multiplication::Multiplication(const int edges_count)
+: Reducer("Multiplication", "arg", edges_count)
+{}
+
+double Multiplication::BaseFunction(const double first, const double second) const {
+	return first * second;
+}
+
+double Multiplication::StartValue() const {
+	return double(1);
+}
+
+BlockBase* Multiplication::GetBlock(const std::string& type) const {
+	boost::smatch match;
+	if (
+		boost::regex_match(
+			type,
+			match,
+			boost::regex("Multiplication(\\d+)")
+		)
+	) {
+		return new Multiplication(std::stoi(match[1]));
+	}
+	return NULL;
+
+}
+
+std::string Multiplication::Description() const {
+	return std::string("\tMultiplicationN : This block is used for multiplicate incoming  points values.\n")
+		+ "\t\tN - param that specifying count of edges.\n"
+		+ "\t\tIncoming edges: arg1,\n"
+		+ "\t\t\t\t...,\n"
+		+ "\t\t\t\targN.";
+
+}
+
+
+
+
 /*   EmptyBlock    */
 
 
@@ -194,58 +473,132 @@ std::string EmptyBlock::Description() const {
 	return "\tEmptyBlock: This block is used for inserting points into graph.";
 }
 
-/*	Sum	*/
 
+/*	Difference	*/
 
-std::unordered_set<std::string> Sum::CreateIncomingEdges(const int edges_count) const {
-	std::unordered_set<std::string> edges;
-	for (size_t i = 0; i < edges_count; ++i) {
-		edges.insert("arg" + std::to_string(i + 1));
-	}
-	return edges;
-}
-
-
-Sum::Sum(const int edges_count)
-: BlockBase(CreateIncomingEdges(edges_count), std::string("Sum") + std::to_string(edges_count), {}, {})
+Difference::Difference()
+: BlockBase({"minuend", "subtrahend"}, std::string("Difference"), {}, {})
 {}
 
 
-Point Sum::Do(
+Point Difference::Do(
 	const std::unordered_map<std::string, Point>& values,
 	const std::time_t& time
 ) {
-	double res_value = double(0);
-	for (auto it = values.cbegin(); it != values.cend(); ++it) {
-		res_value += it->second.GetValue();
-	}
-
-	return Point(GetResultSeriesName(values), res_value, time);
-
+	return Point(GetResultSeriesName(values), values.at("minuend").GetValue() - values.at("subtrahend").GetValue(), time);
 }
 
 
-BlockBase* Sum::GetBlock(const std::string& type) const {
+BlockBase* Difference::GetBlock(const std::string& type) const {
 	boost::smatch match;
-	if (
-		boost::regex_match(
-			type,
-			match,
-			boost::regex("Sum(\\d+)")
-		)
-	) {
-		return new Sum(std::stoi(match[1]));
+	if (type == block_type) {
+		return new Difference();
 	}
 	return NULL;
 }
 
-std::string Sum::Description() const {
-	return std::string("\tSumN : This block is used for summarize incoming  points values.\n")
-		+ "\t\tN - param that specifying count of edges.\n"
-		+ "\t\tIncoming edges: arg1,\n"
-		+ "\t\t\t\t...,\n"
-		+ "\t\t\t\targN.";
+
+std::string Difference::Description() const {
+	return std::string("\tDifference : This block is used for subtracting incoming points values.\n")
+		+ "\t\tIncoming edges: minuend,\n"
+		+ "\t\t\t\tsubtracting.";
 }
+
+
+/*	Division	*/
+
+Division::Division()
+: BlockBase({"dividend", "divisor"}, std::string("Division"), {}, {})
+{}
+
+
+Point Division::Do(
+	const std::unordered_map<std::string, Point>& values,
+	const std::time_t& time
+) {
+	return Point(GetResultSeriesName(values), values.at("dividend").GetValue() / values.at("divisor").GetValue(), time);
+}
+
+
+BlockBase* Division::GetBlock(const std::string& type) const {
+	boost::smatch match;
+	if (type == block_type) {
+		return new Division();
+	}
+	return NULL;
+}
+
+
+std::string Division::Description() const {
+	return std::string("\tDivision : This block is used for division incoming points values.\n")
+		+ "\t\tIncoming edges: minuend,\n"
+		+ "\t\t\t\tsubtracting.";
+}
+
+
+/*	Threshold	*/
+
+Threshold::Threshold()
+: BlockBase({"value"}, std::string("Threshold"), {"bound"}, {})
+{}
+
+
+Point Threshold::Do(
+	const std::unordered_map<std::string, Point>& values,
+	const std::time_t& time
+) {
+	logger << "time : " + std::to_string(time);
+
+	return Point(GetResultSeriesName(values), (values.at("value").GetValue() > param_values["bound"] ? 1 : 0), time);
+}
+
+
+BlockBase* Threshold::GetBlock(const std::string& type) const {
+	boost::smatch match;
+	if (type == block_type) {
+		return new Threshold();
+	}
+	return NULL;
+}
+
+
+std::string Threshold::Description() const {
+	return std::string("\tThreshold : This block return point with value 1 if incoming points value grater than 'bound' param.\n")
+		+ "\t\tIncoming edges: value.\n"
+		+ "\t\tParams: bound.";
+}
+
+
+/*	Scale	*/
+
+Scale::Scale()
+: BlockBase({"to_scale"}, std::string("Scale"), {"value"}, {})
+{}
+
+
+Point Scale::Do(
+	const std::unordered_map<std::string, Point>& values,
+	const std::time_t& time
+) {
+	return Point(GetResultSeriesName(values), values.at("to_scale").GetValue() + param_values["value"], time);
+}
+
+
+BlockBase* Scale::GetBlock(const std::string& type) const {
+	boost::smatch match;
+	if (type == block_type) {
+		return new Scale();
+	}
+	return NULL;
+}
+
+
+std::string Scale::Description() const {
+	return std::string("\tScale : This block summarize incoming points with value param 'value'.\n")
+		+ "\t\tIncoming edges: to_scale.\n"
+		+ "\t\tParams: value.";
+}
+
 
 
 /*	PrintToLogs	*/
@@ -287,7 +640,6 @@ std::string PrintToLogs::Description() const {
 
 
 /*	TimeShift	*/
-
 
 TimeShift::TimeShift()
 :BlockBase({"to_shift"}, "TimeShift", {"time_shift"}, {})
@@ -473,7 +825,16 @@ Block::Block(
 	new PrintToLogs(),
 	new EmptyBlock(),
 	new TimeShift(),
-	new TimePeriodAggregator()
+	new TimePeriodAggregator(),
+	new Difference(),
+	new Division(),
+	new Multiplication(1),
+	new And(1),
+	new Or(1),
+	new Min(1),
+	new Max(1),
+	new Scale(),
+	new Threshold(),
 })
 {
 	for (size_t i = 0; i < blocks.size(); ++i) {
@@ -861,13 +1222,6 @@ void Graph::DeleteBlock(const std::string& block_name) {
 	if (blocks.count(block_name) != 0) {
 		Block* block = blocks[block_name];
 		std::vector<Edge*> edges;
-		for (
-			auto it = block->incoming_edges.begin();
-			it != block->incoming_edges.end();
-			++it
-		) {
-			edges.push_back(it->second);
-		}
 
 		for (
 			auto it = block->outgoing_edges.begin();
@@ -877,8 +1231,22 @@ void Graph::DeleteBlock(const std::string& block_name) {
 			edges.push_back(it->second);
 		}
 
+		for (
+			auto it = block->incoming_edges.begin();
+			it != block->incoming_edges.end();
+			++it
+		) {
+			edges.push_back(it->second);
+		}
+
+
 		for (size_t i = 0; i < edges.size(); ++i) {
-			DeleteEdge(edges[i]);
+			if (
+				block->incoming_edges.count(edges[i]->GetEdgeName()) != 0
+				|| block->outgoing_edges.count(edges[i]->GetEdgeName()) != 0
+			) {
+				DeleteEdge(edges[i]);
+			}
 		}
 
 		int block_id = block->GetBlockId();
@@ -990,11 +1358,15 @@ void Graph::DeleteEdge(
 	const std::string& to
 ) {
 	if (blocks.count(from) != 0 && blocks.count(to) != 0) {
+		logger << "delete edge " + edge_name;
 		Block* block_to = blocks[to];
 		Block* block_from = blocks[from];
 
 		Edge* edge = block_from->GetOutgoingEdge(edge_name);
 		Edge* second_edge = block_to->GetIncomingEdge(edge_name);
+
+		logger << edge << second_edge;
+
 		if (edge->GetEdgeId() != second_edge->GetEdgeId()) {
 			throw GANException(258259, "Edge " + edge_name + " between blocks " + from + " and " + to + " does not exist.");
 		}
@@ -1017,6 +1389,7 @@ void Graph::DeleteEdge(
 }
 
 
+
 void Graph::DeleteEdge(Edge* edge) {
 	DeleteEdge(edge->GetEdgeName(), edge->From()->GetBlockName(), edge->To()->GetBlockName());
 }
@@ -1026,62 +1399,70 @@ int Graph::GetGraphId() const {
 	return id;
 }
 
+// white == 0
+// grey == 1
+// black == 2
 
-std::string Graph::BFSFindCycle(
-	std::unordered_map<std::string, bool>* used,
-	const std::string& start_block
-) {
-	std::unordered_map<std::string, std::string> way;
-	std::vector<std::string> use_now;
-	use_now.push_back(start_block);
-	std::unordered_map<std::string, bool> local_used;
-	while (!use_now.empty()) {
-		std::vector<std::string> new_use_now;
-		for (size_t i = 0; i < use_now.size(); ++i) {
-			Block* block = blocks[use_now[i]];
-			for (
-				auto edge = block->outgoing_edges.begin();
-				edge != block->outgoing_edges.end();
-				++edge
-			) {
-				std::string to = edge->second->To()->GetBlockName();
-				if (!local_used[to]) {
-					local_used[to] = true;
-					used->operator[](to) = true;
-					way[to] = block->GetBlockName();
-					new_use_now.push_back(to);
-				} else {
-					std::string tmp = way[to];
-					std::string sway = "\n" + tmp;
-
-					while (tmp != to) {
-						tmp = way[tmp];
-						sway += "\n" + tmp;
-
-					}
-					return sway;
-				}
+std::string Graph::RecDFSFindCycle(
+	std::unordered_map<std::string, int>* colors,
+	std::unordered_map<std::string, std::string>*  way,
+	std::string& block_name
+) const {
+	Block* block = blocks.at(block_name);
+	for (auto edge = block->outgoing_edges.cbegin(); edge != block->outgoing_edges.cend(); ++edge) {
+		std::string to = edge->second->To()->GetBlockName();
+		if (colors->operator[](to) == 0) {
+			colors->operator[](to) = 1;
+			way->operator[](to) = block->GetBlockName();
+			std::string res = RecDFSFindCycle(colors, way, to);
+			colors->operator[](to) = 2;
+			if (res != std::string("\0")) {
+				return res;
 			}
+		} else if (colors->operator[](to) == 1) {
+			way->operator[](to) = block->GetBlockName();
+			return to;
 		}
-		use_now = new_use_now;
 	}
-
 	return std::string("\0");
-
 }
 
 
+std::string Graph::DFSFindCycle(
+	std::unordered_map<std::string, int>* colors,
+	std::string start_block
+) const {
+	std::unordered_map<std::string, std::string> way;
+	colors->operator[](start_block) = 1;
+	std::string block_in_cycle = RecDFSFindCycle(colors, &way, start_block);
+	colors->operator[](start_block) = 2;
+	if (block_in_cycle != std::string("\0")) {
+		std::string tmp = way[block_in_cycle];
+		std::string sway = "\n" + tmp;
+		while (tmp != block_in_cycle) {
+			tmp = way[tmp];
+			sway += "\n" + tmp;
+		}
+		return sway;
+	}
+
+	return std::string("\0");
+}
+
+
+
 void Graph::Verification() {
-	std::unordered_map<std::string, bool> used;
+	std::unordered_map<std::string, int> used;
 	for (auto it = blocks.begin(); it != blocks.end(); ++it) {
 		it->second->Verification();
-		used[it->first] = false;
+		used[it->first] = 0;
 	}
 
 	for (auto it = used.begin(); it != used.end(); ++it) {
-		if (!it->second) {
-			std::string cycle = BFSFindCycle(&used, it->first);
-			if (cycle.size() != 0) {
+		if (it->second == 0) {
+			logger << "start DFSFindCycle";
+			std::string cycle = DFSFindCycle(&used, it->first);
+			if (cycle != std::string("\0")) {
 				throw GANException(164920 ,"Graph has cycle: " + cycle);
 			}
 		}

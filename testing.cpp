@@ -51,9 +51,11 @@ bool Test::Testing(const std::string& block_type) const {
 		Point result = block->Do(values, time);
 		if (outgoing_points[i] != result) {
 				std::cout << "\033[1;31m not ok \033[0m\n";
-				std::cout << "In test number "
+				std::cout << "In class "
+				        << block_type
+				        <<" in test number "
 				       	<< std::to_string(i)
-				        << "with incoming points: \n";
+				        << " with incoming points: \n";
 
 				for (
 					auto it = values.begin();
@@ -148,6 +150,7 @@ void Testing(const std::string& dir) {
 	std::string file;
 	while (eh >> file) {
 		std::string block_type;
+		std::cout << "\n" << file << ":\n";
 		for (size_t i = 0; i < file.size() - 5; ++i) {
 			block_type += file[i];
 		}

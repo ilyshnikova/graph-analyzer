@@ -1,0 +1,28 @@
+- params: {}
+  incoming_points:
+    -
+      - edge_name: 'divisor'
+        series_name: 'first'
+        value: 4
+        time: 1
+      - edge_name : 'dividend'
+        series_name: 'second'
+        value: 2
+        time: 1
+    -
+      - edge_name: 'divisor'
+        series_name: 'first'
+        value: 1
+        time: 2
+      - edge_name: 'dividend'
+        series_name: 'second'
+        value: 123
+        time: 2
+
+  outgoing_points:
+    - series_name: 'Division(first,second)'
+      value: 0.5
+      time: 1
+    - series_name: 'Division(first,second)'
+      value: 123
+      time: 2

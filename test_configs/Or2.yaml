@@ -1,0 +1,28 @@
+- params: {}
+  incoming_points:
+    -
+      - edge_name: 'arg1'
+        series_name: 'first'
+        value: 1
+        time: 1
+      - edge_name : 'arg2'
+        series_name: 'second'
+        value: 1
+        time: 1
+    -
+      - edge_name: 'arg1'
+        series_name: 'first'
+        value: 1
+        time: 2
+      - edge_name: 'arg2'
+        series_name: 'second'
+        value: 0
+        time: 2
+
+  outgoing_points:
+    - series_name: 'Or2(second,first)'
+      value: 1
+      time: 1
+    - series_name: 'Or2(second,first)'
+      value: 1
+      time: 2

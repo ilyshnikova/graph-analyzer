@@ -1,0 +1,38 @@
+- params: {'value' : 2}
+  incoming_points:
+    -
+      - edge_name: 'to_scale'
+        series_name: 'first'
+        value: 1
+        time: 1
+    -
+      - edge_name: 'to_scale'
+        series_name: 'first'
+        value: -1
+        time: 2
+  outgoing_points:
+    - series_name: 'Scale(first;2)'
+      value: 3
+      time: 1
+    - series_name: 'Scale(first;2)'
+      value: 1
+      time: 2
+- params: {'value' : 2.5}
+  incoming_points:
+    -
+      - edge_name: 'to_scale'
+        series_name: 'first'
+        value: 1
+        time: 1
+    -
+      - edge_name: 'to_scale'
+        series_name: 'first'
+        value: -1
+        time: 2
+  outgoing_points:
+    - series_name: 'Scale(first;2.5)'
+      value: 3.5
+      time: 1
+    - series_name: 'Scale(first;2.5)'
+      value: 1.5
+      time: 2

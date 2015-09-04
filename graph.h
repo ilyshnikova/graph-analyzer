@@ -105,7 +105,7 @@ public:
 	);
 
 
-	virtual BlockBase* GetBlock(const std::string& block_type) const = 0;
+	virtual BlockBase* GetBlock(const std::string& type) const = 0;
 
 	std::string GetBlockType() const;
 
@@ -130,6 +130,133 @@ public:
 
 };
 
+/*	Reducer 	*/
+
+class Reducer : public BlockBase {
+private:
+	std::string base_block_type;
+
+	std::unordered_set<std::string> CreateIncomingEdges(const int edges_count, const std::string& edges_name_type) const;
+
+public:
+
+	virtual double BaseFunction(const double first, const double second) const = 0;
+
+	virtual double StartValue() const = 0;
+
+	Reducer(
+		const std::string& block_type,
+		const std::string& edges_name_type,
+		const int edges_count
+	);
+
+	Point Do(
+		const std::unordered_map<std::string, Point>& values,
+		const std::time_t& time
+	);
+
+	virtual BlockBase* GetBlock(const std::string& type) const;
+
+	virtual std::string Description() const;
+
+};
+
+
+
+/*	Sum	*/
+
+class Sum : public Reducer {
+public:
+	Sum(const int edges_count);
+
+	double BaseFunction(const double first, const double second) const;
+
+	double StartValue() const;
+
+	BlockBase* GetBlock(const std::string& type) const;
+
+	std::string Description() const;
+
+
+};
+
+/*	Multiplication	*/
+
+class Multiplication : public Reducer {
+public:
+	Multiplication(const int edges_count);
+
+	double BaseFunction(const double first, const double second) const;
+
+	double StartValue() const;
+
+	BlockBase* GetBlock(const std::string& type) const;
+
+	std::string Description() const;
+};
+
+
+/*	And	*/
+
+class And : public Reducer {
+public:
+	And(const int edges_count);
+
+	double BaseFunction(const double first, const double second) const;
+
+	double StartValue() const;
+
+	BlockBase* GetBlock(const std::string& type) const;
+
+	std::string Description() const;
+};
+
+
+/*	Or	*/
+
+class Or : public Reducer {
+public:
+	Or(const int edges_count);
+
+	double BaseFunction(const double first, const double second) const;
+
+	double StartValue() const;
+
+	BlockBase* GetBlock(const std::string& type) const;
+
+	std::string Description() const;
+};
+
+/*	Min	*/
+
+class Min : public Reducer {
+public:
+	Min(const int edges_count);
+
+	double BaseFunction(const double first, const double second) const;
+
+	double StartValue() const;
+
+	BlockBase* GetBlock(const std::string& type) const;
+
+	std::string Description() const;
+};
+
+/*	Max	*/
+
+class Max : public Reducer {
+public:
+	Max(const int edges_count);
+
+	double BaseFunction(const double first, const double second) const;
+
+	double StartValue() const;
+
+	BlockBase* GetBlock(const std::string& type) const;
+
+	std::string Description() const;
+};
+
 
 /*	EmptyBlock	*/
 
@@ -149,25 +276,73 @@ public:
 	std::string Description() const;
 };
 
-/*	Sum	*/
 
-class Sum : public BlockBase {
-private:
+/*	Difference	*/
 
-	std::unordered_set<std::string> CreateIncomingEdges(const int edges_name) const;
-
+class Difference : public BlockBase {
 public:
-	Sum(const int edges_cout);
+	Difference();
 
 	Point Do(
 		const std::unordered_map<std::string, Point>& values,
 		const std::time_t& time
 	);
 
-	BlockBase* GetBlock(const std::string& block_type) const;
+	BlockBase* GetBlock(const std::string& type) const;
 
 	std::string Description() const;
 };
+
+/*	Division	*/
+
+class Division : public BlockBase {
+public:
+	Division();
+
+	Point Do(
+		const std::unordered_map<std::string, Point>& values,
+		const std::time_t& time
+	);
+
+	BlockBase* GetBlock(const std::string& type) const;
+
+	std::string Description() const;
+};
+
+
+/*	Threshold	*/
+
+class Threshold : public BlockBase {
+public:
+	Threshold();
+
+	Point Do(
+		const std::unordered_map<std::string, Point>& values,
+		const std::time_t& time
+	);
+
+	BlockBase* GetBlock(const std::string& type) const;
+
+	std::string Description() const;
+};
+
+
+/*	Scale	*/
+
+class Scale : public BlockBase {
+public:
+	Scale();
+
+	Point Do(
+		const std::unordered_map<std::string, Point>& values,
+		const std::time_t& time
+	);
+
+	BlockBase* GetBlock(const std::string& type) const;
+
+	std::string Description() const;
+};
+
 
 
 /*	PrintToLogs	*/
@@ -397,10 +572,17 @@ public:
 
 	void Verification();
 
-	std::string BFSFindCycle(
-		std::unordered_map<std::string, bool>* used,
-		const std::string& start_block
-	);
+	std::string DFSFindCycle(
+		std::unordered_map<std::string, int>* colors,
+		std::string start_block
+	) const;
+
+	std::string RecDFSFindCycle(
+		std::unordered_map<std::string, int>* colors,
+		std::unordered_map<std::string, std::string>*  way,
+		std::string& block_name
+	) const;
+
 
 	void AddBlockToTables(Block* block);
 

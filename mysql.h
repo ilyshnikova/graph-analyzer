@@ -87,9 +87,11 @@ public:
 	}
 
 
-	operator int() const;
+//	operator int() const;
 
 	operator std::string() const;
+
+	operator double() const;
 
 	template
 	<typename... Args, typename T>

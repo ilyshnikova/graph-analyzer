@@ -1,0 +1,28 @@
+- params: {}
+  incoming_points:
+    -
+      - edge_name: 'minuend'
+        series_name: 'first'
+        value: -1.234
+        time: 1
+      - edge_name : 'subtrahend'
+        series_name: 'second'
+        value: 1.234
+        time: 1
+    -
+      - edge_name: 'minuend'
+        series_name: 'first'
+        value: 1.234
+        time: 2
+      - edge_name: 'subtrahend'
+        series_name: 'second'
+        value: 1.234
+        time: 2
+
+  outgoing_points:
+    - series_name: 'Difference(second,first)'
+      value: -2.468
+      time: 1
+    - series_name: 'Difference(second,first)'
+      value: 0
+      time: 2

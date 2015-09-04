@@ -1,0 +1,38 @@
+- params: {'bound' : 1}
+  incoming_points:
+    -
+      - edge_name: 'value'
+        series_name: 'first'
+        value: 123456
+        time: 1
+    -
+      - edge_name: 'value'
+        series_name: 'first'
+        value: -1
+        time: 2
+  outgoing_points:
+    - series_name: 'Threshold(first;1)'
+      value: 1
+      time: 1
+    - series_name: 'Threshold(first;1)'
+      value: 0
+      time: 2
+- params: {'bound' : 1.123}
+  incoming_points:
+    -
+      - edge_name: 'value'
+        series_name: 'first'
+        value: 123456
+        time: 1
+    -
+      - edge_name: 'value'
+        series_name: 'first'
+        value: -1
+        time: 2
+  outgoing_points:
+    - series_name: 'Threshold(first;1.123)'
+      value: 1
+      time: 1
+    - series_name: 'Threshold(first;1.123)'
+      value: 0
+      time: 2

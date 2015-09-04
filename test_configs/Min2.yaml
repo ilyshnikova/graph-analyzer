@@ -1,0 +1,28 @@
+- params: {}
+  incoming_points:
+    -
+      - edge_name: 'arg1'
+        series_name: 'first'
+        value: 123456
+        time: 1
+      - edge_name : 'arg2'
+        series_name: 'second'
+        value: 2345634
+        time: 1
+    -
+      - edge_name: 'arg1'
+        series_name: 'first'
+        value: -1
+        time: 2
+      - edge_name: 'arg2'
+        series_name: 'second'
+        value: 21345
+        time: 2
+
+  outgoing_points:
+    - series_name: 'Min2(second,first)'
+      value: 123456
+      time: 1
+    - series_name: 'Min2(second,first)'
+      value: -1
+      time: 2

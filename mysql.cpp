@@ -65,13 +65,17 @@ void StringType::CreateObject(const std::string& st, std::time_t* element) const
 	*element = std::time_t(std::stoll(base64_decode(st)));
 }
 
-
-StringType::operator int() const {
-	return std::stoi(value);
-}
+//
+//StringType::operator int() const {
+//	return std::stoi(value);
+//}
 
 StringType::operator std::string() const {
 	return value;
+}
+
+StringType::operator double() const {
+	return std::stod(value);
 }
 
 std::string StringType::ToString(std::vector<std::string>* parts) {
