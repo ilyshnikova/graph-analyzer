@@ -7,6 +7,7 @@
 #include "gan-exception.h"
 #include "graph.h"
 #include "logger.h"
+#include "execute.h"
 
 /*	AnswerTable	*/
 
@@ -74,18 +75,26 @@ Point Point::Empty() {
 	return Point();
 }
 
-std::ostream& operator<< (std::ostream& out, const Point& point) {
-	out << " Point("
-		<< "series_name: "
-		<< point.GetSeriesName()
-		<< " value: "
-		<< point.GetValue()
-		<< " time: "
-		<< point.GetTime()
-		<< ") ";
-	return out;
+Point::operator std::string() const {
+        std::time_t current_time(1440930405);
+        char mbstr[100];
+        if (std::strftime(mbstr, sizeof(mbstr), "%A %c", std::localtime(&current_time))) {
+	return std::string(" Point(")
+		+ "series_name: "
+		+ series_name
+		+ " value: "
+		+ std::to_string(value)
+		+ " time: "
+		+ std::string(mbstr)
+		+ ") ";
+	}
 }
 
+
+std::ostream& operator<< (std::ostream& out, const Point& point) {
+	out << std::string(point);
+	return out;
+}
 
 
 /*  Edge   */
@@ -672,6 +681,46 @@ std::string TimeShift::Description() const {
 }
 
 
+/*	SendEmail	*/
+
+SendEmail::SendEmail()
+:BlockBase({"to_send"}, "SendEmail", {"email"}, {})
+{}
+
+Point SendEmail::Do(
+	const std::unordered_map<std::string, Point>& values,
+	const std::time_t& time
+) {
+	for (auto it = values.begin(); it != values.end(); ++it) {
+		if (it->second.GetValue()) {
+			std::string message = std::string("echo \"")
+				+ std::string(it->second)
+				+ "\" | mail -s \" GAN massage \" \"" + std::string(param_values["email"]) + "\"";
+			logger << "send email : " + message;
+			ExecuteHandler eh(
+				message.c_str()
+			);
+			return it->second;
+		}
+	}
+}
+
+BlockBase* SendEmail::GetBlock(const std::string& type) const {
+	if (block_type == type) {
+		return new SendEmail();
+	}
+	return NULL;
+}
+
+
+std::string SendEmail::Description() const {
+	return std::string("\tSendEmail : This block is used for sending email if points series name == true\n")
+		+ "\t\tIncoming edges: to_send.\n"
+		+ "\t\tPrams: mail.\n";
+}
+
+
+
 
 /*	TimePeriodAggregator	*/
 
@@ -835,7 +884,8 @@ Block::Block(
 	new Max(1),
 	new Scale(),
 	new Threshold(),
-})
+	new SendEmail(),
+	})
 {
 	for (size_t i = 0; i < blocks.size(); ++i) {
 		block = blocks[i]->GetBlock(block_type);
@@ -1917,7 +1967,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		boost::regex_match(
 			query,
 			match,
-			boost::regex("\\s*modify\\s+param\\s+(\\w+)\\s+to\\s+(\\w+)\\s+in\\s+block\\s+(\\w+)\\s+of\\s+graph\\s+(\\w+)\\s*")
+			boost::regex("\\s*modify\\s+param\\s+(\\w+)\\s+to\\s+(.+)\\s+in\\s+block\\s+(\\w+)\\s+of\\s+graph\\s+(\\w+)\\s*")
 		)
 	) {
 		std::string param_name = match[1];

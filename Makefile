@@ -36,8 +36,8 @@ graph.o: graph.cpp
 gan-server.o: gan-server.cpp
 	g++ -lboost_regex -std=c++0x -g -c gan-server.cpp
 
-gan-server: gan-exception.o graph.o gan-server.o daemons.o mysql.o logger.o base64.o
-	g++ -lboost_regex -lmysqlcppconn -std=c++0x -g mysql.o gan-exception.o daemons.o graph.o gan-server.o logger.o base64.o -o gan-server
+gan-server: gan-exception.o graph.o gan-server.o daemons.o mysql.o logger.o base64.o execute.o
+	g++ -lboost_regex -lmysqlcppconn -std=c++0x -g mysql.o gan-exception.o daemons.o graph.o gan-server.o logger.o base64.o execute.o -o gan-server
 
 base64.o: base64.cpp
 	g++ -g -std=c++0x -c base64.cpp

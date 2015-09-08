@@ -53,6 +53,7 @@ public:
 
 	static Point Empty();
 
+	operator std::string() const;
 
 	friend std::ostream& operator<< (std::ostream& out, const Point& point);
 
@@ -382,6 +383,28 @@ public:
 	std::string Description() const;
 
 };
+
+
+/*	SendEmail	*/
+
+
+class SendEmail : public BlockBase {
+private:
+public:
+	SendEmail();
+
+	Point Do(
+		const std::unordered_map<std::string, Point>& values,
+		const std::time_t& time
+	);
+
+	BlockBase* GetBlock(const std::string& block_type) const;
+
+	std::string Description() const;
+
+};
+
+
 
 /*	TimePeriodAggregator	*/
 
