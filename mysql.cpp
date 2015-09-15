@@ -283,7 +283,7 @@ Table::Rows Table::SelectEnd() const {
 
 Table::Rows Table::Select(const std::string& query_where) {
 
-	logger << "from mysql.cpp Select query where "  + query_where;
+	logger << "from mysql.cpp Select query " + table_name + " where "  + query_where;
 
 	sql::PreparedStatement *pstmt = con->prepareStatement(
 		"select * from "
