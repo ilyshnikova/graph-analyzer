@@ -2261,6 +2261,10 @@ std::string WorkSpace::Respond(const std::string& query)  {
 			+ "\t\tshow params|possible edges of block <block_name> of graph <graph_name>\n"
 			+ "\t\tshow block type of block <block_name> of graph <graph_name>\n"
 			+ "\t\thelp\n"
+			+ "\tOperation with graph:\n"
+			+ "\t\tsave graph <graph_name> to file <file_name>\n"
+			+ "\t\tconvert config <file_name> to queries\n"
+			+ "\t\tload [replace|ignore] graph <grpah_name> from file file_name -- in this query file with config is converted to sequence of requests and executed step by step\n"
 			+ "Blocks:\n" + Block(1,"","EmptyBlock",NULL).GetAllBlocksDescriptions();
 	} else {
 		throw GANException(529352, "Incorrect query");
