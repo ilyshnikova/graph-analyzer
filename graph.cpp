@@ -2199,14 +2199,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		}
 
 		AddGaphToTables(CreateGraph(graphs_table.MaxValue("Id") + 1, graph_name, 0));
-		AnswerTable ans =  LoadGraphFromFile(file_name, graph_name);
-		try {
-			Verification(graph_name);
-		} catch (std::exception& e) {
-				ans.rows.push_back({e.what()});
-		}
-
-		return ans.ToString();
+		return LoadGraphFromFile(file_name, graph_name).ToString();
 
 	} else if (
 		boost::regex_match(
@@ -2220,14 +2213,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 
 		Respond(std::string("delete graph if exists ") + graph_name);
 		AddGaphToTables(CreateGraph(graphs_table.MaxValue("Id") + 1, graph_name, 0));
-		AnswerTable ans =  LoadGraphFromFile(file_name, graph_name);
-		try {
-			Verification(graph_name);
-		} catch (std::exception& e) {
-				ans.rows.push_back({e.what()});
-		}
-
-		return ans.ToString();
+		return LoadGraphFromFile(file_name, graph_name).ToString();
 
 	} else if (
 		boost::regex_match(
@@ -2254,14 +2240,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 
 		if (graphs.count(graph_name) == 0) {
 			AddGaphToTables(CreateGraph(graphs_table.MaxValue("Id") + 1, graph_name, 0));
-			AnswerTable ans =  LoadGraphFromFile(file_name, graph_name);
-			try {
-				Verification(graph_name);
-			} catch (std::exception& e) {
-					ans.rows.push_back({e.what()});
-			}
-
-			return ans.ToString();
+			return LoadGraphFromFile(file_name, graph_name).ToString();
 		}
 
 
@@ -2436,6 +2415,7 @@ AnswerTable WorkSpace::LoadGraphFromFile(
 	const std::string& graph_name
 )  {
 	std::vector<std::vector<std::string> > queries = ConvertConfigToQueries(file_name, graph_name);
+	queries.push_back({std::string("deploy graph ") + graph_name});
 	AnswerTable ans;
 	ans.head = {"Query"};
 
