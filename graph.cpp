@@ -1742,7 +1742,13 @@ WorkSpace::WorkSpace()
 std::string WorkSpace::Respond(const std::string& query)  {
 	logger << "query = " + query;
 	boost::smatch match;
-	if (query == "") {
+	if (
+		boost::regex_match(
+			query,
+			match,
+			boost::regex("\\s*")
+		)
+	) {
 		return "";
 	} else if (
 		boost::regex_match(
@@ -2193,7 +2199,14 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		}
 
 		AddGaphToTables(CreateGraph(graphs_table.MaxValue("Id") + 1, graph_name, 0));
-		return LoadGraphFromFile(file_name, graph_name).ToString();
+		AnswerTable ans =  LoadGraphFromFile(file_name, graph_name);
+		try {
+			Verification(graph_name);
+		} catch (std::exception& e) {
+				ans.rows.push_back({e.what()});
+		}
+
+		return ans.ToString();
 
 	} else if (
 		boost::regex_match(
@@ -2207,7 +2220,14 @@ std::string WorkSpace::Respond(const std::string& query)  {
 
 		Respond(std::string("delete graph if exists ") + graph_name);
 		AddGaphToTables(CreateGraph(graphs_table.MaxValue("Id") + 1, graph_name, 0));
-		return LoadGraphFromFile(file_name, graph_name).ToString();
+		AnswerTable ans =  LoadGraphFromFile(file_name, graph_name);
+		try {
+			Verification(graph_name);
+		} catch (std::exception& e) {
+				ans.rows.push_back({e.what()});
+		}
+
+		return ans.ToString();
 
 	} else if (
 		boost::regex_match(
@@ -2234,7 +2254,14 @@ std::string WorkSpace::Respond(const std::string& query)  {
 
 		if (graphs.count(graph_name) == 0) {
 			AddGaphToTables(CreateGraph(graphs_table.MaxValue("Id") + 1, graph_name, 0));
-			return LoadGraphFromFile(file_name, graph_name).ToString();
+			AnswerTable ans =  LoadGraphFromFile(file_name, graph_name);
+			try {
+				Verification(graph_name);
+			} catch (std::exception& e) {
+					ans.rows.push_back({e.what()});
+			}
+
+			return ans.ToString();
 		}
 
 
@@ -2417,7 +2444,6 @@ AnswerTable WorkSpace::LoadGraphFromFile(
 			ans.rows.push_back({queries[i][0]});
 			Respond(queries[i][0]);
 		}
-		Verification(graph_name);
 	} catch (std::exception& e) {
 		ans.rows.push_back({e.what()});
 		ans.status = "Not Ok";
