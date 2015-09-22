@@ -2188,7 +2188,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		boost::regex_match(
 			query,
 			match,
-			boost::regex("\\s*load\\s+graph\\s+(\\w+)\\s+from\\s+file\\s+(.+)\\s*")
+			boost::regex("\\s*load\\s+graph\\s+(\\w+)\\s+from\\s+file\\s+(\\S+)\\s*")
 		)
 	) {
 		std::string graph_name = match[1];
@@ -2200,7 +2200,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		boost::regex_match(
 			query,
 			match,
-			boost::regex("\\s*load\\s+replace\\s+graph\\s+(\\w+)\\s+from\\s+file\\s+(.+)\\s*")
+			boost::regex("\\s*load\\s+replace\\s+graph\\s+(\\w+)\\s+from\\s+file\\s+(\\S+)\\s*")
 		)
 	) {
 		std::string graph_name = match[1];
@@ -2229,7 +2229,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		boost::regex_match(
 			query,
 			match,
-			boost::regex("\\s*load\\s+ignore\\s+graph\\s+(\\w+)\\s+from\\s+file\\s+(.+)\\s*")
+			boost::regex("\\s*load\\s+ignore\\s+graph\\s+(\\w+)\\s+from\\s+file\\s+(\\S+)\\s*")
 		)
 	) {
 		std::string graph_name = match[1];
