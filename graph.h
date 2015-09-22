@@ -730,11 +730,15 @@ public:
 
 	void Verification(const std::string& graph_name);
 
-	std::vector<std::vector<std::string> >  ConvertConfigToQueries(const std::string& file_name, const std::string& graph_name = "<graph_name>") const;
+	std::vector<std::vector<std::string> >  ConvertConfigToQueries(
+		const std::string& file_name,
+		const std::string& graph_name="<graph_name>"
+	) const;
 
 	AnswerTable LoadGraphFromFile(
 		const std::string& file_name,
-		const std::string& graph_name
+		const std::string& graph_name,
+		const std::vector<std::string>& first_queries={}
 	);
 
 	~WorkSpace();

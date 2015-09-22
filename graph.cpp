@@ -2194,12 +2194,12 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		std::string graph_name = match[1];
 		std::string file_name = match[2];
 
-		if (graphs.count(graph_name) != 0) {
-			throw GANException(131564, "Graph with name " + graph_name  +  " already exist.");
-		}
+//		if (graphs.count(graph_name) != 0) {
+//			throw GANException(131564, "Graph with name " + graph_name  +  " already exist.");
+//		}
 
-		AddGaphToTables(CreateGraph(graphs_table.MaxValue("Id") + 1, graph_name, 0));
-		return LoadGraphFromFile(file_name, graph_name).ToString();
+//		AddGaphToTables(CreateGraph(graphs_table.MaxValue("Id") + 1, graph_name, 0));
+		return LoadGraphFromFile(file_name, graph_name, {std::string("create graph ") + graph_name}).ToString();
 
 	} else if (
 		boost::regex_match(
@@ -2211,9 +2211,13 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		std::string graph_name = match[1];
 		std::string file_name = match[2];
 
-		Respond(std::string("delete graph if exists ") + graph_name);
-		AddGaphToTables(CreateGraph(graphs_table.MaxValue("Id") + 1, graph_name, 0));
-		return LoadGraphFromFile(file_name, graph_name).ToString();
+//		Respond(std::string("delete graph if exists ") + graph_name);
+//		AddGaphToTables(CreateGraph(graphs_table.MaxValue("Id") + 1, graph_name, 0));
+		return LoadGraphFromFile(
+			file_name,
+			graph_name,
+			{std::string("delete graph if exists ") + graph_name, std::string("create graph ") + graph_name}
+			).ToString();
 
 	} else if (
 		boost::regex_match(
@@ -2240,7 +2244,11 @@ std::string WorkSpace::Respond(const std::string& query)  {
 
 		if (graphs.count(graph_name) == 0) {
 			AddGaphToTables(CreateGraph(graphs_table.MaxValue("Id") + 1, graph_name, 0));
-			return LoadGraphFromFile(file_name, graph_name).ToString();
+			return LoadGraphFromFile(
+				file_name,
+				graph_name,
+				{std::string("create graph ") + graph_name}
+			).ToString();
 		}
 
 
@@ -2412,7 +2420,8 @@ std::vector<std::vector<std::string> >  WorkSpace::ConvertConfigToQueries(const 
 
 AnswerTable WorkSpace::LoadGraphFromFile(
 	const std::string& file_name,
-	const std::string& graph_name
+	const std::string& graph_name,
+	const std::vector<std::string>& first_queries
 )  {
 	std::vector<std::vector<std::string> > queries = ConvertConfigToQueries(file_name, graph_name);
 	queries.push_back({std::string("deploy graph ") + graph_name});
@@ -2420,10 +2429,16 @@ AnswerTable WorkSpace::LoadGraphFromFile(
 	ans.head = {"Query"};
 
 	try {
+		for (size_t i = 0; i < first_queries.size(); ++i) {
+			ans.rows.push_back({first_queries[i]});
+			Respond(first_queries[i]);
+		}
+
 		for (size_t i = 0; i < queries.size(); ++i) {
 			ans.rows.push_back({queries[i][0]});
 			Respond(queries[i][0]);
 		}
+
 	} catch (std::exception& e) {
 		ans.rows.push_back({e.what()});
 		ans.status = "Not Ok";
