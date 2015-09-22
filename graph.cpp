@@ -2194,11 +2194,6 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		std::string graph_name = match[1];
 		std::string file_name = match[2];
 
-//		if (graphs.count(graph_name) != 0) {
-//			throw GANException(131564, "Graph with name " + graph_name  +  " already exist.");
-//		}
-
-//		AddGaphToTables(CreateGraph(graphs_table.MaxValue("Id") + 1, graph_name, 0));
 		return LoadGraphFromFile(file_name, graph_name, {std::string("create graph ") + graph_name}).ToString();
 
 	} else if (
@@ -2211,8 +2206,6 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		std::string graph_name = match[1];
 		std::string file_name = match[2];
 
-//		Respond(std::string("delete graph if exists ") + graph_name);
-//		AddGaphToTables(CreateGraph(graphs_table.MaxValue("Id") + 1, graph_name, 0));
 		return LoadGraphFromFile(
 			file_name,
 			graph_name,
