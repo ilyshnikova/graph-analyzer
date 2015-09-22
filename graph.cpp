@@ -2343,7 +2343,7 @@ void WorkSpace::Verification(const std::string& graph_name) {
 	ChangeGraphsValid(graph_name, 1);
 }
 
-std::vector<std::vector<std::string> >  WorkSpace::ConvertConfigToQueries(const std::string& file_name, const std::string& graph_name ) const {
+std::vector<std::vector<std::string> >  WorkSpace::ConvertConfigToQueries(const std::string& file_name, const std::string& graph_name, const std::vector<std::string>& first_queries) const {
 	std::ifstream fin(file_name);
 	YAML::Parser parser(fin);
 	YAML::Node graph_config;
@@ -2353,6 +2353,9 @@ std::vector<std::vector<std::string> >  WorkSpace::ConvertConfigToQueries(const 
  	const YAML::Node& edges = graph_config["edges"];
 
 	std::vector<std::vector<std::string> > queries;
+	for (size_t i = 0; i < first_queries.size(); ++i) {
+		queries.push_back({first_queries[i]});
+	}
 
 	for (size_t i = 0; i < blocks_node.size(); ++i) {
 		std::string block_name;
@@ -2416,17 +2419,17 @@ AnswerTable WorkSpace::LoadGraphFromFile(
 	const std::string& graph_name,
 	const std::vector<std::string>& first_queries
 )  {
-	std::vector<std::vector<std::string> > queries = ConvertConfigToQueries(file_name, graph_name);
+	std::vector<std::vector<std::string> > queries = ConvertConfigToQueries(file_name, graph_name, first_queries);
 	queries.push_back({std::string("deploy graph ") + graph_name});
 	AnswerTable ans;
 	ans.head = {"Query"};
 
 	try {
-		for (size_t i = 0; i < first_queries.size(); ++i) {
-			ans.rows.push_back({first_queries[i]});
-			Respond(first_queries[i]);
-		}
-
+//		for (size_t i = 0; i < first_queries.size(); ++i) {
+//			ans.rows.push_back({first_queries[i]});
+//			Respond(first_queries[i]);
+//		}
+//
 		for (size_t i = 0; i < queries.size(); ++i) {
 			ans.rows.push_back({queries[i][0]});
 			Respond(queries[i][0]);

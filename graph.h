@@ -732,7 +732,8 @@ public:
 
 	std::vector<std::vector<std::string> >  ConvertConfigToQueries(
 		const std::string& file_name,
-		const std::string& graph_name="<graph_name>"
+		const std::string& graph_name="<graph_name>",
+		const std::vector<std::string>& first_queries={}
 	) const;
 
 	AnswerTable LoadGraphFromFile(
