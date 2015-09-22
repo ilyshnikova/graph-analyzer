@@ -2188,7 +2188,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		boost::regex_match(
 			query,
 			match,
-			boost::regex("\\s*load\\s+graph\\s+(\\w+)\\s+from\\s+file\\s+(\\w+)\\s*")
+			boost::regex("\\s*load\\s+graph\\s+(\\w+)\\s+from\\s+file\\s+(.+)\\s*")
 		)
 	) {
 		std::string graph_name = match[1];
@@ -2200,7 +2200,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		boost::regex_match(
 			query,
 			match,
-			boost::regex("\\s*load\\s+replace\\s+graph\\s+(\\w+)\\s+from\\s+file\\s+(\\w+)\\s*")
+			boost::regex("\\s*load\\s+replace\\s+graph\\s+(\\w+)\\s+from\\s+file\\s+(.+)\\s*")
 		)
 	) {
 		std::string graph_name = match[1];
@@ -2216,7 +2216,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		boost::regex_match(
 			query,
 			match,
-			boost::regex("\\s*convert\\s+config\\s+(\\w+)\\s+to\\s+queries\\s*")
+			boost::regex("\\s*convert\\s+config\\s+(.+)\\s+to\\s+queries\\s*")
 		)
 	) {
 		std::string file_name = match[1];
@@ -2229,7 +2229,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		boost::regex_match(
 			query,
 			match,
-			boost::regex("\\s*load\\s+ignore\\s+graph\\s+(\\w+)\\s+from\\s+file\\s+(\\w+)\\s*")
+			boost::regex("\\s*load\\s+ignore\\s+graph\\s+(\\w+)\\s+from\\s+file\\s+(.+)\\s*")
 		)
 	) {
 		std::string graph_name = match[1];
@@ -2243,8 +2243,10 @@ std::string WorkSpace::Respond(const std::string& query)  {
 				{std::string("create graph ") + graph_name}
 			).ToString();
 		}
-
-
+		AnswerTable ans;
+		ans.head = {"Query"};
+		ans.status = "Ok";
+		return ans.ToString();
 	} else if (
 		boost::regex_match(
 			query,
@@ -2343,7 +2345,11 @@ void WorkSpace::Verification(const std::string& graph_name) {
 	ChangeGraphsValid(graph_name, 1);
 }
 
-std::vector<std::vector<std::string> >  WorkSpace::ConvertConfigToQueries(const std::string& file_name, const std::string& graph_name, const std::vector<std::string>& first_queries) const {
+std::vector<std::vector<std::string> > WorkSpace::ConvertConfigToQueries(
+	const std::string& file_name,
+	const std::string& graph_name,
+	const std::vector<std::string>& first_queries
+) const {
 	std::ifstream fin(file_name);
 	YAML::Parser parser(fin);
 	YAML::Node graph_config;
