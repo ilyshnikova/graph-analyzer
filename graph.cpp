@@ -2172,7 +2172,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		boost::regex_match(
 			query,
 			match,
-			boost::regex("\\s*save\\s+graph\\s+(\\w+)\\s+to\\s+file\\s+(\\w+)\\s*")
+			boost::regex("\\s*save\\s+graph\\s+(\\w+)\\s+to\\s+file\\s+(\\S+)\\s*")
 		)
 	) {
 		std::string graph_name = match[1];
@@ -2216,7 +2216,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		boost::regex_match(
 			query,
 			match,
-			boost::regex("\\s*convert\\s+config\\s+(.+)\\s+to\\s+queries\\s*")
+			boost::regex("\\s*convert\\s+config\\s+(\\S+)\\s+to\\s+queries\\s*")
 		)
 	) {
 		std::string file_name = match[1];
