@@ -2210,7 +2210,7 @@ std::string WorkSpace::Respond(const std::string& query)  {
 			file_name,
 			graph_name,
 			{std::string("delete graph if exists ") + graph_name, std::string("create graph ") + graph_name}
-			).ToString();
+		).ToString();
 
 	} else if (
 		boost::regex_match(
