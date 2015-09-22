@@ -2425,11 +2425,6 @@ AnswerTable WorkSpace::LoadGraphFromFile(
 	ans.head = {"Query"};
 
 	try {
-//		for (size_t i = 0; i < first_queries.size(); ++i) {
-//			ans.rows.push_back({first_queries[i]});
-//			Respond(first_queries[i]);
-//		}
-//
 		for (size_t i = 0; i < queries.size(); ++i) {
 			ans.rows.push_back({queries[i][0]});
 			Respond(queries[i][0]);
