@@ -2236,7 +2236,6 @@ std::string WorkSpace::Respond(const std::string& query)  {
 		std::string file_name = match[2];
 
 		if (graphs.count(graph_name) == 0) {
-			AddGaphToTables(CreateGraph(graphs_table.MaxValue("Id") + 1, graph_name, 0));
 			return LoadGraphFromFile(
 				file_name,
 				graph_name,
