@@ -1680,7 +1680,7 @@ std::string Graph::GetBlockType(const std::string& block_name) const {
 void Graph::SaveGraphToFile(const std::string& file_name) const {
 	std::ofstream config(file_name);
 	if (!config.is_open()) {
-		throw GANException(294563, "File with name " + file_name + " does not exist.");
+		throw GANException(294563, "File with name " + file_name + " is not opening.");
 	}
 
 	YAML::Emitter out;
@@ -2354,7 +2354,7 @@ std::vector<std::vector<std::string> > WorkSpace::ConvertConfigToQueries(
 ) const {
 	std::ifstream fin(file_name);
 	if (!fin.is_open()) {
-		throw GANException(243563, "File with name " + file_name + " does not exist.");
+		throw GANException(243563, "File with name " + file_name + " is not opening.");
 	}
 	YAML::Parser parser(fin);
 	YAML::Node graph_config;
