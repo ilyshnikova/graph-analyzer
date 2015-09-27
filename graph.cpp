@@ -1679,7 +1679,6 @@ std::string Graph::GetBlockType(const std::string& block_name) const {
 
 void Graph::SaveGraphToFile(const std::string& file_name) const {
 	std::ofstream config(file_name);
-//	config.open(file_name);
 	if (!config.is_open()) {
 		throw GANException(294563, "File with name " + file_name + " does not exist.");
 	}
