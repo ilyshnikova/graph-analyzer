@@ -7,6 +7,7 @@
 #include <vector>
 #include <unordered_set>
 
+#include "yaml-cpp/yaml.h"
 #include "daemons.h"
 #include "mysql.h"
 #include "gan-exception.h"
@@ -81,6 +82,8 @@ public:
 	Block* From() const;
 
 	std::string GetEdgeName() const;
+
+	friend YAML::Emitter& operator<< (YAML::Emitter& out, const Edge& edge);
 
 };
 
@@ -537,6 +540,8 @@ public:
 
 	std::vector<std::vector<std::string> > GetPossibleEdges() const;
 
+	friend YAML::Emitter& operator<< (YAML::Emitter& out, const Block& block);
+
 	~Block();
 
 };
@@ -549,7 +554,7 @@ private:
 	int id;
 	std::string graph_name;
 	std::unordered_map<std::string, Block*> blocks;
-	std::vector<Edge*> edges;
+	std::unordered_set<Edge*> edges;
 	Table* graphs_and_blocks_table;
 	Table* blocks_table;
 	Table* edges_table;
@@ -578,6 +583,20 @@ public:
 		const bool valid,
 		BlockCacheUpdaterBuffer* block_buffer
 	);
+
+	Graph(
+		const int id,
+		const std::string& graph_name,
+		Table* graphs_and_blocks_table,
+		Table* blocks_table,
+		Table* edges_table,
+		Table* blocks_and_outgoing_edges_table,
+		Table* blocks_params_table,
+		const bool valid,
+		BlockCacheUpdaterBuffer* block_buffer,
+		const std::string& file_name
+	);
+
 
 	void Load();
 
@@ -669,6 +688,8 @@ public:
 
 	std::string GetBlockType(const std::string& block_name) const;
 
+	void SaveGraphToFile(const std::string& file_name ) const;
+
 	~Graph();
 
 
@@ -699,6 +720,8 @@ public:
 
 	void AddGaphToTables(Graph* grpah);
 
+	Graph* GetGraph(const int graph_id, const std::string& graph_name, const bool valid) const;
+
 	Graph* CreateGraph(const int graph_id, const std::string& graph_name, const bool valid);
 
 	void DeleteGraph(const int graph_id, const std::string& graph_name);
@@ -707,7 +730,17 @@ public:
 
 	void Verification(const std::string& graph_name);
 
+	std::vector<std::vector<std::string> >  ConvertConfigToQueries(
+		const std::string& file_name,
+		const std::string& graph_name="<graph_name>",
+		const std::vector<std::string>& first_queries={}
+	) const;
 
+	AnswerTable LoadGraphFromFile(
+		const std::string& file_name,
+		const std::string& graph_name,
+		const std::vector<std::string>& first_queries={}
+	);
 
 	~WorkSpace();
 
