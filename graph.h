@@ -6,11 +6,42 @@
 #include <ctime>
 #include <vector>
 #include <unordered_set>
-
+#include <json/json.h>
 #include "yaml-cpp/yaml.h"
 #include "daemons.h"
 #include "mysql.h"
 #include "gan-exception.h"
+
+
+/*	Json	*/
+
+//Json::Value CreateJson(const int value) {
+//	return Json::Value(value);
+//}
+
+Json::Value CreateJson(const std::string& value);
+
+
+template
+<typename K,typename V>
+Json::Value CreateJson(const std::map<K,V>& value) {
+	Json::Value jvalue;
+	for (auto it = value.cbegin(); it != value.cend(); ++it) {
+		jvalue[it->first] = CreateJson(it->second);
+	}
+	return jvalue;
+}
+
+
+template
+<typename T>
+Json::Value CreateJson(const std::vector<T>& value) {
+	Json::Value jvalue;
+	for (size_t i = 0; i < value.size(); ++i) {
+		jvalue.append(CreateJson(value[i]));
+	}
+	return jvalue;
+}
 
 
 /*	AnswerTable	*/
@@ -712,6 +743,8 @@ private:
 
 
 	std::string Respond(const std::string& query);
+
+	Json::Value JsonRespond(const Json::Value& query);
 public:
 
 	void Load();
@@ -736,11 +769,15 @@ public:
 		const std::vector<std::string>& first_queries={}
 	) const;
 
-	AnswerTable LoadGraphFromFile(
+	Json::Value LoadGraphFromFile(
 		const std::string& file_name,
-		const std::string& graph_name,
-		const std::vector<std::string>& first_queries={}
+		const std::string& graph_name
 	);
+
+	std::vector<Json::Value> ConvertConfigToJsonQueries(
+		const std::string& file_name,
+		const std::string& graph_name
+	) const;
 
 	~WorkSpace();
 
