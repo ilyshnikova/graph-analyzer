@@ -43,10 +43,10 @@ base64.o: base64.cpp
 	g++ -g -std=c++0x -c base64.cpp
 
 testing.o: testing.cpp
-	g++ -g -c -std=c++0x -lyaml-cpp testing.cpp
+	g++ -g -c -std=c++0x -lyaml-cpp  -I/usr/include/jsoncpp  -ljsoncpp testing.cpp
 
 testing: testing.o gan-exception.o graph.o  daemons.o mysql.o logger.o base64.o execute.o
-	g++ -lboost_regex -lmysqlcppconn -lyaml-cpp -std=c++0x -g testing.o mysql.o gan-exception.o execute.o  daemons.o graph.o  logger.o base64.o  -o test
+	g++ -lboost_regex -lmysqlcppconn -lyaml-cpp -std=c++0x  -I/usr/include/jsoncpp  -ljsoncpp -g testing.o mysql.o gan-exception.o execute.o  daemons.o graph.o  logger.o base64.o  -o test
 
 execute.o: execute.cpp
 	g++ -g -c -std=c++0x execute.cpp

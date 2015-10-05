@@ -188,7 +188,6 @@ std::string BlockBase::GetResultSeriesName(
 
 	std::vector<std::string> names;
 	for (auto it = incoming_edges_names.begin(); it != incoming_edges_names.end(); ++it) {
-		logger << "insert to ser name " + values.at(*it).GetSeriesName();
 		names.push_back(values.at(*it).GetSeriesName());
 	}
 
@@ -1087,7 +1086,7 @@ void Block::DeleteIncomingEdge(const std::string& edge_name) {
 void Block::AddOutgoingEdgeToTable(Edge* edge, Table* blocks_and_outgoing_edges_table) {
 	int edge_id = edge->GetEdgeId();
 	logger <<
-		"Insert intp table BlocksAndOutgoingEdges BlockId:"
+		"Insert into table BlocksAndOutgoingEdges BlockId:"
 		+ std::to_string(id)
 		+ " EdgeId:"
 		+ std::to_string(edge_id);
@@ -1501,7 +1500,6 @@ void Graph::DeleteEdge(
 	const std::string& to
 ) {
 	if (blocks.count(from) != 0 && blocks.count(to) != 0) {
-		logger << "delete edge " + edge_name;
 		Block* block_to = blocks[to];
 		Block* block_from = blocks[from];
 
@@ -1515,9 +1513,7 @@ void Graph::DeleteEdge(
 		block_from->DeleteOutgoingEdge(edge_name, blocks_and_outgoing_edges_table);
 		block_to->DeleteIncomingEdge(edge_name);
 
-		logger <<
-			"Delete from Edges where Id:"
-			+ std::to_string(edge->GetEdgeId());
+		std::to_string(edge->GetEdgeId());
 
 		edges_table->Delete("Id = " + std::to_string(edge->GetEdgeId()));
 	} else {
@@ -1602,7 +1598,6 @@ void Graph::Verification() {
 
 	for (auto it = used.begin(); it != used.end(); ++it) {
 		if (it->second == 0) {
-			logger << "start DFSFindCycle";
 			std::string cycle = DFSFindCycle(&used, it->first);
 			if (cycle != std::string("\0")) {
 				throw GANException(164920 ,"Graph has cycle: " + cycle);
@@ -1801,175 +1796,209 @@ WorkSpace::WorkSpace()
 }
 
 
+void WorkSpace::CheckIgnore(const bool ignore, Json::Value* answer, const GANException& exception) const {
+	if (!ignore) {
+		throw exception;
+	} else {
+		answer->operator[]("status") = 1;
+	}
+}
+
+
+
 Json::Value WorkSpace::JsonRespond(const Json::Value& query) {
-	logger << "JsonRespond";
 	Json::StyledWriter styledWriter;
 	logger << styledWriter.write(query);
 	Json::Value answer;
 	std::string query_type = query["type"].asString();
 	std::string graph_name = query["graph"].asString();
+	std::string objects_type = query["object"].asString();
+	bool ignore = query["ignore"].asBool();
 	answer["status"] = 0;
 	try {
+		if (
+			objects_type != "graph"
+			&& graph_name != ""
+			&& graphs.count(graph_name) == 0
+		) {
+			throw GANException(
+				419294,
+				"Graph with name " + graph_name  +  " does not exist."
+			);
+		}
+
 		if (query_type == "create") {			// create
-			logger << "create";
-			std::string objects_type = query["object"].asString();
-			bool ignore = query["ignore"].asBool();
 
 			if (objects_type == "graph") {				// create graph
-				logger << "create graph";
-				int graph_id = graphs_table.MaxValue("Id") + 1;
-				if (ignore) {
-					logger << "ignore";
-				}
-
-				if (!ignore && graphs.count(graph_name) != 0) {
-					throw GANException(
-						128463,
-						"Graph with name " + graph_name   +  " already exists."
+				if (graphs.count(graph_name) != 0) {
+					CheckIgnore(
+						ignore,
+						&answer,
+						GANException(
+							128463,
+							(
+							 	std::string("Graph with name ")
+								+ graph_name
+								+  " already exists."
+							)
+						)
 					);
-				} else if (ignore && graphs.count(graph_name) != 0) {
+				} else {
+					int graph_id = graphs_table.MaxValue("Id") + 1;
+					AddGaphToTables(CreateGraph(graph_id, graph_name, 0));
 					answer["status"] = 1;
-					return answer;
 				}
-
-				AddGaphToTables(CreateGraph(graph_id, graph_name, 0));
-				logger << "status 1" << query_type;
-				answer["status"] = 1;
-
 			} else if (objects_type == "block") {			// create block
 				std::string block_name = query["block"].asString();
 				std::string block_type = query["block_type"].asString();
-
-				if (graphs.count(graph_name) == 0) {
-					throw GANException(
-						419294,
-						"Graph with name " + graph_name  +  " does not exist."
-					);
-				}
 				Graph* graph = graphs[graph_name];
 
-				if (!ignore && graph->In(block_name)) {
-					throw GANException(
-						428352,
-						"Block with name " + block_name  + " already exists in graph " + graph_name +  "."
+				if (graph->In(block_name)) {
+					CheckIgnore(
+						ignore,
+						&answer,
+						GANException(
+							428352,
+							(
+							 	std::string("Block with name ")
+								+ block_name
+								+ " already exists in graph "
+								+ graph_name
+								+  "."
+							)
+						)
 					);
-				} else if (ignore && graph->In(block_name)) {
+				} else {
+					int block_id = blocks_table.MaxValue("Id") + 1;
+					graph->AddBlockToTables(
+						graph->CreateBlock(block_type, block_id, block_name)
+					);
+					ChangeGraphsValid(graph_name, 0);
 					answer["status"] = 1;
-					return answer;
 				}
-
-				int block_id = blocks_table.MaxValue("Id") + 1;
-				graph->AddBlockToTables(
-					graph->CreateBlock(block_type, block_id, block_name)
-				);
-				ChangeGraphsValid(graph_name, 0);
-				answer["status"] = 1;
-
 			} else if (objects_type == "edge") { 			// create edge
 				std::string edge_name = query["edge"].asString();
 				std::string from_name = query["from"].asString();
 				std::string to_name = query["to"].asString();
-				int id = edges_table.MaxValue("Id") + 1;
 
-				if (graphs.count(graph_name) == 0) {
-					throw GANException(362796, "Graph with name " + graph_name  +  " does not exist.");
-				}
 				Graph* graph = graphs[graph_name];
-				if (ignore && !graph->CanEdgeExist(to_name, edge_name)) {
-					answer["status"] = 1;
-					return answer;
-				}
 
-				graph->AddEdgeToTables(
-					graph->CreateEdge(id, edge_name, from_name, to_name)
-				);
-				ChangeGraphsValid(graph_name, 0);
-				answer["status"] = 1;
+				if (!graph->CanEdgeExist(to_name, edge_name)) {
+					CheckIgnore(
+						ignore,
+						&answer,
+						GANException(
+							359152,
+							(
+							 	std::string("Edge with name ")
+								+ edge_name
+								+ " already exists in graph "
+								+ graph_name
+								+ " from "
+								+ from_name
+								+ " to "
+								+ to_name
+								+ "."
+							)
+						)
+					);
+				} else {
+					int id = edges_table.MaxValue("Id") + 1;
+					graph->AddEdgeToTables(
+						graph->CreateEdge(id, edge_name, from_name, to_name)
+					);
+					ChangeGraphsValid(graph_name, 0);
+					answer["status"] = 1;
+				}
 			}
 
 		} else if (query_type == "delete") {		// delete
-			std::string objects_type = query["object"].asString();
-			bool ignore = query["ignore"].asBool();
-
-			if (objects_type == "graph") {				// delete graph:
-				if (!ignore && graphs.count(graph_name) == 0) {
-					throw GANException(
-						483294,
-						"Graph with name " + graph_name  +  " does not exist."
+			if (objects_type == "graph") {				// delete graph
+				if (graphs.count(graph_name) == 0) {
+					CheckIgnore(
+						ignore,
+						&answer,
+						GANException(
+							483294,
+							"Graph with name " + graph_name  +  " does not exist."
+						)
 					);
-				} else if (ignore && graphs.count(graph_name) == 0) {
+				} else {
+					int graph_id = graphs.at(graph_name)->GetGraphId();
+					DeleteGraph(graph_id, graph_name);
 					answer["status"] = 1;
-					return answer;
 				}
-
-				int graph_id = graphs.at(graph_name)->GetGraphId();
-				DeleteGraph(graph_id, graph_name);
-				answer["status"] = 1;
 
 			} else if (objects_type == "block") { 			// delete block
 				std::string block_name = query["block"].asString();
-
 				Graph* graph = graphs[graph_name];
 
-				if (graphs.count(graph_name) == 0) {
-					throw GANException(330596, "Graph with name " + graph_name  +  " does not exist.");
-				}
+				if (!graph->In(block_name)) {
+					CheckIgnore(
+						ignore,
+						&answer,
+						GANException(
+							375920,
+							(
+							 	"Graph block name "
+								+ block_name
+								+  " does not exist in graph "
+								+ graph_name
+								+ "."
+							)
+						)
 
-				if (!ignore && !graph->In(block_name)) {
-					throw GANException(375920, "Graph with name " + graph_name  +  " does not exist.");
-				} else if (ignore && !graphs.count(graph_name) == 0)  {
+					);
+				} else  {
+					graphs[graph_name]->DeleteBlock(block_name);
+					ChangeGraphsValid(graph_name, 0);
 					answer["status"] = 1;
-					return answer;
 				}
-
-				graphs[graph_name]->DeleteBlock(block_name);
-				ChangeGraphsValid(graph_name, 0);
-				answer["status"] = 1;
-
 			} else if (objects_type == "edge") {			// delete edge
 				std::string edge_name = query["edge"].asString();
 				std::string from_name = query["from"].asString();
 				std::string to_name = query["to"].asString();
 				Graph* graph = graphs[graph_name];
 
-				if (graphs.count(graph_name) == 0) {
-					throw GANException(362796, "Graph with name " + graph_name  +  " does not exist.");
-				}
-
-				if (ignore && !graph->DoesEdgeExist(to_name, edge_name)) {
+				if (!graph->DoesEdgeExist(to_name, edge_name)) {
+					CheckIgnore(
+						ignore,
+						&answer,
+						GANException(
+							245622,
+							(
+							 	std::string("Edge with name ")
+								+ edge_name
+								+ " already exists in graph "
+								+ graph_name
+								+ " from "
+								+ from_name
+								+ " to "
+								+ to_name
+								+ "."
+							)
+						)
+					);
+				} else {
+					graph->DeleteEdge(edge_name, from_name, to_name);
+					ChangeGraphsValid(graph_name, 0);
 					answer["status"] = 1;
-					return answer;
 				}
-
-				graph->DeleteEdge(edge_name, from_name, to_name);
-				ChangeGraphsValid(graph_name, 0);
-				answer["status"] = 1;
 
 			}
 		} else if (query_type == "deploy") {				// deploy graph
-			if (graphs.count(graph_name) != 0) {
-				Verification(graph_name);
-			} else {
-				throw GANException(263702, "Graph with name " + graph_name  +  " does not exist.");
-			}
+			Verification(graph_name);
 			answer["status"] = 1;
 
 		} else if (query_type == "is_deployed") { 			// is graph deploy
-			if (graphs.count(graph_name) == 0) {
-				throw GANException(142264, "Graph with name " + graph_name  +  " does not exist.");
-			}
 			answer["head"].append("GraphDeployed");
 			Json::Value table;
-			table.append(((graphs[graph_name]->GetGraphValid() == 1) ? std::string("Yes") : std::string("No")));
+			table.append(((graphs[graph_name]->GetGraphValid() == 1) ? 1 : 0));
 			answer["table"].append(table);
 			answer["status"] = 1;
 		}  else if (query_type == "insert") {				// insert point
 			Json::Value points = query["points"];
 			std::string block_name = query["block"].asString();
-
-			if (graphs.count(graph_name) == 0) {
-				throw GANException(195702, "Graph with name " + graph_name  +  " does not exist.");
-			}
 
 			for (size_t i = 0; i < points.size(); ++i) {
 				Json::Value point = points[i];
@@ -1996,7 +2025,6 @@ Json::Value WorkSpace::JsonRespond(const Json::Value& query) {
 			ChangeGraphsValid(graph_name, 0);
 			answer["status"] = 1;
 		} else if (query_type == "show") {				// show
-			std::string objects_type = query["object"].asString();
 			if (objects_type == "graphs") {					// show graphs
 				answer["head"].append("GraphName");
 				for (auto it = graphs.begin(); it != graphs.end(); ++it) {
@@ -2004,72 +2032,50 @@ Json::Value WorkSpace::JsonRespond(const Json::Value& query) {
 					name.append(it->first);
 					answer["table"].append(name);
 				}
-				answer["status"] = 1;
 			} else if (objects_type == "blocks") {					// show blocks
-				if (graphs.count(graph_name) == 0) {
-					throw GANException(132464, "Graph with name " + graph_name  +  " does not exist.");
-				}
 				answer["head"] = CreateJson(std::vector<std::string>({"Name", "Type"}));
 				answer["table"] = CreateJson(graphs[graph_name]->GetBlocksNames());
-				answer["status"] = 1;
 			} else if (objects_type == "params") {				// show params
 				std::string block_name = query["block"].asString();
-				if (graphs.count(graph_name) == 0) {
-					throw GANException(131464, "Graph with name " + graph_name  +  " does not exist.");
-				}
+
 				answer["head"] = CreateJson(std::vector<std::string>({"Name", "Value"}));
 				answer["table"] = CreateJson(graphs[graph_name]->GetBlocksParams(block_name));
-				answer["status"] = 1;
 			} else if (objects_type == "edges") {				// show edges
-
-				if (graphs.count(graph_name) == 0) {
-					throw GANException(123264, "Graph with name " + graph_name  +  " does not exist.");
-				}
 				answer["head"] = CreateJson<std::string>({"From", "EdgeName", "To"});
 				answer["table"] = CreateJson(graphs[graph_name]->GetEdges());
-				answer["status"] = 1;
 			} else if (objects_type == "possible_edges") {			// show possible edges
 				std::string block_name = query["block"].asString();
-				if (graphs.count(graph_name) == 0) {
-					throw GANException(135264, "Graph with name " + graph_name  +  " does not exist.");
-				}
+
 				answer["head"].append("EdgeName");
 				answer["table"] = CreateJson(graphs[graph_name]->GetPossibleEdges(block_name));
-				answer["status"] = 1;
 			} else if (objects_type == "block_type") {			// show block type
 				std::string block_name = query["block"].asString();
-				if (graphs.count(graph_name) == 0) {
-					throw GANException(135224, "Graph with name " + graph_name  +  " does not exist.");
-				}
+
 				answer["head"].append("BlockType");
 				answer["table"].append(
 						CreateJson(
 							std::vector<std::string>({graphs[graph_name]->GetBlockType(block_name)})
 						)
 				);
-				answer["status"] = 1;
 			} else if (objects_type == "types") {				// show blocks types
 				answer["head"].append("Types");
 				answer["table"] = Block(1,"","EmptyBlock",NULL).GetTableOfBlocksDescriptions() ;
 			}
 
+			answer["status"] = 1;
+
 		} else if (query_type == "save")  {				// save graph
 			std::string file_name = query["file"].asString();
 
-			if (graphs.count(graph_name) == 0) {
-				throw GANException(131564, "Graph with name " + graph_name  +  " does not exist.");
-			}
-
 			graphs[graph_name]->SaveGraphToFile(file_name);
 			answer["status"] = 1;
-
 		} else if (query_type == "convert") {			//convert
 			std::string file_name = query["file"].asString();
+
 			answer["head"].append("Query");
 			answer["table"] = CreateJson(ConvertConfigToQueries(file_name));
 			answer["status"] = 1;
 		} else if (query_type == "load") {			// load graph
-			bool ignore = query["ignore"].asBool();
 			bool replace = query["replace"].asBool();
 			std::string file_name = query["file"].asString();
 			std::vector<std::string> first_queries;
@@ -2101,7 +2107,6 @@ Json::Value WorkSpace::JsonRespond(const Json::Value& query) {
 				graph_name
 			);
 		} else if (query_type == "help") { 				// help
-			logger << "In Help";
 			answer["head"] = CreateJson(std::vector<std::string>({"Help"}));
 			std::string help = std::string("Queries:\n\tCreation/Deletion of objects:\n")
 				+ "\t\tcreate|delete [ignore] graph  <graph_name>\n"
@@ -2129,8 +2134,6 @@ Json::Value WorkSpace::JsonRespond(const Json::Value& query) {
 			answer["table"] = CreateJson(std::vector<std::vector<std::string> >({{help}}));
 			answer["status"] = 1;
 		} else {
-			logger << "status 0" << query_type;
-			logger << styledWriter.write(query);
 			answer["status"] = 0;
 			answer["error"] = "Incorrect json query.";
 		}
@@ -2508,17 +2511,8 @@ std::string WorkSpace::Respond(const std::string& query) {
 				{"file", match[4]}
 			})
 		);
-		if (match[1] == "") {
-			json_query["ignore"] = 0;
-		} else {
-			json_query["ignore"] = 1;
-		}
-
-		if (match[2] == "") {
-			json_query["replace"] = 0;
-		} else {
-			json_query["replace"] = 1;
-		}
+		json_query["ignore"] = (match[1] == "") ? 0 : 1;
+		json_query["replace"] = (match[2] == "") ? 0 : 1;
 
 	} else if (
 		boost::regex_match(
@@ -2552,7 +2546,6 @@ std::string WorkSpace::Respond(const std::string& query) {
 		string_ans = std::string("Not Ok");
 	}
 	if (!answer["head"].isNull()) {
-		logger << "head";
 		string_ans += "\n";
 		Json::Value head = answer["head"];
 		for (size_t i = 0; i < head.size(); ++i) {

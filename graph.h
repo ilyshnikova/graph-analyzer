@@ -745,6 +745,7 @@ private:
 	BlockCacheUpdaterBuffer block_buffer;
 
 
+	void CheckIgnore(const bool ignore, Json::Value* answer, const GANException& exception) const;
 
 	std::string Respond(const std::string& query);
 
