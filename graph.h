@@ -125,6 +125,7 @@ private:
 public:
 
 	std::string block_type;
+	std::string block_name_for_definition;
 
 	std::unordered_set<std::string> incoming_edges_names;
 
@@ -133,9 +134,10 @@ public:
 
 	BlockBase(
 		const std::unordered_set<std::string>& incoming_edges_names,
-		const std::string& block_name,
+		const std::string& block_type,
 		const std::unordered_set<std::string>& params_names,
-		const std::unordered_map<std::string, StringType>& param_values
+		const std::unordered_map<std::string, StringType>& param_values,
+		const std::string& block_name_for_definition=std::string("")
 
 	);
 
@@ -511,6 +513,8 @@ public:
 	BlockBase* GetBlock() const;
 
 	std::string GetAllBlocksDescriptions() const;
+
+	Json::Value GetTableOfBlocksDescriptions() const;
 
 	Block(
 		const int id,

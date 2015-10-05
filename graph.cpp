@@ -149,10 +149,12 @@ BlockBase::BlockBase(
 	const std::unordered_set<std::string>& incoming_edges_names,
 	const std::string& block_type,
 	const std::unordered_set<std::string>& params_names,
-	const std::unordered_map<std::string, StringType>& param_values
+	const std::unordered_map<std::string, StringType>& param_values,
+	const std::string& block_name_for_definition
 )
 : incoming_edges_names(incoming_edges_names)
 , block_type(block_type)
+, block_name_for_definition((block_name_for_definition == "") ? block_type : block_name_for_definition)
 , params_names(params_names)
 , param_values(param_values)
 {}
@@ -221,7 +223,8 @@ Reducer::Reducer(
 	CreateIncomingEdges(edges_count, edges_name_type),
 	block_type + std::to_string(edges_count),
 	std::unordered_set<std::string>(),
-	std::unordered_map<std::string, StringType>()
+	std::unordered_map<std::string, StringType>(),
+	block_type + "\%d"
 )
 {}
 
@@ -277,8 +280,8 @@ BlockBase* Sum::GetBlock(const std::string& type) const {
 }
 
 std::string Sum::Description() const {
-	return std::string("\tSumN : This block is used for summarize incoming  points values.\n")
-		+ "\t\tN - param that specifying count of edges.\n"
+	return std::string("\tThis block is used for summarize incoming  points values.\n")
+		+ "\t\t\%d - param that specifying count of edges.\n"
 		+ "\t\tIncoming edges: arg1,\n"
 		+ "\t\t\t\t...,\n"
 		+ "\t\t\t\targN.";
@@ -315,8 +318,8 @@ BlockBase* And::GetBlock(const std::string& type) const {
 }
 
 std::string And::Description() const {
-	return std::string("\tAndN : This block is used for logical and with incoming points values.\n")
-		+ "\t\tN - param that specifying count of edges.\n"
+	return std::string("\tThis block is used for logical and with incoming points values.\n")
+		+ "\t\t\%d - param that specifying count of edges.\n"
 		+ "\t\tIncoming edges: arg1,\n"
 		+ "\t\t\t\t...,\n"
 		+ "\t\t\t\targN.";
@@ -353,8 +356,8 @@ BlockBase* Or::GetBlock(const std::string& type) const {
 }
 
 std::string Or::Description() const {
-	return std::string("\tOrN : This block is used for logical or with incoming points values.\n")
-		+ "\t\tN - param that specifying count of edges.\n"
+	return std::string("\tThis block is used for logical or with incoming points values.\n")
+		+ "\t\t\%gN - param that specifying count of edges.\n"
 		+ "\t\tIncoming edges: arg1,\n"
 		+ "\t\t\t\t...,\n"
 		+ "\t\t\t\targN.";
@@ -393,8 +396,8 @@ BlockBase* Min::GetBlock(const std::string& type) const {
 }
 
 std::string Min::Description() const {
-	return std::string("\tMinN : This block returns incoming points with min values.\n")
-		+ "\t\tN - param that specifying count of edges.\n"
+	return std::string("\tThis block returns incoming points with min values.\n")
+		+ "\t\t\%d - param that specifying count of edges.\n"
 		+ "\t\tIncoming edges: arg1,\n"
 		+ "\t\t\t\t...,\n"
 		+ "\t\t\t\targN.";
@@ -434,8 +437,8 @@ BlockBase* Max::GetBlock(const std::string& type) const {
 }
 
 std::string Max::Description() const {
-	return std::string("\tMaxN : This block returns incoming points with max values..\n")
-		+ "\t\tN - param that specifying count of edges.\n"
+	return std::string("\tThis block returns incoming points with max values..\n")
+		+ "\t\t\%d - param that specifying count of edges.\n"
 		+ "\t\tIncoming edges: arg1,\n"
 		+ "\t\t\t\t...,\n"
 		+ "\t\t\t\targN.";
@@ -471,8 +474,8 @@ BlockBase* Multiplication::GetBlock(const std::string& type) const {
 }
 
 std::string Multiplication::Description() const {
-	return std::string("\tMultiplicationN : This block is used for multiplicate incoming  points values.\n")
-		+ "\t\tN - param that specifying count of edges.\n"
+	return std::string("\tThis block is used for multiplicate incoming  points values.\n")
+		+ "\t\t\%d - param that specifying count of edges.\n"
 		+ "\t\tIncoming edges: arg1,\n"
 		+ "\t\t\t\t...,\n"
 		+ "\t\t\t\targN.";
@@ -510,7 +513,7 @@ BlockBase* EmptyBlock::GetBlock(const std::string& type) const {
 }
 
 std::string EmptyBlock::Description() const {
-	return "\tEmptyBlock: This block is used for inserting points into graph.";
+	return "\tThis block is used for inserting points into graph.";
 }
 
 
@@ -544,7 +547,7 @@ BlockBase* Difference::GetBlock(const std::string& type) const {
 
 
 std::string Difference::Description() const {
-	return std::string("\tDifference : This block is used for subtracting incoming points values.\n")
+	return std::string("\tThis block is used for subtracting incoming points values.\n")
 		+ "\t\tIncoming edges: minuend,\n"
 		+ "\t\t\t\tsubtracting.";
 }
@@ -580,7 +583,7 @@ BlockBase* Division::GetBlock(const std::string& type) const {
 
 
 std::string Division::Description() const {
-	return std::string("\tDivision : This block is used for division incoming points values.\n")
+	return std::string("\tThis block is used for division incoming points values.\n")
 		+ "\t\tIncoming edges: minuend,\n"
 		+ "\t\t\t\tsubtracting.";
 }
@@ -617,7 +620,7 @@ BlockBase* Threshold::GetBlock(const std::string& type) const {
 
 
 std::string Threshold::Description() const {
-	return std::string("\tThreshold : This block return point with value 1 if incoming points value grater than 'bound' param.\n")
+	return std::string("\tThis block return point with value 1 if incoming points value grater than 'bound' param.\n")
 		+ "\t\tIncoming edges: value.\n"
 		+ "\t\tParams: bound.";
 }
@@ -653,7 +656,7 @@ BlockBase* Scale::GetBlock(const std::string& type) const {
 
 
 std::string Scale::Description() const {
-	return std::string("\tScale : This block summarize incoming points with value param 'value'.\n")
+	return std::string("\tThis block summarize incoming points with value param 'value'.\n")
 		+ "\t\tIncoming edges: to_scale.\n"
 		+ "\t\tParams: value.";
 }
@@ -697,7 +700,7 @@ BlockBase* PrintToLogs::GetBlock(const std::string& type) const {
 
 
 std::string PrintToLogs::Description() const {
-	return std::string("\tPrintToLogs : This block is used for ptinting point to log.\n")
+	return std::string("\tThis block is used for ptinting point to log.\n")
 		+ "\t\tIncoming edges: to_print.";
 }
 
@@ -735,7 +738,7 @@ BlockBase* TimeShift::GetBlock(const std::string& type) const {
 
 
 std::string TimeShift::Description() const {
-	return std::string("\tTimeShift : This block is used for shifting points times to some value.\n")
+	return std::string("\tThis block is used for shifting points times to some value.\n")
 		+ "\t\tIncoming edges: to_print.\n"
 		+ "\t\tPrams: time_shift -- shift value.\n";
 }
@@ -779,7 +782,7 @@ BlockBase* SendEmail::GetBlock(const std::string& type) const {
 
 
 std::string SendEmail::Description() const {
-	return std::string("\tSendEmail : This block is used for sending email if points series name == true\n")
+	return std::string("\tThis block is used for sending email if points series name == true\n")
 		+ "\t\tIncoming edges: to_send.\n"
 		+ "\t\tPrams: mail.\n";
 }
@@ -866,7 +869,7 @@ BlockBase* TimePeriodAggregator::GetBlock(const std::string& type) const {
 
 
 std::string TimePeriodAggregator::Description() const {
-	return std::string("\tTimePeriodAggregator : This block rounding points time and summarize points values with same worth\n")
+	return std::string("\tThis block rounding points time and summarize points values with same worth\n")
 		+ "\t\tIncoming edges: to_aggregate.\n"
 		+ "\t\tParams: round_time -- rounding precision,\n"
 		+ "\t\t\tkeep_history_interval -- points with greater than this time will not be taken into account,\n"
@@ -963,11 +966,25 @@ BlockBase* Block::GetBlock() const {
 std::string Block::GetAllBlocksDescriptions() const {
 	std::string res;
 	for (size_t i = 0; i < blocks.size(); ++i) {
-		res += blocks[i]->Description() + "\n";
+		res += blocks[i]->block_name_for_definition + " : " + blocks[i]->Description() + "\n";
 	}
 	return res;
 
 }
+
+Json::Value Block::GetTableOfBlocksDescriptions() const {
+	Json::Value res;
+	for (size_t i = 0; i < blocks.size(); ++i) {
+		Json::Value row;
+		row.append(std::string(blocks[i]->block_name_for_definition));
+		row.append(std::string(blocks[i]->Description()));
+		res.append(row);
+
+	}
+	return res;
+
+}
+
 
 
 void Block::Load(const std::string& cache) {
@@ -2025,8 +2042,15 @@ Json::Value WorkSpace::JsonRespond(const Json::Value& query) {
 					throw GANException(135224, "Graph with name " + graph_name  +  " does not exist.");
 				}
 				answer["head"].append("BlockType");
-				answer["table"].append(CreateJson(std::vector<std::string>({graphs[graph_name]->GetBlockType(block_name)})));
+				answer["table"].append(
+						CreateJson(
+							std::vector<std::string>({graphs[graph_name]->GetBlockType(block_name)})
+						)
+				);
 				answer["status"] = 1;
+			} else if (objects_type == "types") {				// show blocks types
+				answer["head"].append("Types");
+				answer["table"] = Block(1,"","EmptyBlock",NULL).GetTableOfBlocksDescriptions() ;
 			}
 
 		} else if (query_type == "save")  {				// save graph
@@ -2090,6 +2114,7 @@ Json::Value WorkSpace::JsonRespond(const Json::Value& query) {
 				+ "\t\tmodify param <param_name> to <param_value> in block <block_name> of graph <graph_name>\n"
 				+ "\tShow Graph Structure:\n"
 				+ "\t\tshow graphs\n"
+				+ "\t\tshow blocks types\n"
 				+ "\t\tshow blocks|edges of graph <graph_name>\n"
 				+ "\t\tshow params|possible edges of block <block_name> of graph <graph_name>\n"
 				+ "\t\tshow block type of block <block_name> of graph <graph_name>\n"
@@ -2436,6 +2461,21 @@ std::string WorkSpace::Respond(const std::string& query) {
 			})
 		);
 	} else if (
+		boost::regex_match(
+			query,
+			match,
+			boost::regex("\\s*show\\s+blocks\\s+types\\s*")
+		)
+	) {
+		json_query = CreateJson(
+			std::map<std::string, std::string>({
+				{"type", "show"},
+				{"object", "types"},
+			})
+		);
+
+	} else if
+		(
 		boost::regex_match(
 			query,
 			match,
