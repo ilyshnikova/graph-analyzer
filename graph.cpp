@@ -1036,24 +1036,6 @@ bool Block::DoesEdgeExist(std::string& incoming_edge_name) {
 
 }
 
-bool Block::CanEdgeExist(std::string& incoming_edge_name) {
-	if (block->incoming_edges_names.count(incoming_edge_name) == 0) {
-		throw GANException(
-			512320,
-			"Edge with name " + incoming_edge_name  + " can't incoming to block " + block_name +  "."
-		);
-	}
-
-	if (
-		block->incoming_edges_names.count(incoming_edge_name) != 0 &&
-		incoming_edges.count(incoming_edge_name) == 0
-	) {
-		return true;
-	}
-	return false;
-
-}
-
 
 void Block::AddIncomingEdge(Edge* edge) {
 	std::string edge_name = edge->GetEdgeName();
@@ -1469,12 +1451,6 @@ bool Graph::DoesEdgeExist(const std::string& block_name, std::string& incoming_e
 }
 
 
-bool Graph::CanEdgeExist(const std::string& block_name, std::string& incoming_edge_name) {
-	if (blocks.count(block_name)) {
-		return blocks[block_name]->CanEdgeExist(incoming_edge_name);
-	}
-	throw GANException(283561, "Block with name " + block_name  +  " does not exist.");
-}
 
 Edge* Graph::CreateEdge(
 		const int edge_id,
@@ -1894,7 +1870,7 @@ Json::Value WorkSpace::JsonRespond(const Json::Value& query) {
 
 				Graph* graph = graphs[graph_name];
 
-				if (!graph->CanEdgeExist(to_name, edge_name)) {
+				if (graph->DoesEdgeExist(to_name, edge_name)) {
 					CheckIgnore(
 						checker,
 						GANException(

@@ -546,8 +546,6 @@ public:
 
 	bool DoesEdgeExist(std::string& incoming_edge_name);
 
-	bool CanEdgeExist(std::string& incoming_edge_name);
-
 	Edge* GetOutgoingEdge(const std::string& edge_name);
 
 	Edge* GetIncomingEdge(const std::string& edge_name);
@@ -676,8 +674,6 @@ public:
 	void DeleteGraph();
 
 	bool DoesEdgeExist(const std::string& block_name, std::string& incoming_edge_name);
-
-	bool CanEdgeExist(const std::string& block_name, std::string& incoming_edge_name);
 
 	void AddEdgeToTables(Edge* edge);
 
