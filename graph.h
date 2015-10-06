@@ -744,8 +744,14 @@ private:
 	Table blocks_params_table;
 	BlockCacheUpdaterBuffer block_buffer;
 
+	struct IgnoreChecker {
+		Json::Value* answer;
+		bool ignore;
 
-	void CheckIgnore(const bool ignore, Json::Value* answer, const GANException& exception) const;
+		IgnoreChecker(Json::Value* answer, const bool ignore);
+	};
+
+	void CheckIgnore(const IgnoreChecker& checker, const GANException& exception) const;
 
 	std::string Respond(const std::string& query);
 

@@ -87,9 +87,9 @@ Point Point::Empty() {
 }
 
 Point::operator std::string() const {
-        std::time_t current_time(1440930405);
-        char mbstr[100];
-        if (std::strftime(mbstr, sizeof(mbstr), "%A %c", std::localtime(&current_time))) {
+	std::time_t current_time(1440930405);
+	char mbstr[100];
+	if (std::strftime(mbstr, sizeof(mbstr), "%A %c", std::localtime(&current_time))) {
 	return std::string("Point(")
 		+ "series_name: "
 		+ series_name
@@ -558,7 +558,7 @@ Division::Division()
 : BlockBase(
 	{"dividend", "divisor"},
 	std::string("Division"),
-       	std::unordered_set<std::string>(),
+	std::unordered_set<std::string>(),
 	std::unordered_map<std::string, StringType>()
 )
 {}
@@ -1407,6 +1407,13 @@ void Graph::DeleteBlock(const std::string& block_name) {
 			+ std::to_string(block_id)
 		);
 
+		blocks_params_table->Delete(
+			"BlockId = "
+			+ std::to_string(block_id)
+		);
+
+
+
 		logger << "Delete from Blocks where Id = " + std::to_string(block_id);
 		blocks_table->Delete("Id = " + std::to_string(block_id));
 
@@ -1796,14 +1803,19 @@ WorkSpace::WorkSpace()
 }
 
 
-void WorkSpace::CheckIgnore(const bool ignore, Json::Value* answer, const GANException& exception) const {
-	if (!ignore) {
+WorkSpace::IgnoreChecker::IgnoreChecker(Json::Value* answer, const bool ignore)
+: answer(answer)
+, ignore(ignore)
+{}
+
+
+void WorkSpace::CheckIgnore(const IgnoreChecker& checker, const GANException& exception) const {
+	if (!checker.ignore) {
 		throw exception;
 	} else {
-		answer->operator[]("status") = 1;
+		checker.answer->operator[]("status") = 1;
 	}
 }
-
 
 
 Json::Value WorkSpace::JsonRespond(const Json::Value& query) {
@@ -1817,7 +1829,9 @@ Json::Value WorkSpace::JsonRespond(const Json::Value& query) {
 	answer["status"] = 0;
 	try {
 		if (
-			objects_type != "graph"
+			query_type != "create"
+			&& query_type != "load"
+			&& objects_type != "graph"
 			&& graph_name != ""
 			&& graphs.count(graph_name) == 0
 		) {
@@ -1826,14 +1840,12 @@ Json::Value WorkSpace::JsonRespond(const Json::Value& query) {
 				"Graph with name " + graph_name  +  " does not exist."
 			);
 		}
-
+		IgnoreChecker checker(&answer, ignore);
 		if (query_type == "create") {			// create
-
 			if (objects_type == "graph") {				// create graph
 				if (graphs.count(graph_name) != 0) {
 					CheckIgnore(
-						ignore,
-						&answer,
+						checker,
 						GANException(
 							128463,
 							(
@@ -1855,8 +1867,7 @@ Json::Value WorkSpace::JsonRespond(const Json::Value& query) {
 
 				if (graph->In(block_name)) {
 					CheckIgnore(
-						ignore,
-						&answer,
+						checker,
 						GANException(
 							428352,
 							(
@@ -1885,8 +1896,7 @@ Json::Value WorkSpace::JsonRespond(const Json::Value& query) {
 
 				if (!graph->CanEdgeExist(to_name, edge_name)) {
 					CheckIgnore(
-						ignore,
-						&answer,
+						checker,
 						GANException(
 							359152,
 							(
@@ -1916,8 +1926,7 @@ Json::Value WorkSpace::JsonRespond(const Json::Value& query) {
 			if (objects_type == "graph") {				// delete graph
 				if (graphs.count(graph_name) == 0) {
 					CheckIgnore(
-						ignore,
-						&answer,
+						checker,
 						GANException(
 							483294,
 							"Graph with name " + graph_name  +  " does not exist."
@@ -1935,8 +1944,7 @@ Json::Value WorkSpace::JsonRespond(const Json::Value& query) {
 
 				if (!graph->In(block_name)) {
 					CheckIgnore(
-						ignore,
-						&answer,
+						checker,
 						GANException(
 							375920,
 							(
@@ -1962,8 +1970,7 @@ Json::Value WorkSpace::JsonRespond(const Json::Value& query) {
 
 				if (!graph->DoesEdgeExist(to_name, edge_name)) {
 					CheckIgnore(
-						ignore,
-						&answer,
+						checker,
 						GANException(
 							245622,
 							(
@@ -2089,23 +2096,34 @@ Json::Value WorkSpace::JsonRespond(const Json::Value& query) {
 				);
 				JsonRespond(delete_query);
 			}
-			if (ignore && graphs.count(graph_name) != 0) {
-				answer["status"] = 1;
-				return answer;
-			}
+			if (graphs.count(graph_name) != 0) {
+				CheckIgnore(
+					checker,
+					GANException(
+						128463,
+						(
+							std::string("Graph with name ")
+							+ graph_name
+							+  " already exists."
+						)
 
-			Json::Value create_query = CreateJson(
-				std::map<std::string, std::string>({
-					{"type", "create"},
-					{"object", "graph"},
-					{"graph", graph_name}
-				})
-			);
-			JsonRespond(create_query);
-			answer = LoadGraphFromFile(
-				file_name,
-				graph_name
-			);
+					)
+				);
+			} else {
+
+				Json::Value create_query = CreateJson(
+					std::map<std::string, std::string>({
+						{"type", "create"},
+						{"object", "graph"},
+						{"graph", graph_name}
+					})
+				);
+				JsonRespond(create_query);
+				answer = LoadGraphFromFile(
+					file_name,
+					graph_name
+				);
+			}
 		} else if (query_type == "help") { 				// help
 			answer["head"] = CreateJson(std::vector<std::string>({"Help"}));
 			std::string help = std::string("Queries:\n\tCreation/Deletion of objects:\n")
@@ -2151,6 +2169,21 @@ std::string WorkSpace::Respond(const std::string& query) {
 	logger << "query = " + query;
 	Json::Value json_query;
 	boost::smatch match;
+
+	if (
+		boost::regex_match(
+			query,
+			boost::regex(".*ignore.*")
+		)
+	) {
+		logger << "THERE";
+		json_query["ignore"] =  1;
+	} else {
+		logger << "THERE2";
+		json_query["ignore"] = 0;
+	}
+
+
 	if (
 		boost::regex_match(
 			query,
@@ -2173,11 +2206,6 @@ std::string WorkSpace::Respond(const std::string& query) {
 				{"graph", match[2]}
 			})
 		);
-		if (match[1] == "") {
-			json_query["ignore"] = 0;
-		} else {
-			json_query["ignore"] = 1;
-		}
 	} else if (
 		boost::regex_match(
 			query,
@@ -2192,11 +2220,6 @@ std::string WorkSpace::Respond(const std::string& query) {
 				{"graph", match[2]}
 			})
 		);
-		if (match[1] == "") {
-			json_query["ignore"] = 0;
-		} else {
-			json_query["ignore"] = 1;
-		}
 	} else if (
 		boost::regex_match(
 			query,
@@ -2214,11 +2237,6 @@ std::string WorkSpace::Respond(const std::string& query) {
 				{"graph", match[4]}
 			})
 		);
-		if (match[1] == "") {
-			json_query["ignore"] = 0;
-		} else {
-			json_query["ignore"] = 1;
-		}
 	} else if (
 		boost::regex_match(
 			query,
@@ -2234,11 +2252,6 @@ std::string WorkSpace::Respond(const std::string& query) {
 				{"graph", match[3]}
 			})
 		);
-		if (match[1] == "") {
-			json_query["ignore"] = 0;
-		} else {
-			json_query["ignore"] = 1;
-		}
 	} else if (
 		boost::regex_match(
 			query,
@@ -2256,11 +2269,6 @@ std::string WorkSpace::Respond(const std::string& query) {
 				{"to", match[5]}
 			})
 		);
-		if (match[1] == "") {
-			json_query["ignore"] = 0;
-		} else {
-			json_query["ignore"] = 1;
-		}
 	} else if (
 		boost::regex_match(
 			query,
@@ -2279,11 +2287,6 @@ std::string WorkSpace::Respond(const std::string& query) {
 				{"to", match[5]}
 			})
 		);
-		if (match[1] == "") {
-			json_query["ignore"] = 0;
-		} else {
-			json_query["ignore"] = 1;
-		}
 	} else if (
 		boost::regex_match(
 			query,
@@ -2511,7 +2514,6 @@ std::string WorkSpace::Respond(const std::string& query) {
 				{"file", match[4]}
 			})
 		);
-		json_query["ignore"] = (match[1] == "") ? 0 : 1;
 		json_query["replace"] = (match[2] == "") ? 0 : 1;
 
 	} else if (
@@ -2539,6 +2541,19 @@ std::string WorkSpace::Respond(const std::string& query) {
 	} else {
 		throw GANException(529352, "Incorrect query");
 	}
+
+	if (
+		boost::regex_match(
+			query,
+			boost::regex(".*ignore.*")
+		)
+	) {
+		json_query["ignore"] =  1;
+	} else {
+		json_query["ignore"] = 0;
+	}
+
+
 
 	Json::Value answer = JsonRespond(json_query);
 	std::string string_ans = "Ok";
