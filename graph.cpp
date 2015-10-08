@@ -1018,7 +1018,7 @@ void Block::Verification() const {
 	}
 }
 
-bool Block::DoesEdgeExist(std::string& incoming_edge_name) {
+bool Block::DoesEdgeExist(const std::string& incoming_edge_name) {
 	if (block->incoming_edges_names.count(incoming_edge_name) == 0) {
 		throw GANException(
 			519720,
@@ -1443,7 +1443,7 @@ void Graph::AddEdgeToTables(Edge* edge) {
 
 }
 
-bool Graph::DoesEdgeExist(const std::string& block_name, std::string& incoming_edge_name) {
+bool Graph::DoesEdgeExist(const std::string& block_name, const std::string& incoming_edge_name) {
 	if (blocks.count(block_name)) {
 		return blocks[block_name]->DoesEdgeExist(incoming_edge_name);
 	}
@@ -1779,10 +1779,28 @@ WorkSpace::WorkSpace()
 }
 
 
+
+Graph* WorkSpace::GetGraph(const std::string& graph_name) const {
+	if (graphs.count(graph_name) == 0) {
+		throw GANException(351852, "Graph with name " + graph_name + " does not exist.");
+	}
+	return graphs.at(graph_name);
+}
+
+bool WorkSpace::IsGraphExist(const std::string& graph_name) const {
+	return graphs.count(graph_name) > 0;
+}
+
+
+
+
+
 WorkSpace::IgnoreChecker::IgnoreChecker(Json::Value* answer, const bool ignore)
 : answer(answer)
 , ignore(ignore)
 {}
+
+
 
 
 void WorkSpace::CheckIgnore(const IgnoreChecker& checker, const GANException& exception) const {
@@ -1792,6 +1810,194 @@ void WorkSpace::CheckIgnore(const IgnoreChecker& checker, const GANException& ex
 		checker.answer->operator[]("status") = 1;
 	}
 }
+
+
+/* 	CreateActionBase	*/
+
+WorkSpace::QueryActionBase::QueryActionBase(
+	const Json::Value& json_params,
+       	WorkSpace* work_space,
+	Json::Value* answer,
+	const GANException& exception
+)
+: answer(answer)
+, work_space(work_space)
+, ignore(json_params["ignore"].asBool())
+, exception(exception)
+, json_params(json_params)
+{}
+Json::Value WorkSpace::QueryActionBase::CreateObject() {
+	logger << "CREATE OBJ";
+	if (!CanObjectWillBeCreated()) {
+		logger << "object exist";
+		CheckIgnore();
+	} else {
+		logger << "Action" ;
+		Action(GetId());
+		logger << "Ean Aclion";
+		answer->operator[]("status") = 1;
+		logger << "Change Staatus";
+	}
+	logger << "END FUNC";
+}
+
+
+void WorkSpace::QueryActionBase::CheckIgnore() {
+	if (ignore) {
+		logger << "In ignore";
+		answer->operator[]("status") = 1;
+	} else {
+		logger << exception.what();
+		throw exception;
+	}
+}
+
+
+//int QueryActionBase::GetIdOfNewObject() const {
+//	return work_space->GetTable(json_params["type"])->MaxValue("Id") + 1;
+//}
+
+/*	CreateGraphQuery	*/
+WorkSpace::CreateGraphQuery::CreateGraphQuery(const Json::Value& json_params, WorkSpace* work_space, Json::Value* answer)
+: QueryActionBase(
+	json_params,
+	work_space,
+	answer,
+	GANException(
+		128463,
+		(
+		 	std::string("Graph with name ")
+			+ json_params["graph"].asString()
+			+  " already exists."
+		)
+	)
+)
+{}
+
+void WorkSpace::CreateGraphQuery::Action(const int graph_id) {
+	logger << graph_id;
+	logger << "In create";
+	Json::StyledWriter styledWriter;
+	logger << styledWriter.write(json_params);
+	logger << json_params["graph"].asString();
+	work_space->AddGaphToTables(work_space->CreateGraph(graph_id, json_params["graph"].asString(), 0));
+}
+
+bool WorkSpace::CreateGraphQuery::CanObjectWillBeCreated() const {
+	return !work_space->IsGraphExist(json_params["graph"].asString());
+}
+
+int WorkSpace::CreateGraphQuery::GetId() const {
+	return work_space->GetTable("graph")->MaxValue("Id") + 1;
+}
+
+
+
+
+/*	CreateBlockQuery	*/
+WorkSpace::CreateBlockQuery::CreateBlockQuery(const Json::Value& json_params, WorkSpace* work_space, Json::Value* answer)
+: QueryActionBase(
+	json_params,
+	work_space,
+	answer,
+	GANException(
+		128463,
+		(
+		 std::string("Block with name ")
+			+ json_params["block"].asString()
+			+  " already exists in graph "
+			+ json_params["graph"].asString()
+			+ "."
+		)
+	)
+)
+, graph(NULL)
+{
+	graph = work_space->GetGraph(json_params["graph"].asString());
+}
+
+void WorkSpace::CreateBlockQuery::Action(const int block_id) {
+	logger << "ACTION" ;
+	graph->AddBlockToTables(
+		graph->CreateBlock(json_params["block_type"].asString(), block_id, json_params["block"].asString())
+	);
+	logger << "CHANGE VALID";
+	work_space->ChangeGraphsValid(json_params["graph"].asString(), 0);
+	logger << "END";
+}
+
+bool WorkSpace::CreateBlockQuery::CanObjectWillBeCreated() const {
+	return !graph->In(json_params["block"].asString());
+}
+
+int WorkSpace::CreateBlockQuery::GetId() const {
+	return work_space->GetTable("block")->MaxValue("Id") + 1;
+}
+
+
+
+/*	CreateEdgeQuery	*/
+WorkSpace::CreateEdgeQuery::CreateEdgeQuery(const Json::Value& json_params, WorkSpace* work_space, Json::Value* answer)
+: QueryActionBase(
+	json_params,
+	work_space,
+	answer,
+	GANException(
+		128463,
+		(
+		 std::string("Edge with name ")
+			+ json_params["block"].asString()
+			+  " already exists in graph "
+			+ json_params["graph"].asString()
+			+ " from "
+		       	+ json_params["from"].asString()
+			+ " to "
+			+ json_params["to"].asString()
+			+ "."
+		)
+	)
+)
+, graph(NULL)
+{
+	graph = work_space->GetGraph(json_params["graph"].asString());
+}
+
+void WorkSpace::CreateEdgeQuery::Action(const int edge_id) {
+	graph->AddEdgeToTables(
+		graph->CreateEdge(edge_id, json_params["edge"].asString(), json_params["from"].asString(), json_params["to"].asString())
+	);
+	work_space->ChangeGraphsValid(json_params["graph"].asString(), 0);
+}
+
+bool WorkSpace::CreateEdgeQuery::CanObjectWillBeCreated() const {
+	return !graph->DoesEdgeExist(json_params["to"].asString(), json_params["edge"].asString());
+}
+
+int WorkSpace::CreateEdgeQuery::GetId() const {
+	return work_space->GetTable("edge")->MaxValue("Id") + 1;
+}
+
+WorkSpace::CreateAction::CreateAction(const Json::Value& json_params, WorkSpace* work_space, Json::Value* answer)
+{
+	std::string query_type = json_params["type"].asString();
+	std::string object_type = json_params["object"].asString();
+
+	if (query_type == "create") {
+		if (object_type == "graph") {
+			CreateGraphQuery(
+					json_params,
+					work_space,
+					answer).CreateObject();
+		} else if (object_type == "block") {
+			CreateBlockQuery(json_params, work_space, answer).CreateObject();
+		} else if (object_type == "edge") {
+			CreateEdgeQuery(json_params, work_space, answer).CreateObject();
+		}
+	}
+	answer->operator[]("status") = 0;
+	answer->operator[]("error") = "Incorrect json query.";
+}
+
 
 
 Json::Value WorkSpace::JsonRespond(const Json::Value& query) {
@@ -1818,85 +2024,107 @@ Json::Value WorkSpace::JsonRespond(const Json::Value& query) {
 		}
 		IgnoreChecker checker(&answer, ignore);
 		if (query_type == "create") {			// create
-			if (objects_type == "graph") {				// create graph
-				if (graphs.count(graph_name) != 0) {
-					CheckIgnore(
-						checker,
-						GANException(
-							128463,
-							(
-							 	std::string("Graph with name ")
-								+ graph_name
-								+  " already exists."
-							)
-						)
-					);
-				} else {
-					int graph_id = graphs_table.MaxValue("Id") + 1;
-					AddGaphToTables(CreateGraph(graph_id, graph_name, 0));
-					answer["status"] = 1;
-				}
-			} else if (objects_type == "block") {			// create block
-				std::string block_name = query["block"].asString();
-				std::string block_type = query["block_type"].asString();
-				Graph* graph = graphs[graph_name];
 
-				if (graph->In(block_name)) {
-					CheckIgnore(
-						checker,
-						GANException(
-							428352,
-							(
-							 	std::string("Block with name ")
-								+ block_name
-								+ " already exists in graph "
-								+ graph_name
-								+  "."
-							)
-						)
-					);
-				} else {
-					int block_id = blocks_table.MaxValue("Id") + 1;
-					graph->AddBlockToTables(
-						graph->CreateBlock(block_type, block_id, block_name)
-					);
-					ChangeGraphsValid(graph_name, 0);
-					answer["status"] = 1;
-				}
-			} else if (objects_type == "edge") { 			// create edge
-				std::string edge_name = query["edge"].asString();
-				std::string from_name = query["from"].asString();
-				std::string to_name = query["to"].asString();
-
-				Graph* graph = graphs[graph_name];
-
-				if (graph->DoesEdgeExist(to_name, edge_name)) {
-					CheckIgnore(
-						checker,
-						GANException(
-							359152,
-							(
-							 	std::string("Edge with name ")
-								+ edge_name
-								+ " already exists in graph "
-								+ graph_name
-								+ " from "
-								+ from_name
-								+ " to "
-								+ to_name
-								+ "."
-							)
-						)
-					);
-				} else {
-					int id = edges_table.MaxValue("Id") + 1;
-					graph->AddEdgeToTables(
-						graph->CreateEdge(id, edge_name, from_name, to_name)
-					);
-					ChangeGraphsValid(graph_name, 0);
-					answer["status"] = 1;
-				}
+		if (query_type == "create") {
+			if (objects_type == "graph") {
+				CreateGraphQuery(
+						query,
+						this,
+						&answer).CreateObject();
+			} else if (objects_type == "block") {
+				CreateBlockQuery(
+						query,
+						this,
+						&answer
+						).CreateObject();
+				logger << "IN RESOPOND";
+			} else if (objects_type == "edge") {
+				CreateEdgeQuery(query, this, &answer).CreateObject();
 			}
+		}
+
+
+//			CreateAction(query, this, &answer);
+
+//			if (objects_type == "graph") {				// create graph
+//				if (graphs.count(graph_name) != 0) {
+//					CheckIgnore(
+//						checker,
+//						GANException(
+//							128463,
+//							(
+//							 	std::string("Graph with name ")
+//								+ graph_name
+//								+  " already exists."
+//							)
+//						)
+//					);
+//				} else {
+//					int graph_id = graphs_table.MaxValue("Id") + 1;
+//					AddGaphToTables(CreateGraph(graph_id, graph_name, 0));
+//					answer["status"] = 1;
+//				}
+//			} else if (objects_type == "block") {			// create block
+//				std::string block_name = query["block"].asString();
+//				std::string block_type = query["block_type"].asString();
+//				Graph* graph = graphs[graph_name];
+//
+//				if (graph->In(block_name)) {
+//					CheckIgnore(
+//						checker,
+//						GANException(
+//							428352,
+//							(
+//							 	std::string("Block with name ")
+//								+ block_name
+//								+ " already exists in graph "
+//								+ graph_name
+//								+  "."
+//							)
+//						)
+//					);
+//				} else {
+//					int block_id = blocks_table.MaxValue("Id") + 1;
+//					graph->AddBlockToTables(
+//						graph->CreateBlock(block_type, block_id, block_name)
+//					);
+//					ChangeGraphsValid(graph_name, 0);
+//					answer["status"] = 1;
+//				}
+//			} else if (objects_type == "edge") { 			// create edge
+//				std::string edge_name = query["edge"].asString();
+//				std::string from_name = query["from"].asString();
+//				std::string to_name = query["to"].asString();
+//
+//				Graph* graph = graphs[graph_name];
+//
+//				if (graph->DoesEdgeExist(to_name, edge_name)) {
+//					CheckIgnore(
+//						checker,
+//						GANException(
+//							359152,
+//							(
+//							 	std::string("Edge with name ")
+//								+ edge_name
+//								+ " already exists in graph "
+//								+ graph_name
+//								+ " from "
+//								+ from_name
+//								+ " to "
+//								+ to_name
+//								+ "."
+//							)
+//						)
+//					);
+//				} else {
+//					int edge_id = edges_table.MaxValue("Id") + 1;
+//					graph->AddEdgeToTables(
+//						graph->CreateEdge(edge_id, edge_name, from_name, to_name)
+//					);
+//					ChangeGraphsValid(graph_name, 0);
+//					answer["status"] = 1;
+//				}
+//			}
 
 		} else if (query_type == "delete") {		// delete
 			if (objects_type == "graph") {				// delete graph
@@ -2121,7 +2349,7 @@ Json::Value WorkSpace::JsonRespond(const Json::Value& query) {
 				+ "\tOperation with graph:\n"
 				+ "\t\tsave graph <graph_name> to file <file_name>\n"
 				+ "\t\tconvert config <file_name> to queries\n"
-				+ "\t\tload [replace|ignore] graph <grpah_name> from file <file_name> -- in this query file with config is converted to sequence of requests and executed step by step\n"
+				+ "\t\tload [replace|ignore] graph <graph_name> from file <file_name> -- in this query file with config is converted to sequence of requests and executed step by step\n"
 				+ "Blocks:\n" + Block(1,"","EmptyBlock",NULL).GetAllBlocksDescriptions();
 
 
@@ -2700,6 +2928,9 @@ std::vector<std::vector<std::string> > WorkSpace::ConvertConfigToQueries(
 	return queries;
 }
 
+
+
+
 std::vector<Json::Value> WorkSpace::ConvertConfigToJsonQueries(
 	const std::string& file_name,
 	const std::string& graph_name
@@ -2818,6 +3049,19 @@ Json::Value WorkSpace::LoadGraphFromFile(
 	answer["table"] = table;
 	answer["status"] = 1;
 	return answer;
+}
+
+
+Table* WorkSpace::GetTable(const std::string& object_type) {
+	if (object_type == "graph") {
+		return &graphs_table;
+	} else if (object_type == "block") {
+		return &blocks_table;
+	} else if (object_type == "edge") {
+		return &edges_table;
+	}
+	throw GANException(385341, "Incorrent object type " + object_type + ".");
+
 }
 
 

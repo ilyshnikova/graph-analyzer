@@ -544,7 +544,7 @@ public:
 
 	void Verification() const;
 
-	bool DoesEdgeExist(std::string& incoming_edge_name);
+	bool DoesEdgeExist(const std::string& incoming_edge_name);
 
 	Edge* GetOutgoingEdge(const std::string& edge_name);
 
@@ -673,7 +673,7 @@ public:
 
 	void DeleteGraph();
 
-	bool DoesEdgeExist(const std::string& block_name, std::string& incoming_edge_name);
+	bool DoesEdgeExist(const std::string& block_name, const std::string& incoming_edge_name);
 
 	void AddEdgeToTables(Edge* edge);
 
@@ -740,6 +740,97 @@ private:
 	Table blocks_params_table;
 	BlockCacheUpdaterBuffer block_buffer;
 
+
+	class QueryActionBase {
+	protected:
+		Json::Value json_params;
+		WorkSpace* work_space;
+		bool ignore;
+		Json::Value* answer;
+		GANException exception;
+
+		virtual void Action(const int object_id) = 0;
+
+		void CheckIgnore();
+
+		virtual bool CanObjectWillBeCreated() const = 0;
+
+		virtual int GetId() const = 0;
+
+	public:
+
+		QueryActionBase(
+		       	const Json::Value& json_params,
+			WorkSpace* work_space,
+			Json::Value* answer,
+			const GANException& exception
+		);
+
+		Json::Value CreateObject();
+
+	};
+
+
+
+	class CreateGraphQuery : public QueryActionBase {
+	private:
+		void Action(const int graph_id);
+
+		void CheckIgnore();
+
+		bool CanObjectWillBeCreated() const;
+
+		int GetId() const;
+
+	public:
+		CreateGraphQuery(const Json::Value& json_params, WorkSpace* work_space, Json::Value* answer);
+
+	};
+
+	class CreateBlockQuery : public QueryActionBase {
+	private:
+		Graph* graph;
+
+		void Action(const int block_id);
+
+		void CheckIgnore();
+
+		bool CanObjectWillBeCreated() const;
+
+		int GetId() const;
+
+	public:
+		CreateBlockQuery(const Json::Value& json_params, WorkSpace* work_space, Json::Value* answer);
+
+	};
+
+
+	class CreateEdgeQuery : public QueryActionBase {
+	private:
+		Graph* graph;
+
+		void Action(const int edge_id);
+
+		void CheckIgnore();
+
+		bool CanObjectWillBeCreated() const;
+
+		int GetId() const;
+
+	public:
+		CreateEdgeQuery(const Json::Value& json_params, WorkSpace* work_space, Json::Value* answer);
+
+	};
+
+
+	class  CreateAction {
+	public:
+		CreateAction(const Json::Value& json_params, WorkSpace* work_space, Json::Value* answer);
+
+	};
+
+
+
 	struct IgnoreChecker {
 		Json::Value* answer;
 		bool ignore;
@@ -759,6 +850,10 @@ public:
 	WorkSpace();
 
 	void AddGaphToTables(Graph* grpah);
+
+	bool IsGraphExist(const std::string& graph_name) const;
+
+	Graph* GetGraph(const std::string& graph_name) const;
 
 	Graph* GetGraph(const int graph_id, const std::string& graph_name, const bool valid) const;
 
@@ -785,6 +880,8 @@ public:
 		const std::string& file_name,
 		const std::string& graph_name
 	) const;
+
+	Table* GetTable(const std::string& object_type);
 
 	~WorkSpace();
 
