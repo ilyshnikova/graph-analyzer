@@ -743,7 +743,7 @@ private:
 
 	class QueryActionBase {
 	protected:
-		Json::Value json_params;
+		const Json::Value* json_params;
 		WorkSpace* work_space;
 		bool ignore;
 		Json::Value* answer;
@@ -760,7 +760,7 @@ private:
 	public:
 
 		QueryActionBase(
-		       	const Json::Value& json_params,
+		       	const Json::Value* json_params,
 			WorkSpace* work_space,
 			Json::Value* answer,
 			const GANException& exception
@@ -783,7 +783,7 @@ private:
 		int GetId() const;
 
 	public:
-		CreateGraphQuery(const Json::Value& json_params, WorkSpace* work_space, Json::Value* answer);
+		CreateGraphQuery(const Json::Value* json_params, WorkSpace* work_space, Json::Value* answer);
 
 	};
 
@@ -800,7 +800,7 @@ private:
 		int GetId() const;
 
 	public:
-		CreateBlockQuery(const Json::Value& json_params, WorkSpace* work_space, Json::Value* answer);
+		CreateBlockQuery(const Json::Value* json_params, WorkSpace* work_space, Json::Value* answer);
 
 	};
 
@@ -818,14 +818,14 @@ private:
 		int GetId() const;
 
 	public:
-		CreateEdgeQuery(const Json::Value& json_params, WorkSpace* work_space, Json::Value* answer);
+		CreateEdgeQuery(const Json::Value* json_params, WorkSpace* work_space, Json::Value* answer);
 
 	};
 
 
 	class  CreateAction {
 	public:
-		CreateAction(const Json::Value& json_params, WorkSpace* work_space, Json::Value* answer);
+		CreateAction(const Json::Value* json_params, WorkSpace* work_space, Json::Value* answer);
 
 	};
 

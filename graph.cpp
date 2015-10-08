@@ -1815,14 +1815,14 @@ void WorkSpace::CheckIgnore(const IgnoreChecker& checker, const GANException& ex
 /* 	CreateActionBase	*/
 
 WorkSpace::QueryActionBase::QueryActionBase(
-	const Json::Value& json_params,
+	const Json::Value* json_params,
        	WorkSpace* work_space,
 	Json::Value* answer,
 	const GANException& exception
 )
 : answer(answer)
 , work_space(work_space)
-, ignore(json_params["ignore"].asBool())
+, ignore(json_params->operator[]("ignore").asBool())
 , exception(exception)
 , json_params(json_params)
 {}
@@ -1858,7 +1858,7 @@ void WorkSpace::QueryActionBase::CheckIgnore() {
 //}
 
 /*	CreateGraphQuery	*/
-WorkSpace::CreateGraphQuery::CreateGraphQuery(const Json::Value& json_params, WorkSpace* work_space, Json::Value* answer)
+WorkSpace::CreateGraphQuery::CreateGraphQuery(const Json::Value* json_params, WorkSpace* work_space, Json::Value* answer)
 : QueryActionBase(
 	json_params,
 	work_space,
@@ -1867,7 +1867,7 @@ WorkSpace::CreateGraphQuery::CreateGraphQuery(const Json::Value& json_params, Wo
 		128463,
 		(
 		 	std::string("Graph with name ")
-			+ json_params["graph"].asString()
+			+ json_params->operator[]("graph").asString()
 			+  " already exists."
 		)
 	)
@@ -1878,13 +1878,13 @@ void WorkSpace::CreateGraphQuery::Action(const int graph_id) {
 	logger << graph_id;
 	logger << "In create";
 	Json::StyledWriter styledWriter;
-	logger << styledWriter.write(json_params);
-	logger << json_params["graph"].asString();
-	work_space->AddGaphToTables(work_space->CreateGraph(graph_id, json_params["graph"].asString(), 0));
+	logger << styledWriter.write(*json_params);
+	logger << json_params->operator[]("graph").asString();
+	work_space->AddGaphToTables(work_space->CreateGraph(graph_id, json_params->operator[]("graph").asString(), 0));
 }
 
 bool WorkSpace::CreateGraphQuery::CanObjectWillBeCreated() const {
-	return !work_space->IsGraphExist(json_params["graph"].asString());
+	return !work_space->IsGraphExist(json_params->operator[]("graph").asString());
 }
 
 int WorkSpace::CreateGraphQuery::GetId() const {
@@ -1895,7 +1895,7 @@ int WorkSpace::CreateGraphQuery::GetId() const {
 
 
 /*	CreateBlockQuery	*/
-WorkSpace::CreateBlockQuery::CreateBlockQuery(const Json::Value& json_params, WorkSpace* work_space, Json::Value* answer)
+WorkSpace::CreateBlockQuery::CreateBlockQuery(const Json::Value* json_params, WorkSpace* work_space, Json::Value* answer)
 : QueryActionBase(
 	json_params,
 	work_space,
@@ -1904,30 +1904,30 @@ WorkSpace::CreateBlockQuery::CreateBlockQuery(const Json::Value& json_params, Wo
 		128463,
 		(
 		 std::string("Block with name ")
-			+ json_params["block"].asString()
+			+ json_params->operator[]("block").asString()
 			+  " already exists in graph "
-			+ json_params["graph"].asString()
+			+ json_params->operator[]("graph").asString()
 			+ "."
 		)
 	)
 )
 , graph(NULL)
 {
-	graph = work_space->GetGraph(json_params["graph"].asString());
+	graph = work_space->GetGraph(json_params->operator[]("graph").asString());
 }
 
 void WorkSpace::CreateBlockQuery::Action(const int block_id) {
 	logger << "ACTION" ;
 	graph->AddBlockToTables(
-		graph->CreateBlock(json_params["block_type"].asString(), block_id, json_params["block"].asString())
+		graph->CreateBlock(json_params->operator[]("block_type").asString(), block_id, json_params->operator[]("block").asString())
 	);
 	logger << "CHANGE VALID";
-	work_space->ChangeGraphsValid(json_params["graph"].asString(), 0);
+	work_space->ChangeGraphsValid(json_params->operator[]("graph").asString(), 0);
 	logger << "END";
 }
 
 bool WorkSpace::CreateBlockQuery::CanObjectWillBeCreated() const {
-	return !graph->In(json_params["block"].asString());
+	return !graph->In(json_params->operator[]("block").asString());
 }
 
 int WorkSpace::CreateBlockQuery::GetId() const {
@@ -1937,7 +1937,7 @@ int WorkSpace::CreateBlockQuery::GetId() const {
 
 
 /*	CreateEdgeQuery	*/
-WorkSpace::CreateEdgeQuery::CreateEdgeQuery(const Json::Value& json_params, WorkSpace* work_space, Json::Value* answer)
+WorkSpace::CreateEdgeQuery::CreateEdgeQuery(const Json::Value* json_params, WorkSpace* work_space, Json::Value* answer)
 : QueryActionBase(
 	json_params,
 	work_space,
@@ -1946,41 +1946,46 @@ WorkSpace::CreateEdgeQuery::CreateEdgeQuery(const Json::Value& json_params, Work
 		128463,
 		(
 		 std::string("Edge with name ")
-			+ json_params["block"].asString()
+			+ json_params->operator[]("block").asString()
 			+  " already exists in graph "
-			+ json_params["graph"].asString()
+			+ json_params->operator[]("graph").asString()
 			+ " from "
-		       	+ json_params["from"].asString()
+		       	+ json_params->operator[]("from").asString()
 			+ " to "
-			+ json_params["to"].asString()
+			+ json_params->operator[]("to").asString()
 			+ "."
 		)
 	)
 )
 , graph(NULL)
 {
-	graph = work_space->GetGraph(json_params["graph"].asString());
+	graph = work_space->GetGraph(json_params->operator[]("graph").asString());
 }
+
 
 void WorkSpace::CreateEdgeQuery::Action(const int edge_id) {
 	graph->AddEdgeToTables(
-		graph->CreateEdge(edge_id, json_params["edge"].asString(), json_params["from"].asString(), json_params["to"].asString())
+		graph->CreateEdge(
+			edge_id,
+		       	json_params->operator[]("edge").asString(),
+			json_params->operator[]("from").asString(),
+			json_params->operator[]("to").asString())
 	);
-	work_space->ChangeGraphsValid(json_params["graph"].asString(), 0);
+	work_space->ChangeGraphsValid(json_params->operator[]("graph").asString(), 0);
 }
 
 bool WorkSpace::CreateEdgeQuery::CanObjectWillBeCreated() const {
-	return !graph->DoesEdgeExist(json_params["to"].asString(), json_params["edge"].asString());
+	return !graph->DoesEdgeExist(json_params->operator[]("to").asString(), json_params->operator[]("edge").asString());
 }
 
 int WorkSpace::CreateEdgeQuery::GetId() const {
 	return work_space->GetTable("edge")->MaxValue("Id") + 1;
 }
 
-WorkSpace::CreateAction::CreateAction(const Json::Value& json_params, WorkSpace* work_space, Json::Value* answer)
+WorkSpace::CreateAction::CreateAction(const Json::Value*  json_params, WorkSpace* work_space, Json::Value* answer)
 {
-	std::string query_type = json_params["type"].asString();
-	std::string object_type = json_params["object"].asString();
+	std::string query_type = json_params->operator[]("type").asString();
+	std::string object_type = json_params->operator[]("object").asString();
 
 	if (query_type == "create") {
 		if (object_type == "graph") {
@@ -2024,27 +2029,27 @@ Json::Value WorkSpace::JsonRespond(const Json::Value& query) {
 		}
 		IgnoreChecker checker(&answer, ignore);
 		if (query_type == "create") {			// create
+//
+//		if (query_type == "create") {
+//			if (objects_type == "graph") {
+//				CreateGraphQuery(
+//						query,
+//						this,
+//						&answer).CreateObject();
+//			} else if (objects_type == "block") {
+//				CreateBlockQuery(
+//						query,
+//						this,
+//						&answer
+//						).CreateObject();
+//				logger << "IN RESOPOND";
+//			} else if (objects_type == "edge") {
+//				CreateEdgeQuery(query, this, &answer).CreateObject();
+//			}
+//		}
 
-		if (query_type == "create") {
-			if (objects_type == "graph") {
-				CreateGraphQuery(
-						query,
-						this,
-						&answer).CreateObject();
-			} else if (objects_type == "block") {
-				CreateBlockQuery(
-						query,
-						this,
-						&answer
-						).CreateObject();
-				logger << "IN RESOPOND";
-			} else if (objects_type == "edge") {
-				CreateEdgeQuery(query, this, &answer).CreateObject();
-			}
-		}
 
-
-//			CreateAction(query, this, &answer);
+			CreateAction(&query, this, &answer);
 
 //			if (objects_type == "graph") {				// create graph
 //				if (graphs.count(graph_name) != 0) {
