@@ -751,7 +751,7 @@ private:
 
 		void CheckIgnore();
 
-		virtual bool CanQueryWillBeExecuted() const = 0;
+		virtual bool Check() const = 0;
 
 		virtual int GetId() const = 0;
 
@@ -776,7 +776,7 @@ private:
 
 		void CheckIgnore();
 
-		bool CanQueryWillBeExecuted() const;
+		bool Check() const;
 
 		int GetId() const;
 
@@ -795,7 +795,7 @@ private:
 
 		void CheckIgnore();
 
-		bool CanQueryWillBeExecuted() const;
+		bool Check() const;
 
 		int GetId() const;
 
@@ -813,7 +813,7 @@ private:
 
 		void CheckIgnore();
 
-		bool CanQueryWillBeExecuted() const;
+		bool Check() const;
 
 		int GetId() const;
 
@@ -832,7 +832,7 @@ private:
 
 		void CheckIgnore();
 
-		bool CanQueryWillBeExecuted() const;
+		bool Check() const;
 
 		int GetId() const;
 
@@ -851,7 +851,7 @@ private:
 
 		void CheckIgnore();
 
-		bool CanQueryWillBeExecuted() const;
+		bool Check() const;
 
 		int GetId() const;
 
@@ -869,7 +869,7 @@ private:
 
 		void CheckIgnore();
 
-		bool CanQueryWillBeExecuted() const;
+		bool Check() const;
 
 		int GetId() const;
 
