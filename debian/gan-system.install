@@ -1,0 +1,3 @@
+ gan-server /root/gan-system/gan-server
+ gan-client /root/gan-system/gan-client
+ client /root/gan-system/client
