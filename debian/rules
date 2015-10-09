@@ -1,11 +1,1 @@
-#!/usr/bin/make -f
-
-#export DH_VERBOSE=1
-export DH_ALWAYS_EXCLUDE=CVS:.svn
-
-%:
-	dh $@
-
-binary: clean
-	dh $@
-
+dh $@
