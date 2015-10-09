@@ -6,11 +6,38 @@
 #include <ctime>
 #include <vector>
 #include <unordered_set>
-
+#include <json/json.h>
 #include "yaml-cpp/yaml.h"
 #include "daemons.h"
 #include "mysql.h"
 #include "gan-exception.h"
+
+
+/*	Json	*/
+
+Json::Value CreateJson(const std::string& value);
+
+
+template
+<typename K,typename V>
+Json::Value CreateJson(const std::map<K,V>& value) {
+	Json::Value jvalue;
+	for (auto it = value.cbegin(); it != value.cend(); ++it) {
+		jvalue[it->first] = CreateJson(it->second);
+	}
+	return jvalue;
+}
+
+
+template
+<typename T>
+Json::Value CreateJson(const std::vector<T>& value) {
+	Json::Value jvalue;
+	for (size_t i = 0; i < value.size(); ++i) {
+		jvalue.append(CreateJson(value[i]));
+	}
+	return jvalue;
+}
 
 
 /*	AnswerTable	*/
@@ -94,6 +121,7 @@ private:
 public:
 
 	std::string block_type;
+	std::string block_name_for_definition;
 
 	std::unordered_set<std::string> incoming_edges_names;
 
@@ -102,9 +130,10 @@ public:
 
 	BlockBase(
 		const std::unordered_set<std::string>& incoming_edges_names,
-		const std::string& block_name,
+		const std::string& block_type,
 		const std::unordered_set<std::string>& params_names,
-		const std::unordered_map<std::string, StringType>& param_values
+		const std::unordered_map<std::string, StringType>& param_values,
+		const std::string& block_name_for_definition=std::string("")
 
 	);
 
@@ -132,6 +161,8 @@ public:
 
 	virtual std::string Description() const = 0;
 
+	virtual ~BlockBase();
+
 };
 
 /*	Reducer 	*/
@@ -140,7 +171,7 @@ class Reducer : public BlockBase {
 private:
 	std::string base_block_type;
 
-	std::unordered_set<std::string> CreateIncomingEdges(const int edges_count, const std::string& edges_name_type) const;
+	std::unordered_set<std::string> CreateIncomingEdges(const size_t edges_count, const std::string& edges_name_type) const;
 
 public:
 
@@ -151,7 +182,7 @@ public:
 	Reducer(
 		const std::string& block_type,
 		const std::string& edges_name_type,
-		const int edges_count
+		const size_t edges_count
 	);
 
 	Point Do(
@@ -171,7 +202,7 @@ public:
 
 class Sum : public Reducer {
 public:
-	Sum(const int edges_count);
+	Sum(const size_t edges_count);
 
 	double BaseFunction(const double first, const double second) const;
 
@@ -188,7 +219,7 @@ public:
 
 class Multiplication : public Reducer {
 public:
-	Multiplication(const int edges_count);
+	Multiplication(const size_t edges_count);
 
 	double BaseFunction(const double first, const double second) const;
 
@@ -204,7 +235,7 @@ public:
 
 class And : public Reducer {
 public:
-	And(const int edges_count);
+	And(const size_t edges_count);
 
 	double BaseFunction(const double first, const double second) const;
 
@@ -220,7 +251,7 @@ public:
 
 class Or : public Reducer {
 public:
-	Or(const int edges_count);
+	Or(const size_t edges_count);
 
 	double BaseFunction(const double first, const double second) const;
 
@@ -235,7 +266,7 @@ public:
 
 class Min : public Reducer {
 public:
-	Min(const int edges_count);
+	Min(const size_t edges_count);
 
 	double BaseFunction(const double first, const double second) const;
 
@@ -250,7 +281,7 @@ public:
 
 class Max : public Reducer {
 public:
-	Max(const int edges_count);
+	Max(const size_t edges_count);
 
 	double BaseFunction(const double first, const double second) const;
 
@@ -444,7 +475,7 @@ private:
 	Table* blocks_table;
 	std::time_t last_update_time;
 	std::time_t timeout;
-	int max_blocks_count;
+	size_t max_blocks_count;
 
 public:
 	BlockCacheUpdaterBuffer();
@@ -481,6 +512,8 @@ public:
 
 	std::string GetAllBlocksDescriptions() const;
 
+	Json::Value GetTableOfBlocksDescriptions() const;
+
 	Block(
 		const int id,
 		const std::string& block_name,
@@ -509,9 +542,7 @@ public:
 
 	void Verification() const;
 
-	bool DoesEdgeExist(std::string& incoming_edge_name);
-
-	bool CanEdgeExist(std::string& incoming_edge_name);
+	bool DoesEdgeExist(const std::string& incoming_edge_name);
 
 	Edge* GetOutgoingEdge(const std::string& edge_name);
 
@@ -640,9 +671,7 @@ public:
 
 	void DeleteGraph();
 
-	bool DoesEdgeExist(const std::string& block_name, std::string& incoming_edge_name);
-
-	bool CanEdgeExist(const std::string& block_name, std::string& incoming_edge_name);
+	bool DoesEdgeExist(const std::string& block_name, const std::string& incoming_edge_name);
 
 	void AddEdgeToTables(Edge* edge);
 
@@ -710,8 +739,170 @@ private:
 	BlockCacheUpdaterBuffer block_buffer;
 
 
+	class QueryActionBase {
+	protected:
+		const Json::Value* json_params;
+		WorkSpace* work_space;
+		bool ignore;
+		Json::Value* answer;
+		GANException exception;
+
+		virtual void Action(const int object_id) = 0;
+
+		void CheckIgnore();
+
+		virtual bool Check() const = 0;
+
+		virtual int GetId() const = 0;
+
+	public:
+
+		QueryActionBase(
+		       	const Json::Value* json_params,
+			WorkSpace* work_space,
+			Json::Value* answer,
+			const GANException& exception
+		);
+
+		void Execute();
+
+	};
+
+
+
+	class CreateGraphQuery : public QueryActionBase {
+	private:
+		void Action(const int graph_id);
+
+		void CheckIgnore();
+
+		bool Check() const;
+
+		int GetId() const;
+
+	public:
+		CreateGraphQuery(const Json::Value* json_params, WorkSpace* work_space, Json::Value* answer);
+
+	};
+
+
+
+	class CreateBlockQuery : public QueryActionBase {
+	private:
+		Graph* graph;
+
+		void Action(const int block_id);
+
+		void CheckIgnore();
+
+		bool Check() const;
+
+		int GetId() const;
+
+	public:
+		CreateBlockQuery(const Json::Value* json_params, WorkSpace* work_space, Json::Value* answer);
+
+	};
+
+
+	class CreateEdgeQuery : public QueryActionBase {
+	private:
+		Graph* graph;
+
+		void Action(const int edge_id);
+
+		void CheckIgnore();
+
+		bool Check() const;
+
+		int GetId() const;
+
+	public:
+		CreateEdgeQuery(const Json::Value* json_params, WorkSpace* work_space, Json::Value* answer);
+
+	};
+
+
+
+	class DeleteGraphQuery : public QueryActionBase {
+	private:
+		Graph* graph;
+
+		void Action(const int graph_id);
+
+		void CheckIgnore();
+
+		bool Check() const;
+
+		int GetId() const;
+
+	public:
+		DeleteGraphQuery(const Json::Value* json_params, WorkSpace* work_space, Json::Value* answer);
+
+	};
+
+
+
+	class DeleteBlockQuery : public QueryActionBase {
+	private:
+		Graph* graph;
+
+		void Action(const int block_id);
+
+		void CheckIgnore();
+
+		bool Check() const;
+
+		int GetId() const;
+
+	public:
+		DeleteBlockQuery(const Json::Value* json_params, WorkSpace* work_space, Json::Value* answer);
+
+	};
+
+
+	class DeleteEdgeQuery : public QueryActionBase {
+	private:
+		Graph* graph;
+
+		void Action(const int edge_id);
+
+		void CheckIgnore();
+
+		bool Check() const;
+
+		int GetId() const;
+
+	public:
+		DeleteEdgeQuery(const Json::Value* json_params, WorkSpace* work_space, Json::Value* answer);
+
+	};
+
+
+
+
+
+
+	class  QueryAction {
+	public:
+		QueryAction(const Json::Value* json_params, WorkSpace* work_space, Json::Value* answer);
+
+	};
+
+
+
+	struct IgnoreChecker {
+		Json::Value* answer;
+		bool ignore;
+
+		IgnoreChecker(Json::Value* answer, const bool ignore);
+	};
+
+	void CheckIgnore(const IgnoreChecker& checker, const GANException& exception) const;
 
 	std::string Respond(const std::string& query);
+
+	Json::Value JsonRespond(const Json::Value& query);
 public:
 
 	void Load();
@@ -720,11 +911,15 @@ public:
 
 	void AddGaphToTables(Graph* grpah);
 
+	bool IsGraphExist(const std::string& graph_name) const;
+
+	Graph* GetGraph(const std::string& graph_name) const;
+
 	Graph* GetGraph(const int graph_id, const std::string& graph_name, const bool valid) const;
 
 	Graph* CreateGraph(const int graph_id, const std::string& graph_name, const bool valid);
 
-	void DeleteGraph(const int graph_id, const std::string& graph_name);
+	void DeleteGraph(const std::string& graph_name);
 
 	void ChangeGraphsValid(const std::string& graph_name, const int valid);
 
@@ -736,11 +931,17 @@ public:
 		const std::vector<std::string>& first_queries={}
 	) const;
 
-	AnswerTable LoadGraphFromFile(
+	Json::Value LoadGraphFromFile(
 		const std::string& file_name,
-		const std::string& graph_name,
-		const std::vector<std::string>& first_queries={}
+		const std::string& graph_name
 	);
+
+	std::vector<Json::Value> ConvertConfigToJsonQueries(
+		const std::string& file_name,
+		const std::string& graph_name
+	) const;
+
+	Table* GetTable(const std::string& object_type);
 
 	~WorkSpace();
 
