@@ -360,7 +360,7 @@ BlockBase* Or::GetBlock(const std::string& type) const {
 
 std::string Or::Description() const {
 	return std::string("\tThis block is used for logical or with incoming points values.\n")
-		+ "\t\t\%gN - param that specifying count of edges.\n"
+		+ "\t\t\%d - param that specifying count of edges.\n"
 		+ "\t\tIncoming edges: arg1,\n"
 		+ "\t\t\t\t...,\n"
 		+ "\t\t\t\targN.";
