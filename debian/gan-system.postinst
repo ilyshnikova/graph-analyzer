@@ -1,1 +1,1 @@
-perl create-gandb.pl
+mysql -e "create database if not exists gandb;"

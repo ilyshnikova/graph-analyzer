@@ -3,8 +3,8 @@
 #export DH_VERBOSE=1
 export DH_ALWAYS_EXCLUDE=CVS:.svn
 
-install: ../Makefile
-	make clean && make
+#install: ../Makefile
+#	make clean && make
 
 %:
 	dh $@
