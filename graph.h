@@ -15,10 +15,6 @@
 
 /*	Json	*/
 
-//Json::Value CreateJson(const int value) {
-//	return Json::Value(value);
-//}
-
 Json::Value CreateJson(const std::string& value);
 
 
@@ -165,6 +161,8 @@ public:
 
 	virtual std::string Description() const = 0;
 
+	virtual ~BlockBase();
+
 };
 
 /*	Reducer 	*/
@@ -173,7 +171,7 @@ class Reducer : public BlockBase {
 private:
 	std::string base_block_type;
 
-	std::unordered_set<std::string> CreateIncomingEdges(const int edges_count, const std::string& edges_name_type) const;
+	std::unordered_set<std::string> CreateIncomingEdges(const size_t edges_count, const std::string& edges_name_type) const;
 
 public:
 
@@ -184,7 +182,7 @@ public:
 	Reducer(
 		const std::string& block_type,
 		const std::string& edges_name_type,
-		const int edges_count
+		const size_t edges_count
 	);
 
 	Point Do(
@@ -204,7 +202,7 @@ public:
 
 class Sum : public Reducer {
 public:
-	Sum(const int edges_count);
+	Sum(const size_t edges_count);
 
 	double BaseFunction(const double first, const double second) const;
 
@@ -221,7 +219,7 @@ public:
 
 class Multiplication : public Reducer {
 public:
-	Multiplication(const int edges_count);
+	Multiplication(const size_t edges_count);
 
 	double BaseFunction(const double first, const double second) const;
 
@@ -237,7 +235,7 @@ public:
 
 class And : public Reducer {
 public:
-	And(const int edges_count);
+	And(const size_t edges_count);
 
 	double BaseFunction(const double first, const double second) const;
 
@@ -253,7 +251,7 @@ public:
 
 class Or : public Reducer {
 public:
-	Or(const int edges_count);
+	Or(const size_t edges_count);
 
 	double BaseFunction(const double first, const double second) const;
 
@@ -268,7 +266,7 @@ public:
 
 class Min : public Reducer {
 public:
-	Min(const int edges_count);
+	Min(const size_t edges_count);
 
 	double BaseFunction(const double first, const double second) const;
 
@@ -283,7 +281,7 @@ public:
 
 class Max : public Reducer {
 public:
-	Max(const int edges_count);
+	Max(const size_t edges_count);
 
 	double BaseFunction(const double first, const double second) const;
 
@@ -477,7 +475,7 @@ private:
 	Table* blocks_table;
 	std::time_t last_update_time;
 	std::time_t timeout;
-	int max_blocks_count;
+	size_t max_blocks_count;
 
 public:
 	BlockCacheUpdaterBuffer();
@@ -753,7 +751,7 @@ private:
 
 		void CheckIgnore();
 
-		virtual bool CanObjectWillBeCreated() const = 0;
+		virtual bool CanQueryWillBeExecuted() const = 0;
 
 		virtual int GetId() const = 0;
 
@@ -766,7 +764,7 @@ private:
 			const GANException& exception
 		);
 
-		Json::Value CreateObject();
+		void Execute();
 
 	};
 
@@ -778,7 +776,7 @@ private:
 
 		void CheckIgnore();
 
-		bool CanObjectWillBeCreated() const;
+		bool CanQueryWillBeExecuted() const;
 
 		int GetId() const;
 
@@ -786,6 +784,8 @@ private:
 		CreateGraphQuery(const Json::Value* json_params, WorkSpace* work_space, Json::Value* answer);
 
 	};
+
+
 
 	class CreateBlockQuery : public QueryActionBase {
 	private:
@@ -795,7 +795,7 @@ private:
 
 		void CheckIgnore();
 
-		bool CanObjectWillBeCreated() const;
+		bool CanQueryWillBeExecuted() const;
 
 		int GetId() const;
 
@@ -813,7 +813,7 @@ private:
 
 		void CheckIgnore();
 
-		bool CanObjectWillBeCreated() const;
+		bool CanQueryWillBeExecuted() const;
 
 		int GetId() const;
 
@@ -823,9 +823,69 @@ private:
 	};
 
 
-	class  CreateAction {
+
+	class DeleteGraphQuery : public QueryActionBase {
+	private:
+		Graph* graph;
+
+		void Action(const int graph_id);
+
+		void CheckIgnore();
+
+		bool CanQueryWillBeExecuted() const;
+
+		int GetId() const;
+
 	public:
-		CreateAction(const Json::Value* json_params, WorkSpace* work_space, Json::Value* answer);
+		DeleteGraphQuery(const Json::Value* json_params, WorkSpace* work_space, Json::Value* answer);
+
+	};
+
+
+
+	class DeleteBlockQuery : public QueryActionBase {
+	private:
+		Graph* graph;
+
+		void Action(const int block_id);
+
+		void CheckIgnore();
+
+		bool CanQueryWillBeExecuted() const;
+
+		int GetId() const;
+
+	public:
+		DeleteBlockQuery(const Json::Value* json_params, WorkSpace* work_space, Json::Value* answer);
+
+	};
+
+
+	class DeleteEdgeQuery : public QueryActionBase {
+	private:
+		Graph* graph;
+
+		void Action(const int edge_id);
+
+		void CheckIgnore();
+
+		bool CanQueryWillBeExecuted() const;
+
+		int GetId() const;
+
+	public:
+		DeleteEdgeQuery(const Json::Value* json_params, WorkSpace* work_space, Json::Value* answer);
+
+	};
+
+
+
+
+
+
+	class  QueryAction {
+	public:
+		QueryAction(const Json::Value* json_params, WorkSpace* work_space, Json::Value* answer);
 
 	};
 
@@ -859,7 +919,7 @@ public:
 
 	Graph* CreateGraph(const int graph_id, const std::string& graph_name, const bool valid);
 
-	void DeleteGraph(const int graph_id, const std::string& graph_name);
+	void DeleteGraph(const std::string& graph_name);
 
 	void ChangeGraphsValid(const std::string& graph_name, const int valid);
 
