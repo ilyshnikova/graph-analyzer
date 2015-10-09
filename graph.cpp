@@ -1013,13 +1013,13 @@ std::string Block::GetBlockName() const {
 void Block::Verification() const {
 	for (auto it = block->incoming_edges_names.begin(); it != block->incoming_edges_names.end(); ++it) {
 		if (incoming_edges.count(*it) == 0) {
-			throw GANException(529716, "Block " + block_name + " does not has all incoming edges.");
+			throw GANException(529716, "Block " + block_name + " does not have all incoming edges.");
 
 		}
 	}
 	for (auto it = block->params_names.begin(); it != block->params_names.end(); ++it) {
 		if (block->param_values.count(*it) == 0) {
-			throw GANException(29752, "Block " + block_name + " does not has all params.");
+			throw GANException(29752, "Block " + block_name + " does not have all params.");
 		}
 	}
 }
