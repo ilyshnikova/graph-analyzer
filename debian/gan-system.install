@@ -1,0 +1,5 @@
+gan-server /root/gan-system/
+gan-client /root/gan-system/
+client /root/gan-system/
+gan-server /usr/bin/
+gan-client /usr/bin/

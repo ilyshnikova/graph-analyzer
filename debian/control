@@ -1,0 +1,26 @@
+Source: gan-system
+Section: gan
+Priority: extra
+Maintainer: Anastasiya Ilyshnikova  <ilyshnikova@yandex.ru>
+Build-Depends:
+	debhelper (>=7.0.50),
+	libboost-all-dev,
+	libmysqlcppconn-dev(= 1.1.0-4+b1),
+	libyaml-cpp-dev,
+	libjsoncpp-dev,
+	gcc-multilib,
+	libudev-dev,
+	libjson0,
+	libjson0-dev,
+	libcurl4-gnutls-dev,
+Standards-Version: 0.0.1
+
+Package: gan-system
+Architecture: any
+Section: gan
+Priority: extra
+Depends:
+	rlwrap,
+Description: common apache2 settings
+
+
