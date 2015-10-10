@@ -51,7 +51,7 @@ private:
 
 	virtual std::string CreateJsonForDaemon(const std::string& query) const;
 
-	std::string CreateAnswerFromJson(const std::string& json);
+	virtual std::string CreateAnswerFromJson(const std::string& json);
 public:
 	bool Conversation(std::string* answer, const size_t RECV_PART, struct timeval tv);
 
@@ -85,6 +85,9 @@ class TerminalClient : public BaseClient {
 private:
 	std::string CreateJsonForDaemon(const std::string& query) const;
 
+	std::string CreateAnswerFromJson(const std::string& json);
+
+
 public:
 	TerminalClient(const std::string& ip, const std::string& port);
 };
@@ -96,9 +99,6 @@ public:
 class DaemonBase : public LibSocket {
 private:
 	int Connect() ;
-
-
-//	virtual std::string Respond(const std::string& query);
 
 	virtual Json::Value JsonRespond(const Json::Value& query);
 

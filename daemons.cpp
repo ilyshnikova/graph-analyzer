@@ -106,40 +106,10 @@ std::string BaseClient::CreateJsonForDaemon(const std::string& query) const {
 }
 
 std::string BaseClient::CreateAnswerFromJson(const std::string& json) {
-	Json::Value answer;
-	Json::Reader reader;
-	bool is_parsing_successful = reader.parse(json, answer);
-	if (!is_parsing_successful) {
-		throw GANException(256285, "Incorrect answer from server: " + json + ".");
-	}
-
-	std::string string_ans = "Ok";
-	if (answer["status"].asInt() == 0) {
-		string_ans = std::string("Not Ok");
-	}
-	if (!answer["head"].isNull()) {
-		string_ans += "\n";
-		Json::Value head = answer["head"];
-		for (size_t i = 0; i < head.size(); ++i) {
-			string_ans += head[i].asString() + "\t";
-		}
-	}
-	if (!answer["table"].isNull()) {
-		Json::Value table = answer["table"];
-		for (size_t i = 0; i < table.size(); ++i) {
-			string_ans += "\n";
-			Json::Value row = table[i];
-			for (size_t j = 0; j < row.size(); ++j) {
-				string_ans += row[j].asString() + "\t";
-			}
-		}
-	}
-	if (!answer["error"].isNull()) {
-		string_ans += std::string("\n") + answer["error"].asString();
-	}
-	return string_ans + "\0";
-
+	return json;
 }
+
+
 
 
 bool BaseClient::GetQuery(std::string* query)  {
@@ -231,6 +201,44 @@ NginxClient::NginxClient(const std::string& ip, const std::string& port)
 
 
 /*	TerminalClient	*/
+
+
+std::string TerminalClient::CreateAnswerFromJson(const std::string& json) {
+	Json::Value answer;
+	Json::Reader reader;
+	bool is_parsing_successful = reader.parse(json, answer);
+	if (!is_parsing_successful) {
+		throw GANException(256285, "Incorrect answer from server: " + json + ".");
+	}
+
+	std::string string_ans = "Ok";
+	if (answer["status"].asInt() == 0) {
+		string_ans = std::string("Not Ok");
+	}
+	if (!answer["head"].isNull()) {
+		string_ans += "\n";
+		Json::Value head = answer["head"];
+		for (size_t i = 0; i < head.size(); ++i) {
+			string_ans += head[i].asString() + "\t";
+		}
+	}
+	if (!answer["table"].isNull()) {
+		Json::Value table = answer["table"];
+		for (size_t i = 0; i < table.size(); ++i) {
+			string_ans += "\n";
+			Json::Value row = table[i];
+			for (size_t j = 0; j < row.size(); ++j) {
+				string_ans += row[j].asString() + "\t";
+			}
+		}
+	}
+	if (!answer["error"].isNull()) {
+		string_ans += std::string("\n") + answer["error"].asString();
+	}
+	return string_ans + "\0";
+
+}
+
 std::string TerminalClient::CreateJsonForDaemon(const std::string& query) const	{
 	Json::Value json_query;
 	boost::smatch match;
@@ -614,24 +622,6 @@ std::string TerminalClient::CreateJsonForDaemon(const std::string& query) const	
 TerminalClient::TerminalClient(const std::string& ip, const std::string& port)
 : BaseClient(ip, port)
 {}
-
-
-///*	JsonClient	*/
-//
-//std::string JsonClient::CreateJsonForDaemon(const std::string& query) const {
-//	return query;
-//
-//}
-//
-//std::string JsonClient::CreateAnswerFromJson(const Json::Value& json_query) {
-//	Json::FastWriter fastWriter;
-//	return fastWriter.write(json_query);
-//}
-//
-//JsonClient::JsonClient(const std::string& ip, const std::string& port)
-//: BaseClient(ip, port)
-//{}
-
 
 /*    DaemonBase      */
 
