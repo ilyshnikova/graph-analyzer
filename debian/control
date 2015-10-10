@@ -13,6 +13,7 @@ Build-Depends:
 	libjson0,
 	libjson0-dev,
 	libcurl4-gnutls-dev,
+	libfcgi-dev,
 Standards-Version: 0.0.1
 
 Package: gan-system
@@ -21,6 +22,7 @@ Section: gan
 Priority: extra
 Depends:
 	rlwrap,
+	nginx,
 Description: common apache2 settings
 
 

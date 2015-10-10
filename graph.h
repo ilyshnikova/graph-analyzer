@@ -900,7 +900,7 @@ private:
 
 	void CheckIgnore(const IgnoreChecker& checker, const GANException& exception) const;
 
-	std::string Respond(const std::string& query);
+//	std::string Respond(const std::string& query);
 
 	Json::Value JsonRespond(const Json::Value& query);
 public:
