@@ -2118,15 +2118,15 @@ WorkSpace::QueryAction::QueryAction(const Json::Value*  json_params, WorkSpace* 
 
 
 Json::Value WorkSpace::JsonRespond(const Json::Value& query) {
-	Json::StyledWriter styledWriter;
-	logger << styledWriter.write(query);
 	Json::Value answer;
-	std::string query_type = query["type"].asString();
-	std::string graph_name = query["graph"].asString();
-	std::string objects_type = query["object"].asString();
-	bool ignore = query["ignore"].asBool();
-	answer["status"] = 0;
 	try {
+		Json::StyledWriter styledWriter;
+		logger << styledWriter.write(query);
+		std::string query_type = query["type"].asString();
+		std::string graph_name = query["graph"].asString();
+		std::string objects_type = query["object"].asString();
+		bool ignore = query["ignore"].asBool();
+		answer["status"] = 0;
 		if (
 			query_type != "create"
 			&& query_type != "load"
@@ -2217,6 +2217,9 @@ Json::Value WorkSpace::JsonRespond(const Json::Value& query) {
 			} else if (objects_type == "types") {				// show blocks types
 				answer["head"].append("Types");
 				answer["table"] = Block(1,"","EmptyBlock",NULL).GetTableOfBlocksDescriptions() ;
+			} else {
+				answer["status"] = 0;
+				answer["error"] = "Incorrect json query.";
 			}
 
 			answer["status"] = 1;

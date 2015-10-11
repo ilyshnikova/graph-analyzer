@@ -129,8 +129,9 @@ bool BaseClient::Conversation(std::string* answer, const size_t RECV_PART, struc
 	}
 	try {
 		int socketfd = Connect();
-
 		query = CreateJsonForDaemon(query);
+		logger << "QUERY  AFTER CREATEJSON";
+		logger << query;
 		SendMessage(socketfd, query);
 		shutdown(socketfd, 1);
 
@@ -702,6 +703,9 @@ void DaemonBase::Daemon() {
 			Json::Value json_query;
 			logger << "get query from client: " + query;
 			bool is_parsing_successful = reader.parse(query, json_query);
+
+			Json::FastWriter fastWriter;
+			std::string j = fastWriter.write(json_query);
 			if (!is_parsing_successful) {
 				throw GANException(135167, "Incorrect query.");
 			}

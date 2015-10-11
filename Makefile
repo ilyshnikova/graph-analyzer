@@ -1,4 +1,4 @@
-all: mysql-test client test-server gan-server testing gan-nginx
+all: mysql-test client test-server gan-server testing nginx-server
 BASEP = -g -Wall -std=c++0x -gdwarf-3
 
 gan-exception.o: gan-exception.cpp
@@ -53,10 +53,10 @@ execute.o: execute.cpp
 	g++ $(BASEP) -c execute.cpp
 
 nginx-server.o: nginx-server.cpp
-	g++ $(BASEP) -c -lfcgi -lpthread -I/usr/include/jsoncpp -ljsoncpp -lboost_regex nginx-server.cpp
+	g++ $(BASEP) -c -lfcgi -lpthread -I/usr/include/jsoncpp -lcgicc -lcurl -ljsoncpp -lboost_regex nginx-server.cpp
 
-gan-nginx: nginx-server.o daemons.o gan-exception.o logger.o graph.o mysql.o base64.o execute.o
-	g++ $(BASEP) -lfcgi -lpthread -lmysqlcppconn -lyaml-cpp -I/usr/include/jsoncpp -lboost_regex -ljsoncpp nginx-server.o daemons.o gan-exception.o logger.o graph.o mysql.o base64.o execute.o -o gan-nginx
+nginx-server: nginx-server.o daemons.o gan-exception.o logger.o graph.o mysql.o base64.o execute.o
+	g++ $(BASEP) -lfcgi -lpthread -lmysqlcppconn -lyaml-cpp -lcgicc  -lcurl -I/usr/include/jsoncpp -lboost_regex -ljsoncpp  daemons.o gan-exception.o logger.o graph.o mysql.o base64.o execute.o nginx-server.o -o nginx-server
 
 clean:
-	rm -rf *.o mysql-test client test-server gan-server test gan-nginx
+	rm -rf *.o mysql-test client test-server gan-server test nginx-server

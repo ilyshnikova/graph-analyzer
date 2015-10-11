@@ -1,20 +1,34 @@
 #include <pthread.h>
 #include <sys/types.h>
 #include <stdio.h>
-
 #include <iostream>
-
-#include "fcgi_config.h"
-#include "fcgiapp.h"
-
+#include <fcgi_config.h>
+#include <fcgiapp.h>
 #include <json/json.h>
-
+#include <string>
+#include <cgicc/Cgicc.h>
 #include "daemons.h"
-#define THREAD_COUNT 8
+#include "mysql.h"
+#define THREAD_COUNT 1
 #define SOCKET_PATH "127.0.0.1:9000"
 
 //хранит дескриптор открытого сокета
 static int socketId;
+
+
+std::string ParseURLQuery(const std::string& queries) {
+	std::vector<std::string> json_queries;
+	std::vector<std::string> parts = Split(queries, '&');
+	for (size_t i = 0; i < parts.size(); ++i) {
+		std::vector<std::string> query = Split(parts[i], '=');
+		if (query[0] == "json") {
+			return cgicc::form_urldecode(query[1]);
+		}
+	}
+	return "{}";
+}
+
+
 
 static void *doit(void *a)
 {
@@ -58,24 +72,29 @@ static void *doit(void *a)
 
 		//получить значение переменной
 		char* query_string = FCGX_GetParam("QUERY_STRING", request.envp);
+//		CURL *curl = curl_easy_init();
+		std::string s = query_string;
+		std::string json_query = ParseURLQuery(std::string(query_string));
 
-		client.AddQuery(std::string(query_string));
+		client.AddQuery(json_query);
 		std::string answer;
 		client.Conversation(&answer, RECV_PART, tv);
+//		//вывести все HTTP-заголовки (каждый заголовок с новой строки)
+//		FCGX_PutS("Content-type: text/html\r\n", request.out);
+//		//между заголовками и телом ответа нужно вывести пустую строку
+//		FCGX_PutS("\r\n", request.out);
+//
+//	 	FCGX_PutS("<html>\r\n", request.out);
+//		FCGX_PutS("<head>\r\n", request.out);
+//		FCGX_PutS(std::string("<title>" + answer  +  "</title>\r\n").c_str(), request.out);
+//		FCGX_PutS("<body>\r\n", request.out);
+//		FCGX_PutS(std::string(answer  +"\r\n").c_str(), request.out);
+//		FCGX_PutS("</body>\r\n", request.out);
+//		FCGX_PutS("</html>\r\n", request.out);
 
-		//вывести все HTTP-заголовки (каждый заголовок с новой строки)
-		FCGX_PutS("Content-type: text/html\r\n", request.out);
-		//между заголовками и телом ответа нужно вывести пустую строку
+		FCGX_PutS("Content-type: application/json\r\n\r\n", request.out);
+		FCGX_PutS(answer.c_str(), request.out);
 		FCGX_PutS("\r\n", request.out);
-
-	 	FCGX_PutS("<html>\r\n", request.out);
-		FCGX_PutS("<head>\r\n", request.out);
-		FCGX_PutS(std::string("<title>" + answer  +  "</title>\r\n").c_str(), request.out);
-		FCGX_PutS("<body>\r\n", request.out);
-		FCGX_PutS(std::string(answer  +"\r\n").c_str(), request.out);
-		FCGX_PutS("</body>\r\n", request.out);
-		FCGX_PutS("</html>\r\n", request.out);
-
 
 		//закрыть текущее соединение
 		FCGX_Finish_r(&request);
