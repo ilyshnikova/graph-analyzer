@@ -29,13 +29,11 @@ std::string ParseURLQuery(const std::string& queries) {
 
 
 
-static void *doit(void *a)
-{
+static void *doit(void *a) {
 	int rc;
 	FCGX_Request request;
 
-	if(FCGX_InitRequest(&request, socketId, 0) != 0)
-	{
+	if(FCGX_InitRequest(&request, socketId, 0) != 0) {
 		printf("Can not init request\n");
 		return NULL;
 	}
@@ -50,8 +48,7 @@ static void *doit(void *a)
 
 	NginxClient client("127.0.0.1", "8081");
 
-	for(;;)
-	{
+	for(;;) {
 		static pthread_mutex_t accept_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 		printf("Try to accept new request\n");
@@ -59,8 +56,7 @@ static void *doit(void *a)
 		rc = FCGX_Accept_r(&request);
 		pthread_mutex_unlock(&accept_mutex);
 
-		if(rc < 0)
-		{
+		if(rc < 0) {
 			printf("Can not accept new request\n");
 			break;
 		}
@@ -84,8 +80,7 @@ static void *doit(void *a)
 	return NULL;
 }
 
-int main(void)
-{
+int main(void) {
 	int i;
 	pthread_t id[THREAD_COUNT];
 
@@ -93,19 +88,16 @@ int main(void)
 	printf("Lib is inited\n");
 
 	socketId = FCGX_OpenSocket(SOCKET_PATH, 20);
-	if(socketId < 0)
-	{
+	if(socketId < 0) {
 		return 1;
 	}
 	printf("Socket is opened\n");
 
-	for(i = 0; i < THREAD_COUNT; i++)
-	{
+	for(i = 0; i < THREAD_COUNT; i++) {
 		pthread_create(&id[i], NULL, doit, NULL);
 	}
 
-	for(i = 0; i < THREAD_COUNT; i++)
-	{
+	for(i = 0; i < THREAD_COUNT; i++) {
 		pthread_join(id[i], NULL);
 	}
 
