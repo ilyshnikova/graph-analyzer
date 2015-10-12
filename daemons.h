@@ -10,8 +10,11 @@
 #include <string>
 #include <unistd.h>
 #include <iostream>
+#include <json/json.h>
 #include "gan-exception.h"
+#include <json/json.h>
 
+/*	LibSocket	*/
 
 class LibSocket {
 public:
@@ -36,21 +39,68 @@ public:
 
 };
 
-class Client : public LibSocket {
-private:
-	int Connect() ;
+/*	BaseClient	*/
 
+class BaseClient : public LibSocket {
+private:
+	int Connect();
+
+	virtual void Callback(const std::string& answer) const;
+
+	virtual bool GetQuery(std::string* query);
+
+	virtual std::string CreateJsonForDaemon(const std::string& query) const;
+
+	virtual std::string CreateAnswerFromJson(const std::string& json);
 public:
-	Client(const std::string& ip, const std::string& port);
+	bool Conversation(std::string* answer, const size_t RECV_PART, struct timeval tv);
+
+	BaseClient(const std::string& ip, const std::string& port);
+
+	void Process();
 };
 
+
+/*	NginxClient	*/
+
+class NginxClient : public BaseClient {
+private:
+	std::string query;
+	bool is_used;
+
+	virtual void Callback(const std::string& answer) const;
+
+	virtual bool GetQuery(std::string* new_query);
+
+public:
+
+	void AddQuery(const std::string& new_query);
+
+	NginxClient(const std::string& ip, const std::string& port);
+};
+
+/*	TerminalClient	*/
+
+class TerminalClient : public BaseClient {
+private:
+	std::string CreateJsonForDaemon(const std::string& query) const;
+
+	std::string CreateAnswerFromJson(const std::string& json);
+
+
+public:
+	TerminalClient(const std::string& ip, const std::string& port);
+};
+
+
+
+/*	DaemonBase	*/
 
 class DaemonBase : public LibSocket {
 private:
 	int Connect() ;
 
-
-	virtual std::string Respond(const std::string& query);
+	virtual Json::Value JsonRespond(const Json::Value& query);
 
 public:
 
@@ -61,10 +111,11 @@ public:
 	void Daemon();
 };
 
+/*	EchoDaemon	*/
 
 class EchoDaemon : public DaemonBase {
 private:
-	std::string Respond(const std::string& query);
+	Json::Value JsonRespond(const Json::Value& query);
 
 public:
 	EchoDaemon(const std::string& ip, const std::string& port);

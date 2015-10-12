@@ -1,1 +1,2 @@
-mysql -e "create database if not exists gandb;"
+mysql -e "create database if not exists gandb;" && rm -rf /etc/nginx/sites-enabled/* &&  ln -s /etc/nginx/sites-available/config /etc/nginx/sites-enabled/
+nginx-server > /dev/null & gan-server > /dev/null &

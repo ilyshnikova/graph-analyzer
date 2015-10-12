@@ -1,6 +1,6 @@
 #include <string>
 #include <iostream>
-
+#include <boost/regex.hpp>
 #include <cstring>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -8,9 +8,12 @@
 #include <string>
 #include <unistd.h>
 #include <iostream>
+#include <json/json.h>
 #include "gan-exception.h"
 #include "daemons.h"
 #include "logger.h"
+#include "graph.h"
+#include "mysql.h"
 
 /*    LibSocket     */
 
@@ -85,9 +88,9 @@ void LibSocket::SendMessage(const int socketfd, const std::string& send_message)
 
 }
 
-/*    Client      */
+/*    BaseClient      */
 
-int Client::Connect()  {
+int BaseClient::Connect()  {
 	int socketfd = Start();
 
 	int status = connect(socketfd, host_info_list->ai_addr, host_info_list->ai_addrlen);
@@ -96,14 +99,55 @@ int Client::Connect()  {
 	}
 
 	return socketfd;
+}
 
+std::string BaseClient::CreateJsonForDaemon(const std::string& query) const {
+	return query;
+}
+
+std::string BaseClient::CreateAnswerFromJson(const std::string& json) {
+	return json;
 }
 
 
 
-Client::Client(const std::string& ip, const std::string& port)
-: LibSocket(ip, port)
-{
+
+bool BaseClient::GetQuery(std::string* query)  {
+	std::cout << "gan> ";
+	if (!std::getline(std::cin, *query)) {
+		std::cout << "\n";
+		return false;
+	}
+	return true;
+}
+
+
+bool BaseClient::Conversation(std::string* answer, const size_t RECV_PART, struct timeval tv) {
+	std::string query;
+	if (!GetQuery(&query)) {
+		return false;
+	}
+	try {
+		int socketfd = Connect();
+		query = CreateJsonForDaemon(query);
+		SendMessage(socketfd, query);
+		shutdown(socketfd, 1);
+
+		std::string got_message = GetMessage(RECV_PART, tv, socketfd);
+		*answer = CreateAnswerFromJson(got_message);
+		freeaddrinfo(host_info_list);
+		close(socketfd);
+	} catch (std::exception& e) {
+		*answer =  e.what();
+	}
+	return true;
+}
+
+void BaseClient::Callback(const std::string& answer) const {
+	std::cout << answer << "\n";
+}
+
+void BaseClient::Process() {
 	const size_t RECV_PART = 10000;
 
 	double timeout = 900;
@@ -114,32 +158,474 @@ Client::Client(const std::string& ip, const std::string& port)
 	Prepare();
 
 	while (1) {
-
-		std::cout << "gan> ";
-		std::string query;
-		if (!std::getline(std::cin, query)) {
-			std::cout << "\n";
-			break;
-		}
-
-		try {
-			int socketfd = Connect();
-
-			SendMessage(socketfd, query);
-			shutdown(socketfd, 1);
-
-			std::string got_message = GetMessage(RECV_PART, tv, socketfd);
-
-			std::cout << got_message << "\n";
-			freeaddrinfo(host_info_list);
-			close(socketfd);
-		} catch (std::exception& e) {
-			std::cout <<  e.what() << "\n";
-		}
-
+		std::string answer;
+		Conversation(&answer, RECV_PART, tv);
+		Callback(answer);
 	}
+
 }
 
+
+BaseClient::BaseClient(const std::string& ip, const std::string& port)
+: LibSocket(ip, port)
+{}
+
+
+
+/*	NginxClient	*/
+
+void NginxClient::AddQuery(const std::string& new_query) {
+	query = new_query;
+	is_used = false;
+}
+
+void NginxClient::Callback(const std::string& answer) const {}
+
+bool NginxClient::GetQuery(std::string* new_query) {
+	if (is_used) {
+		return false;
+	}
+	*new_query =  query;
+	is_used = true;
+	return true;
+}
+
+NginxClient::NginxClient(const std::string& ip, const std::string& port)
+: BaseClient(ip, port)
+, query()
+, is_used(false)
+{}
+
+
+
+
+/*	TerminalClient	*/
+
+
+std::string TerminalClient::CreateAnswerFromJson(const std::string& json) {
+	Json::Value answer;
+	Json::Reader reader;
+	bool is_parsing_successful = reader.parse(json, answer);
+	if (!is_parsing_successful) {
+		throw GANException(256285, "Incorrect answer from server: " + json + ".");
+	}
+
+	std::string string_ans = "Ok";
+	if (answer["status"].asInt() == 0) {
+		string_ans = std::string("Not Ok");
+	}
+	if (!answer["head"].isNull()) {
+		string_ans += "\n";
+		Json::Value head = answer["head"];
+		for (size_t i = 0; i < head.size(); ++i) {
+			string_ans += head[i].asString() + "\t";
+		}
+	}
+	if (!answer["table"].isNull()) {
+		Json::Value table = answer["table"];
+		for (size_t i = 0; i < table.size(); ++i) {
+			string_ans += "\n";
+			Json::Value row = table[i];
+			for (size_t j = 0; j < row.size(); ++j) {
+				string_ans += row[j].asString() + "\t";
+			}
+		}
+	}
+	if (!answer["error"].isNull()) {
+		string_ans += std::string("\n") + answer["error"].asString();
+	}
+	return string_ans + "\0";
+
+}
+
+std::string TerminalClient::CreateJsonForDaemon(const std::string& query) const	{
+	Json::Value json_query;
+	boost::smatch match;
+
+	json_query["ignore"] = (boost::regex_match(query, boost::regex(".*ignore.*"))) ? 1 : 0;
+
+	if (
+		boost::regex_match(
+			query,
+			match,
+			boost::regex("\\s*")
+		)
+	) {
+		json_query = CreateJson(
+			std::map<std::string, std::string>({
+				{"type", "empty_query"}
+			})
+		);
+
+	} else if (
+		boost::regex_match(
+			query,
+			match,
+			boost::regex("\\s*create\\s+(ignore\\s+){0,1}graph\\s+(\\w+)\\s*")
+		)
+	) {
+		json_query = CreateJson(
+			std::map<std::string, std::string>({
+				{"type", "create"},
+				{"object", "graph"},
+				{"graph", match[2]}
+			})
+		);
+	} else if (
+		boost::regex_match(
+			query,
+			match,
+			boost::regex("\\s*delete\\s+(ignore\\s+){0,1}graph\\s+(\\w+)\\s*")
+		)
+	) {
+		json_query = CreateJson(
+			std::map<std::string, std::string>({
+				{"type", "delete"},
+				{"object", "graph"},
+				{"graph", match[2]}
+			})
+		);
+	} else if (
+		boost::regex_match(
+			query,
+			match,
+			boost::regex("\\s*create\\s+(ignore\\s+){0,1}block\\s+(\\w+):(\\w+)\\s+in\\s+graph\\s+(\\w+)\\s*")
+
+		)
+	) {
+		json_query = CreateJson(
+			std::map<std::string, std::string>({
+				{"type", "create"},
+				{"object", "block"},
+				{"block", match[2]},
+				{"block_type", match[3]},
+				{"graph", match[4]}
+			})
+		);
+	} else if (
+		boost::regex_match(
+			query,
+			match,
+			boost::regex("\\s*delete\\s+(ignore\\s+){0,1}block\\s+(\\w+)\\s+in\\s+graph\\s+(\\w+)\\s*")
+		)
+	) {
+		json_query = CreateJson(
+			std::map<std::string, std::string>({
+				{"type", "delete"},
+				{"object", "block"},
+				{"block", match[2]},
+				{"graph", match[3]}
+			})
+		);
+	} else if (
+		boost::regex_match(
+			query,
+			match,
+			boost::regex("\\s*create\\s+(ignore\\s+){0,1}edge\\s+(\\w+)\\s+in\\s+graph\\s+(\\w+)\\s+from\\s+(\\w+)\\s+to\\s+(\\w+)\\s*")
+		)
+	)  {
+		json_query = CreateJson(
+			std::map<std::string, std::string>({
+				{"type", "create"},
+				{"object", "edge"},
+				{"edge", match[2]},
+				{"graph", match[3]},
+				{"from", match[4]},
+				{"to", match[5]}
+			})
+		);
+	} else if (
+		boost::regex_match(
+			query,
+			match,
+			boost::regex("\\s*delete\\s+(ignore\\s+){0,1}edge\\s+(\\w+)\\s+in\\s+graph\\s+(\\w+)\\s+from\\s+(\\w+)\\s+to\\s+(\\w+)\\s*")
+		)
+	) {
+
+		json_query = CreateJson(
+			std::map<std::string, std::string>({
+				{"type", "delete"},
+				{"object", "edge"},
+				{"edge", match[2]},
+				{"graph", match[3]},
+				{"from", match[4]},
+				{"to", match[5]}
+			})
+		);
+	} else if (
+		boost::regex_match(
+			query,
+			match,
+			boost::regex("\\s*deploy\\s+graph\\s+(\\w+)\\s*")
+		)
+	) {
+		json_query = CreateJson(
+			std::map<std::string, std::string>({
+				{"type", "deploy"},
+				{"object", "graph"},
+				{"graph", match[1]},
+			})
+		);
+
+	} else if (
+		boost::regex_match(
+			query,
+			match,
+			boost::regex("\\s*insert\\s+point\\s+('.+':\\d+:\\-{0,1}\\d*.{0,1}\\d*\\s*,{0,1}\\s*)+\\s+into(\\s+block\\s+(\\w+)\\s+of){0,1}\\s+graph\\s+(\\w+)\\s*")
+		)
+	) {
+		std::vector<std::string> points = Split(match[1], ',');
+		Json::Value jpoints;
+
+		for (size_t i = 0; i < points.size(); ++i) {
+			boost::smatch point;
+			if (
+				boost::regex_match(
+					points[i],
+					point,
+					boost::regex("\\s*'(.+)':(\\d+):(\\-{0,1}\\d*.{0,1}\\d*)\\s*")
+				)
+			) {
+
+				Json::Value jpoint;
+				jpoint["series"] = std::string(point[1]);
+				jpoint["time"] = std::stoll(point[2]);
+				jpoint["value"] = std::stod(point[3]);
+				jpoints.append(jpoint);
+			}
+		}
+
+		json_query = CreateJson(
+			std::map<std::string, std::string>({
+				{"type", "insert"},
+				{"graph", match[4]},
+			})
+		);
+		json_query["points"] = jpoints;
+		if (match[3] != std::string("")) {
+			json_query["block"] = std::string(match[3]);
+		}
+ 	} else  if (
+		boost::regex_match(
+			query,
+			match,
+			boost::regex("\\s*modify\\s+param\\s+(\\w+)\\s+to\\s+(.+)\\s+in\\s+block\\s+(\\w+)\\s+of\\s+graph\\s+(\\w+)\\s*")
+		)
+	) {
+
+		json_query = CreateJson(
+			std::map<std::string, std::string>({
+				{"type", "modify"},
+				{"object", "param"},
+				{"name", match[1]},
+				{"value", match[2]},
+				{"block", match[3]},
+				{"graph", match[4]}
+			})
+		);
+	} else if (
+		boost::regex_match(
+			query,
+			match,
+			boost::regex("\\s*show\\s+graphs\\s*")
+		)
+	) {
+
+		json_query = CreateJson(
+			std::map<std::string, std::string>({
+				{"type", "show"},
+				{"object", "graphs"},
+			})
+		);
+
+	} else if (
+		boost::regex_match(
+			query,
+			match,
+			boost::regex("\\s*show\\s+blocks\\s+of\\s+graph\\s+(\\w+)\\s*")
+		)
+	) {
+
+		json_query = CreateJson(
+			std::map<std::string, std::string>({
+				{"type", "show"},
+				{"object", "blocks"},
+				{"graph", match[1]}
+			})
+		);
+	} else if (
+		boost::regex_match(
+			query,
+			match,
+			boost::regex("\\s*show\\s+params\\s+of\\s+block\\s+(\\w+)\\s+of\\s+graph\\s+(\\w+)\\s*")
+		)
+	) {
+
+		json_query = CreateJson(
+			std::map<std::string, std::string>({
+				{"type", "show"},
+				{"object", "params"},
+				{"block", match[1]},
+				{"graph", match[2]}
+			})
+		);
+	} else if (
+		boost::regex_match(
+			query,
+			match,
+			boost::regex("\\s*show\\s+edges\\s+of\\s+graph\\s+(\\w+)\\s*")
+		)
+	) {
+
+		json_query = CreateJson(
+			std::map<std::string, std::string>({
+				{"type", "show"},
+				{"object", "edges"},
+				{"graph", match[1]}
+			})
+		);
+
+	} else if (
+		boost::regex_match(
+			query,
+			match,
+			boost::regex("\\s*is\\s+graph\\s+(\\w+)\\s+deployed\\s*")
+		)
+	) {
+
+		json_query = CreateJson(
+			std::map<std::string, std::string>({
+				{"type", "is_deployed"},
+				{"object", "graph"},
+				{"graph", match[1]}
+			})
+		);
+	} else if (
+		boost::regex_match(
+			query,
+			match,
+			boost::regex("\\s*show\\s+possible\\s+edges\\s+of\\s+block\\s+(\\w+)\\s+of\\s+graph\\s+(\\w+)\\s*")
+		)
+	) {
+
+		json_query = CreateJson(
+			std::map<std::string, std::string>({
+				{"type", "show"},
+				{"object", "possible_edges"},
+				{"block", match[1]},
+				{"graph", match[2]}
+			})
+		);
+	} else  if (
+		boost::regex_match(
+			query,
+			match,
+			boost::regex("\\s*show\\s+block\\s+type\\s+of\\s+block\\s+(\\w+)\\s+of\\s+graph\\s+(\\w+)\\s*")
+		)
+	) {
+		json_query = CreateJson(
+			std::map<std::string, std::string>({
+				{"type", "show"},
+				{"object", "block_type"},
+				{"block", match[1]},
+				{"graph", match[2]}
+			})
+		);
+	} else if (
+		boost::regex_match(
+			query,
+			match,
+			boost::regex("\\s*show\\s+blocks\\s+types\\s*")
+		)
+	) {
+		json_query = CreateJson(
+			std::map<std::string, std::string>({
+				{"type", "show"},
+				{"object", "types"},
+			})
+		);
+
+	} else if
+		(
+		boost::regex_match(
+			query,
+			match,
+			boost::regex("\\s*save\\s+graph\\s+(\\w+)\\s+to\\s+file\\s+(\\S+)\\s*")
+		)
+	) {
+		json_query = CreateJson(
+			std::map<std::string, std::string>({
+				{"type", "save"},
+				{"object", "graph"},
+				{"graph", match[1]},
+				{"file", match[2]}
+			})
+		);
+
+
+	} else if (
+		boost::regex_match(
+			query,
+			match,
+			boost::regex("\\s*load\\s+(ignore\\s+){0,1}\\s*(replace\\s+){0,1}\\s*graph\\s+(\\w+)\\s+from\\s+file\\s+(\\S+)\\s*")
+		)
+	) {
+
+		json_query = CreateJson(
+			std::map<std::string, std::string>({
+				{"type", "load"},
+				{"object", "graph"},
+				{"graph", match[3]},
+				{"file", match[4]}
+			})
+		);
+		json_query["replace"] = (match[2] == "") ? 0 : 1;
+
+	} else if (
+		boost::regex_match(
+			query,
+			match,
+			boost::regex("\\s*convert\\s+config\\s+(\\S+)\\s+to\\s+queries\\s*")
+		)
+	) {
+
+		json_query = CreateJson(
+			std::map<std::string, std::string>({
+				{"type", "convert"},
+				{"file", match[1]}
+			})
+		);
+	} else  if (
+		boost::regex_match(
+			query,
+			match,
+			boost::regex("\\s*help\\s*")
+		)
+	) {
+		json_query["type"] = "help";
+	} else {
+		throw GANException(529352, "Incorrect query");
+	}
+
+	if (
+		boost::regex_match(
+			query,
+			boost::regex(".*ignore.*")
+		)
+	) {
+		json_query["ignore"] =  1;
+	} else {
+		json_query["ignore"] = 0;
+	}
+
+	Json::FastWriter fastWriter;
+	return fastWriter.write(json_query);
+}
+
+
+TerminalClient::TerminalClient(const std::string& ip, const std::string& port)
+: BaseClient(ip, port)
+{}
 
 /*    DaemonBase      */
 
@@ -162,8 +648,8 @@ int DaemonBase::Connect() {
 }
 
 
-std::string DaemonBase::Respond(const std::string& query) {
-	return std::string("\0");
+Json::Value DaemonBase::JsonRespond(const Json::Value& query) {
+	return Json::Value();
 }
 
 
@@ -214,17 +700,29 @@ void DaemonBase::Daemon() {
 
 
 
-		std::string message;
-
+		Json::Value answer;
+		Json::Reader reader;
 		try {
-			message = Respond(query);
+			Json::Value json_query;
+			logger << "get query from client: " + query;
+			bool is_parsing_successful = reader.parse(query, json_query);
+
+			Json::FastWriter fastWriter;
+			std::string j = fastWriter.write(json_query);
+			if (!is_parsing_successful) {
+				throw GANException(135167, "Incorrect query.");
+			}
+
+			answer = JsonRespond(json_query);
 		} catch (std::exception& e) {
-			message = std::string(e.what());
+			answer["status"] = 0;
+			answer["error"] = e.what();
 		}
+		Json::StyledWriter styledWriter;
+		std::string str_answer = styledWriter.write(answer);
+		logger << "answer = " + str_answer;
 
-		logger << "answer = " + message;
-
-		SendMessage(client_socketfd, message);
+		SendMessage(client_socketfd, str_answer);
 
 		close(client_socketfd);
 	}
@@ -234,7 +732,7 @@ void DaemonBase::Daemon() {
 /*    EchoDaemon     */
 
 
-std::string EchoDaemon::Respond(const std::string& query) {
+Json::Value EchoDaemon::JsonRespond(const Json::Value& query) {
 	return query;
 }
 
