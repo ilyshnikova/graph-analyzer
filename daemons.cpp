@@ -130,8 +130,6 @@ bool BaseClient::Conversation(std::string* answer, const size_t RECV_PART, struc
 	try {
 		int socketfd = Connect();
 		query = CreateJsonForDaemon(query);
-		logger << "QUERY  AFTER CREATEJSON";
-		logger << query;
 		SendMessage(socketfd, query);
 		shutdown(socketfd, 1);
 
@@ -253,7 +251,12 @@ std::string TerminalClient::CreateJsonForDaemon(const std::string& query) const	
 			boost::regex("\\s*")
 		)
 	) {
-		json_query = Json::Value();
+		json_query = CreateJson(
+			std::map<std::string, std::string>({
+				{"type", "empty_query"}
+			})
+		);
+
 	} else if (
 		boost::regex_match(
 			query,

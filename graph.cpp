@@ -2123,6 +2123,7 @@ Json::Value WorkSpace::JsonRespond(const Json::Value& query) {
 		Json::StyledWriter styledWriter;
 		logger << styledWriter.write(query);
 		std::string query_type = query["type"].asString();
+
 		std::string graph_name = query["graph"].asString();
 		std::string objects_type = query["object"].asString();
 		bool ignore = query["ignore"].asBool();
@@ -2139,8 +2140,9 @@ Json::Value WorkSpace::JsonRespond(const Json::Value& query) {
 				"Graph with name " + graph_name  +  " does not exist."
 			);
 		}
-		IgnoreChecker checker(&answer, ignore);
-		if (query_type == "create" || query_type == "delete") {			// create or delete
+		if (query_type == "empty_query") {
+			answer["status"] = 1;
+		} else if (query_type == "create" || query_type == "delete") {			// create or delete
 			QueryAction(&query, this, &answer);
 
 		} else if (query_type == "deploy") {				// deploy graph
@@ -2250,6 +2252,7 @@ Json::Value WorkSpace::JsonRespond(const Json::Value& query) {
 				JsonRespond(delete_query);
 			}
 			if (graphs.count(graph_name) != 0) {
+				IgnoreChecker checker(&answer, ignore);
 				CheckIgnore(
 					checker,
 					GANException(
