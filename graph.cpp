@@ -2218,9 +2218,9 @@ Json::Value WorkSpace::JsonRespond(const Json::Value& query) {
 
 			answer["head"].append("BlockType");
 			answer["table"].append(
-					CreateJson(
-						std::vector<std::string>({graphs[graph_name]->GetBlockType(block_name)})
-					)
+				CreateJson(
+					std::vector<std::string>({graphs[graph_name]->GetBlockType(block_name)})
+				)
 			);
 		} else if (objects_type == "types") {				// show blocks types
 			answer["head"].append("Types");
@@ -2382,7 +2382,7 @@ void WorkSpace::ChangeGraphsValid(const std::string& graph_name, const int graph
 
 std::vector<std::string> WorkSpace::Verification(const std::string& graph_name) {
 	std::vector<std::string> cycle = graphs[graph_name]->Verification();
-	if (cycle.size() != 0) {
+	if (cycle.size() == 0) {
 		ChangeGraphsValid(graph_name, 1);
 	}
 	return cycle;
