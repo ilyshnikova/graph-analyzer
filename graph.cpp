@@ -283,8 +283,8 @@ BlockBase* Sum::GetBlock(const std::string& type) const {
 }
 
 std::string Sum::Description() const {
-	return std::string("\tThis block is used for summarize incoming  points values.\n")
-		+ "\t\t\%d - param that specifying count of edges.\n"
+	return std::string("\tThis block is used for summing incoming  points' values.\n")
+		+ "\t\t\%d - param that specifies number of edges.\n"
 		+ "\t\tIncoming edges: arg1,\n"
 		+ "\t\t\t\t...,\n"
 		+ "\t\t\t\targN.";
@@ -321,8 +321,8 @@ BlockBase* And::GetBlock(const std::string& type) const {
 }
 
 std::string And::Description() const {
-	return std::string("\tThis block is used for logical and with incoming points values.\n")
-		+ "\t\t\%d - param that specifying count of edges.\n"
+	return std::string("\tThis block is used for logical \"and\" between incoming points' values.\n")
+		+ "\t\t\%d - param that specifying number of edges.\n"
 		+ "\t\tIncoming edges: arg1,\n"
 		+ "\t\t\t\t...,\n"
 		+ "\t\t\t\targN.";
@@ -359,8 +359,8 @@ BlockBase* Or::GetBlock(const std::string& type) const {
 }
 
 std::string Or::Description() const {
-	return std::string("\tThis block is used for logical or with incoming points values.\n")
-		+ "\t\t\%d - param that specifying count of edges.\n"
+	return std::string("\tThis block is used for logical \"or\" between incoming points' values.\n")
+		+ "\t\t\%d - param that specifying number of edges.\n"
 		+ "\t\tIncoming edges: arg1,\n"
 		+ "\t\t\t\t...,\n"
 		+ "\t\t\t\targN.";
@@ -400,7 +400,7 @@ BlockBase* Min::GetBlock(const std::string& type) const {
 
 std::string Min::Description() const {
 	return std::string("\tThis block returns incoming points with min values.\n")
-		+ "\t\t\%d - param that specifying count of edges.\n"
+		+ "\t\t\%d - param that specifying number of edges.\n"
 		+ "\t\tIncoming edges: arg1,\n"
 		+ "\t\t\t\t...,\n"
 		+ "\t\t\t\targN.";
@@ -441,7 +441,7 @@ BlockBase* Max::GetBlock(const std::string& type) const {
 
 std::string Max::Description() const {
 	return std::string("\tThis block returns incoming points with max values..\n")
-		+ "\t\t\%d - param that specifying count of edges.\n"
+		+ "\t\t\%d - param that specifying number of edges.\n"
 		+ "\t\tIncoming edges: arg1,\n"
 		+ "\t\t\t\t...,\n"
 		+ "\t\t\t\targN.";
@@ -477,8 +477,8 @@ BlockBase* Multiplication::GetBlock(const std::string& type) const {
 }
 
 std::string Multiplication::Description() const {
-	return std::string("\tThis block is used for multiplicate incoming  points values.\n")
-		+ "\t\t\%d - param that specifying count of edges.\n"
+	return std::string("\tThis block is used for multiply incoming  points' values.\n")
+		+ "\t\t\%d - param that specifying number of edges.\n"
 		+ "\t\tIncoming edges: arg1,\n"
 		+ "\t\t\t\t...,\n"
 		+ "\t\t\t\targN.";
@@ -550,9 +550,9 @@ BlockBase* Difference::GetBlock(const std::string& type) const {
 
 
 std::string Difference::Description() const {
-	return std::string("\tThis block is used for subtracting incoming points values.\n")
+	return std::string("\tThis block is used for subtracting incoming points' values.\n")
 		+ "\t\tIncoming edges: minuend,\n"
-		+ "\t\t\t\tsubtracting.";
+		+ "\t\t\t\tsubtrahend.";
 }
 
 
@@ -586,9 +586,9 @@ BlockBase* Division::GetBlock(const std::string& type) const {
 
 
 std::string Division::Description() const {
-	return std::string("\tThis block is used for division incoming points values.\n")
-		+ "\t\tIncoming edges: minuend,\n"
-		+ "\t\t\t\tsubtracting.";
+	return std::string("\tThis block is used for division incoming points' values.\n")
+		+ "\t\tIncoming edges: dividend,\n"
+		+ "\t\t\t\tdivisor.";
 }
 
 
@@ -623,7 +623,7 @@ BlockBase* Threshold::GetBlock(const std::string& type) const {
 
 
 std::string Threshold::Description() const {
-	return std::string("\tThis block return point with value 1 if incoming points value grater than 'bound' param.\n")
+	return std::string("\tThis block return point with value 1 if incoming points' value grater than 'bound' param.\n")
 		+ "\t\tIncoming edges: value.\n"
 		+ "\t\tParams: bound.";
 }
@@ -703,7 +703,7 @@ BlockBase* PrintToLogs::GetBlock(const std::string& type) const {
 
 
 std::string PrintToLogs::Description() const {
-	return std::string("\tThis block is used for ptinting point to log.\n")
+	return std::string("\tThis block is used for printing point to log.\n")
 		+ "\t\tIncoming edges: to_print.";
 }
 
@@ -741,7 +741,7 @@ BlockBase* TimeShift::GetBlock(const std::string& type) const {
 
 
 std::string TimeShift::Description() const {
-	return std::string("\tThis block is used for shifting points times to some value.\n")
+	return std::string("\tThis block is used for shifting points' times to some value.\n")
 		+ "\t\tIncoming edges: to_print.\n"
 		+ "\t\tPrams: time_shift -- shift value.\n";
 }
@@ -786,7 +786,7 @@ BlockBase* SendEmail::GetBlock(const std::string& type) const {
 
 
 std::string SendEmail::Description() const {
-	return std::string("\tThis block is used for sending email if points series name == true\n")
+	return std::string("\tThis block is used for sending email if points' series name == true\n")
 		+ "\t\tIncoming edges: to_send.\n"
 		+ "\t\tPrams: mail.\n";
 }
@@ -835,7 +835,7 @@ Point TimePeriodAggregator::Do(
 
 		sums[rounded_time] += point.GetValue();
 		logger <<
-			"Do in block TimePeriodAggregator: points count -- "
+			"Do in block TimePeriodAggregator: points number -- "
 			+ std::to_string(points_count[rounded_time])
 			+ "  with value -- "
 			+ std::to_string(sums[rounded_time]);
@@ -873,11 +873,11 @@ BlockBase* TimePeriodAggregator::GetBlock(const std::string& type) const {
 
 
 std::string TimePeriodAggregator::Description() const {
-	return std::string("\tThis block rounding points time and summarize points values with same worth\n")
+	return std::string("\tThis block rounding points' time and summarize points' values with same worth\n")
 		+ "\t\tIncoming edges: to_aggregate.\n"
 		+ "\t\tParams: round_time -- rounding precision,\n"
 		+ "\t\t\tkeep_history_interval -- points with greater than this time will not be taken into account,\n"
-		+ "\t\t\tmin_bucket_points -- minimum number of points with same time, which required for creating outgoing point.";
+		+ "\t\t\tmin_bucket_points -- minimal number of points with same time, which required for creating outgoing point.";
 }
 
 
@@ -1555,30 +1555,31 @@ std::string Graph::RecDFSFindCycle(
 }
 
 
-std::string Graph::DFSFindCycle(
+std::vector<std::string> Graph::DFSFindCycle(
 	std::unordered_map<std::string, int>* colors,
 	std::string start_block
 ) const {
 	std::unordered_map<std::string, std::string> way;
+	std::vector<std::string> vway;
 	colors->operator[](start_block) = 1;
 	std::string block_in_cycle = RecDFSFindCycle(colors, &way, start_block);
 	colors->operator[](start_block) = 2;
 	if (block_in_cycle != std::string("\0")) {
 		std::string tmp = way[block_in_cycle];
-		std::string sway = "\n" + tmp;
+		vway = {tmp};
 		while (tmp != block_in_cycle) {
 			tmp = way[tmp];
-			sway += "\n" + tmp;
+			vway.push_back(tmp);
 		}
-		return sway;
 	}
 
-	return std::string("\0");
+	return vway;
+
 }
 
 
 
-void Graph::Verification() {
+std::vector<std::string> Graph::Verification() {
 	std::unordered_map<std::string, int> used;
 	for (auto it = blocks.begin(); it != blocks.end(); ++it) {
 		it->second->Verification();
@@ -1587,13 +1588,14 @@ void Graph::Verification() {
 
 	for (auto it = used.begin(); it != used.end(); ++it) {
 		if (it->second == 0) {
-			std::string cycle = DFSFindCycle(&used, it->first);
-			if (cycle != std::string("\0")) {
-				throw GANException(164920 ,"Graph has cycle: " + cycle);
+			std::vector<std::string> cycle = DFSFindCycle(&used, it->first);
+			if (cycle.size() != 0) {
+				return cycle;
 			}
 		}
 
 	}
+	return std::vector<std::string>();
 
 }
 
@@ -2119,201 +2121,201 @@ WorkSpace::QueryAction::QueryAction(const Json::Value*  json_params, WorkSpace* 
 
 Json::Value WorkSpace::JsonRespond(const Json::Value& query) {
 	Json::Value answer;
-	try {
-		Json::StyledWriter styledWriter;
-		logger << styledWriter.write(query);
-		std::string query_type = query["type"].asString();
+	Json::StyledWriter styledWriter;
+	logger << styledWriter.write(query);
+	std::string query_type = query["type"].asString();
 
-		std::string graph_name = query["graph"].asString();
-		std::string objects_type = query["object"].asString();
-		bool ignore = query["ignore"].asBool();
-		answer["status"] = 0;
-		if (
-			query_type != "create"
-			&& query_type != "load"
-			&& objects_type != "graph"
-			&& graph_name != ""
-			&& graphs.count(graph_name) == 0
-		) {
-			throw GANException(
-				419294,
-				"Graph with name " + graph_name  +  " does not exist."
-			);
+	std::string graph_name = query["graph"].asString();
+	std::string objects_type = query["object"].asString();
+	bool ignore = query["ignore"].asBool();
+	answer["status"] = 0;
+	if (
+		query_type != "create"
+		&& query_type != "load"
+		&& objects_type != "graph"
+		&& graph_name != ""
+		&& graphs.count(graph_name) == 0
+	) {
+		throw GANException(
+			419294,
+			"Graph with name " + graph_name  +  " does not exist."
+		);
+	}
+	if (query_type == "empty_query") {
+		answer["status"] = 1;
+	} else if (query_type == "create" || query_type == "delete") {			// create or delete
+		QueryAction(&query, this, &answer);
+
+	} else if (query_type == "deploy") {				// deploy graph
+		std::vector<std::string> cycle = Verification(graph_name);
+		if (cycle.size() == 0) {
+			answer["status"] = 1;
+		} else {
+			answer["status"] = 0;
+			answer["cycle"] = CreateJson(cycle);
 		}
-		if (query_type == "empty_query") {
-			answer["status"] = 1;
-		} else if (query_type == "create" || query_type == "delete") {			// create or delete
-			QueryAction(&query, this, &answer);
 
-		} else if (query_type == "deploy") {				// deploy graph
-			Verification(graph_name);
-			answer["status"] = 1;
+	} else if (query_type == "is_deployed") { 			// is graph deploy
+		answer["head"].append("GraphDeployed");
+		Json::Value table;
+		table.append(((graphs[graph_name]->GetGraphValid() == 1) ? 1 : 0));
+		answer["table"].append(table);
+		answer["status"] = 1;
+	}  else if (query_type == "insert") {				// insert point
+		Json::Value points = query["points"];
+		std::string block_name = query["block"].asString();
 
-		} else if (query_type == "is_deployed") { 			// is graph deploy
-			answer["head"].append("GraphDeployed");
-			Json::Value table;
-			table.append(((graphs[graph_name]->GetGraphValid() == 1) ? 1 : 0));
-			answer["table"].append(table);
-			answer["status"] = 1;
-		}  else if (query_type == "insert") {				// insert point
-			Json::Value points = query["points"];
-			std::string block_name = query["block"].asString();
-
-			for (size_t i = 0; i < points.size(); ++i) {
-				Json::Value point = points[i];
-				Point p(point["series"].asString(), point["value"].asDouble(), point["time"].asInt());
-				logger << p;
-				if (query["block"].isNull()) {
-					graphs[graph_name]->InsertPointToAllPossibleBlocks(p);
-				} else {
-					graphs[graph_name]->InsertPoint(p, block_name);
-				}
-			}
-			answer["status"] = 1;
-		} else if (query_type == "modify") {				// modify params
-			std::string param_name = query["name"].asString();
-			StringType param_value = query["value"].asString();
-			std::string block_name = query["block"].asString();
-
-			if (graphs.count(graph_name) == 0) {
-				throw GANException(195702, "Graph with name " + graph_name  +  " does not exist.");
-			}
-			Graph* graph = graphs[graph_name];
-			graph->AddParam(param_name, param_value, block_name);
-			graph->AddParamToTable(param_name, param_value, block_name);
-			ChangeGraphsValid(graph_name, 0);
-			answer["status"] = 1;
-		} else if (query_type == "show") {				// show
-			if (objects_type == "graphs") {					// show graphs
-				answer["head"].append("GraphName");
-				for (auto it = graphs.begin(); it != graphs.end(); ++it) {
-					Json::Value name;
-					name.append(it->first);
-					answer["table"].append(name);
-				}
-			} else if (objects_type == "blocks") {					// show blocks
-				answer["head"] = CreateJson(std::vector<std::string>({"Name", "Type"}));
-				answer["table"] = CreateJson(graphs[graph_name]->GetBlocksNames());
-			} else if (objects_type == "params") {				// show params
-				std::string block_name = query["block"].asString();
-
-				answer["head"] = CreateJson(std::vector<std::string>({"Name", "Value"}));
-				answer["table"] = CreateJson(graphs[graph_name]->GetBlocksParams(block_name));
-			} else if (objects_type == "edges") {				// show edges
-				answer["head"] = CreateJson<std::string>({"From", "EdgeName", "To"});
-				answer["table"] = CreateJson(graphs[graph_name]->GetEdges());
-			} else if (objects_type == "possible_edges") {			// show possible edges
-				std::string block_name = query["block"].asString();
-
-				answer["head"].append("EdgeName");
-				answer["table"] = CreateJson(graphs[graph_name]->GetPossibleEdges(block_name));
-			} else if (objects_type == "block_type") {			// show block type
-				std::string block_name = query["block"].asString();
-
-				answer["head"].append("BlockType");
-				answer["table"].append(
-						CreateJson(
-							std::vector<std::string>({graphs[graph_name]->GetBlockType(block_name)})
-						)
-				);
-			} else if (objects_type == "types") {				// show blocks types
-				answer["head"].append("Types");
-				answer["table"] = Block(1,"","EmptyBlock",NULL).GetTableOfBlocksDescriptions() ;
+		for (size_t i = 0; i < points.size(); ++i) {
+			Json::Value point = points[i];
+			Point p(point["series"].asString(), point["value"].asDouble(), point["time"].asInt());
+			logger << p;
+			if (query["block"].isNull()) {
+				graphs[graph_name]->InsertPointToAllPossibleBlocks(p);
 			} else {
-				answer["status"] = 0;
-				answer["error"] = "Incorrect json query.";
+				graphs[graph_name]->InsertPoint(p, block_name);
 			}
+		}
+		answer["status"] = 1;
+	} else if (query_type == "modify") {				// modify params
+		std::string param_name = query["name"].asString();
+		StringType param_value = query["value"].asString();
+		std::string block_name = query["block"].asString();
 
-			answer["status"] = 1;
-
-		} else if (query_type == "save")  {				// save graph
-			std::string file_name = query["file"].asString();
-
-			graphs[graph_name]->SaveGraphToFile(file_name);
-			answer["status"] = 1;
-		} else if (query_type == "convert") {			//convert
-			std::string file_name = query["file"].asString();
-
-			answer["head"].append("Query");
-			answer["table"] = CreateJson(ConvertConfigToQueries(file_name));
-			answer["status"] = 1;
-		} else if (query_type == "load") {			// load graph
-			bool replace = query["replace"].asBool();
-			std::string file_name = query["file"].asString();
-			std::vector<std::string> first_queries;
-			if (replace) {
-				Json::Value delete_query = CreateJson(
-					std::map<std::string, std::string>({
-						{"type", "delete"},
-						{"object", "graph"},
-						{"graph", graph_name}
-					})
-				);
-				JsonRespond(delete_query);
+		if (graphs.count(graph_name) == 0) {
+			throw GANException(195702, "Graph with name " + graph_name  +  " does not exist.");
+		}
+		Graph* graph = graphs[graph_name];
+		graph->AddParam(param_name, param_value, block_name);
+		graph->AddParamToTable(param_name, param_value, block_name);
+		ChangeGraphsValid(graph_name, 0);
+		answer["status"] = 1;
+	} else if (query_type == "show") {				// show
+		if (objects_type == "graphs") {					// show graphs
+			answer["head"].append("GraphName");
+			for (auto it = graphs.begin(); it != graphs.end(); ++it) {
+				Json::Value name;
+				name.append(it->first);
+				answer["table"].append(name);
 			}
-			if (graphs.count(graph_name) != 0) {
-				IgnoreChecker checker(&answer, ignore);
-				CheckIgnore(
-					checker,
-					GANException(
-						128463,
-						(
-							std::string("Graph with name ")
-							+ graph_name
-							+  " already exists."
-						)
+		} else if (objects_type == "blocks") {					// show blocks
+			answer["head"] = CreateJson(std::vector<std::string>({"Name", "Type"}));
+			answer["table"] = CreateJson(graphs[graph_name]->GetBlocksNames());
+		} else if (objects_type == "params") {				// show params
+			std::string block_name = query["block"].asString();
 
+			answer["head"] = CreateJson(std::vector<std::string>({"Name", "Value"}));
+			answer["table"] = CreateJson(graphs[graph_name]->GetBlocksParams(block_name));
+		} else if (objects_type == "edges") {				// show edges
+			answer["head"] = CreateJson<std::string>({"From", "EdgeName", "To"});
+			answer["table"] = CreateJson(graphs[graph_name]->GetEdges());
+		} else if (objects_type == "possible_edges") {			// show possible edges
+			std::string block_name = query["block"].asString();
+
+			answer["head"].append("EdgeName");
+			answer["table"] = CreateJson(graphs[graph_name]->GetPossibleEdges(block_name));
+		} else if (objects_type == "block_type") {			// show block type
+			std::string block_name = query["block"].asString();
+
+			answer["head"].append("BlockType");
+			answer["table"].append(
+					CreateJson(
+						std::vector<std::string>({graphs[graph_name]->GetBlockType(block_name)})
 					)
-				);
-			} else {
-
-				Json::Value create_query = CreateJson(
-					std::map<std::string, std::string>({
-						{"type", "create"},
-						{"object", "graph"},
-						{"graph", graph_name}
-					})
-				);
-				JsonRespond(create_query);
-				answer = LoadGraphFromFile(
-					file_name,
-					graph_name
-				);
-			}
-		} else if (query_type == "help") { 				// help
-			answer["head"] = CreateJson(std::vector<std::string>({"Help"}));
-			std::string help = std::string("Queries:\n\tCreation/Deletion of objects:\n")
-				+ "\t\tcreate|delete [ignore] graph  <graph_name>\n"
-				+ "\t\tcreate|delete [ignore] block  <block_name>[:<block_type>] in graph <graph_name>\n"
-				+ "\t\tcreate|delete [ignore] edge  <edge_name> in graph <graph_name> from <from_vertex_name> to <to_vertex_name>\n"
-				+ "\tWork with graph:\n"
-				+ "\t\tdeploy graph <graph_name> -- verify the absence of cycles and availability of all incoming edges in blocks\n"
-				+ "\t\tis graph <graph_name> deployed -- return result of last graphs verification\n"
-				+ "\t\tinsert point '<series_name>':<time>:<double_value> into [block <block_name> of] graph <graph_name> -- insert point to all blocks without incoming edges or to current block\n"
-				+ "\t\tmodify param <param_name> to <param_value> in block <block_name> of graph <graph_name>\n"
-				+ "\tShow Graph Structure:\n"
-				+ "\t\tshow graphs\n"
-				+ "\t\tshow blocks types\n"
-				+ "\t\tshow blocks|edges of graph <graph_name>\n"
-				+ "\t\tshow params|possible edges of block <block_name> of graph <graph_name>\n"
-				+ "\t\tshow block type of block <block_name> of graph <graph_name>\n"
-				+ "\t\thelp\n"
-				+ "\tOperation with graph:\n"
-				+ "\t\tsave graph <graph_name> to file <file_name>\n"
-				+ "\t\tconvert config <file_name> to queries\n"
-				+ "\t\tload [replace|ignore] graph <graph_name> from file <file_name> -- in this query file with config is converted to sequence of requests and executed step by step\n"
-				+ "Blocks:\n" + Block(1,"","EmptyBlock",NULL).GetAllBlocksDescriptions();
-
-
-			answer["table"] = CreateJson(std::vector<std::vector<std::string> >({{help}}));
-			answer["status"] = 1;
+			);
+		} else if (objects_type == "types") {				// show blocks types
+			answer["head"].append("Types");
+			answer["table"] = Block(1,"","EmptyBlock",NULL).GetTableOfBlocksDescriptions() ;
 		} else {
 			answer["status"] = 0;
 			answer["error"] = "Incorrect json query.";
 		}
-	} catch (std::exception& e) {
+
+		answer["status"] = 1;
+
+	} else if (query_type == "save")  {				// save graph
+		std::string file_name = query["file"].asString();
+
+		graphs[graph_name]->SaveGraphToFile(file_name);
+		answer["status"] = 1;
+	} else if (query_type == "convert") {			//convert
+		std::string file_name = query["file"].asString();
+
+		answer["head"].append("Query");
+		answer["table"] = CreateJson(ConvertConfigToQueries(file_name));
+		answer["status"] = 1;
+	} else if (query_type == "load") {			// load graph
+		bool replace = query["replace"].asBool();
+		std::string file_name = query["file"].asString();
+		std::vector<std::string> first_queries;
+		if (replace) {
+			Json::Value delete_query = CreateJson(
+				std::map<std::string, std::string>({
+					{"type", "delete"},
+					{"object", "graph"},
+					{"graph", graph_name}
+				})
+			);
+			JsonRespond(delete_query);
+		}
+		if (graphs.count(graph_name) != 0) {
+			IgnoreChecker checker(&answer, ignore);
+			CheckIgnore(
+				checker,
+				GANException(
+					128463,
+					(
+						std::string("Graph with name ")
+						+ graph_name
+						+  " already exists."
+					)
+
+				)
+			);
+		} else {
+
+			Json::Value create_query = CreateJson(
+				std::map<std::string, std::string>({
+					{"type", "create"},
+					{"object", "graph"},
+					{"graph", graph_name}
+				})
+			);
+			JsonRespond(create_query);
+			answer = LoadGraphFromFile(
+				file_name,
+				graph_name
+			);
+		}
+	} else if (query_type == "help") { 				// help
+		answer["head"] = CreateJson(std::vector<std::string>({"Help"}));
+		std::string help = std::string("Queries:\n\tCreation/Deletion of objects:\n")
+			+ "\t\tcreate|delete [ignore] graph  <graph_name>\n"
+			+ "\t\tcreate|delete [ignore] block  <block_name>[:<block_type>] in graph <graph_name>\n"
+			+ "\t\tcreate|delete [ignore] edge  <edge_name> in graph <graph_name> from <from_vertex_name> to <to_vertex_name>\n"
+			+ "\tWork with graph:\n"
+			+ "\t\tdeploy graph <graph_name> -- verify the absence of cycles and availability of all incoming edges in blocks\n"
+			+ "\t\tis graph <graph_name> deployed -- return result of last graphs verification\n"
+			+ "\t\tinsert point '<series_name>':<time>:<double_value> into [block <block_name> of] graph <graph_name> -- insert point to all blocks without incoming edges or to current block\n"
+			+ "\t\tmodify param <param_name> to <param_value> in block <block_name> of graph <graph_name>\n"
+			+ "\tShow Graph Structure:\n"
+			+ "\t\tshow graphs\n"
+			+ "\t\tshow blocks types\n"
+			+ "\t\tshow blocks|edges of graph <graph_name>\n"
+			+ "\t\tshow params|possible edges of block <block_name> of graph <graph_name>\n"
+			+ "\t\tshow block type of block <block_name> of graph <graph_name>\n"
+			+ "\t\thelp\n"
+			+ "\tOperations with graph:\n"
+			+ "\t\tsave graph <graph_name> to file <file_name>\n"
+			+ "\t\tconvert config <file_name> to queries\n"
+			+ "\t\tload [replace|ignore] graph <graph_name> from file <file_name> -- in this query file with config is converted to sequence of requests and executed step by step\n"
+			+ "Blocks:\n" + Block(1,"","EmptyBlock",NULL).GetAllBlocksDescriptions();
+
+
+		answer["table"] = CreateJson(std::vector<std::vector<std::string> >({{help}}));
+		answer["status"] = 1;
+	} else {
 		answer["status"] = 0;
-		answer["error"] = e.what();
+		answer["error"] = "Incorrect json query.";
 	}
 	return answer;
 
@@ -2378,9 +2380,12 @@ void WorkSpace::ChangeGraphsValid(const std::string& graph_name, const int graph
 }
 
 
-void WorkSpace::Verification(const std::string& graph_name) {
-	graphs[graph_name]->Verification();
-	ChangeGraphsValid(graph_name, 1);
+std::vector<std::string> WorkSpace::Verification(const std::string& graph_name) {
+	std::vector<std::string> cycle = graphs[graph_name]->Verification();
+	if (cycle.size() != 0) {
+		ChangeGraphsValid(graph_name, 1);
+	}
+	return cycle;
 }
 
 std::vector<std::vector<std::string> > WorkSpace::ConvertConfigToQueries(

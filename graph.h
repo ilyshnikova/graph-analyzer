@@ -643,9 +643,9 @@ public:
 
 	void Delete(const std::string& block_name);
 
-	void Verification();
+	std::vector<std::string> Verification();
 
-	std::string DFSFindCycle(
+	std::vector<std::string> DFSFindCycle(
 		std::unordered_map<std::string, int>* colors,
 		std::string start_block
 	) const;
@@ -923,7 +923,7 @@ public:
 
 	void ChangeGraphsValid(const std::string& graph_name, const int valid);
 
-	void Verification(const std::string& graph_name);
+	std::vector<std::string> Verification(const std::string& graph_name);
 
 	std::vector<std::vector<std::string> >  ConvertConfigToQueries(
 		const std::string& file_name,

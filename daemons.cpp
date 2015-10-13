@@ -127,8 +127,9 @@ bool BaseClient::Conversation(std::string* answer, const size_t RECV_PART, struc
 	if (!GetQuery(&query)) {
 		return false;
 	}
+	int socketfd;
 	try {
-		int socketfd = Connect();
+		socketfd = Connect();
 		query = CreateJsonForDaemon(query);
 		SendMessage(socketfd, query);
 		shutdown(socketfd, 1);
@@ -139,7 +140,10 @@ bool BaseClient::Conversation(std::string* answer, const size_t RECV_PART, struc
 		close(socketfd);
 	} catch (std::exception& e) {
 		*answer =  e.what();
+		freeaddrinfo(host_info_list);
+		close(socketfd);
 	}
+
 	return true;
 }
 
