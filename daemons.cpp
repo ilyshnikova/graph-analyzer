@@ -136,14 +136,13 @@ bool BaseClient::Conversation(std::string* answer, const size_t RECV_PART, struc
 
 		std::string got_message = GetMessage(RECV_PART, tv, socketfd);
 		*answer = CreateAnswerFromJson(got_message);
-		freeaddrinfo(host_info_list);
-		close(socketfd);
+
 	} catch (std::exception& e) {
 		*answer =  e.what();
-		freeaddrinfo(host_info_list);
-		close(socketfd);
 	}
 
+	freeaddrinfo(host_info_list);
+	close(socketfd);
 	return true;
 }
 
