@@ -1611,7 +1611,7 @@ size_t Graph::IncomingEdgesCount(const std::string& block_name) const {
 
 void Graph::InsertPoint(const Point& point, const std::string& block_name) {
 	if (!valid) {
-		throw GANException(207530, "Graph " + graph_name + " is not valid, run 'deploy graph " + graph_name + "'.");
+		throw GANException(207530, "Graph " + graph_name + " is not valid, try to deploy graph.");
 	}
 
 	if (blocks.count(block_name) != 0) {
