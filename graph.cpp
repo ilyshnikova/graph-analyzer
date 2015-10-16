@@ -1555,21 +1555,21 @@ std::string Graph::RecDFSFindCycle(
 }
 
 
-std::vector<std::string> Graph::DFSFindCycle(
+std::vector<std::vector<std::string> > Graph::DFSFindCycle(
 	std::unordered_map<std::string, int>* colors,
 	std::string start_block
 ) const {
 	std::unordered_map<std::string, std::string> way;
-	std::vector<std::string> vway;
+	std::vector<std::vector<std::string> > vway;
 	colors->operator[](start_block) = 1;
 	std::string block_in_cycle = RecDFSFindCycle(colors, &way, start_block);
 	colors->operator[](start_block) = 2;
 	if (block_in_cycle != std::string("\0")) {
 		std::string tmp = way[block_in_cycle];
-		vway = {tmp};
+		vway = {{tmp}};
 		while (tmp != block_in_cycle) {
 			tmp = way[tmp];
-			vway.push_back(tmp);
+			vway.push_back({tmp});
 		}
 	}
 
@@ -1577,9 +1577,27 @@ std::vector<std::string> Graph::DFSFindCycle(
 
 }
 
+std::vector<std::vector<std::string> > Graph::GetCycle() const {
+	std::unordered_map<std::string, int> used;
+	for (auto it = blocks.begin(); it != blocks.end(); ++it) {
+		used[it->first] = 0;
+	}
+
+	for (auto it = used.begin(); it != used.end(); ++it) {
+		if (it->second == 0) {
+			std::vector<std::vector<std::string> > cycle = DFSFindCycle(&used, it->first);
+			if (cycle.size() != 0) {
+				return cycle;
+			}
+		}
+
+	}
+	return std::vector<std::vector<std::string> >();
+
+}
 
 
-std::vector<std::string> Graph::Verification() {
+void  Graph::Verification() {
 	std::unordered_map<std::string, int> used;
 	for (auto it = blocks.begin(); it != blocks.end(); ++it) {
 		it->second->Verification();
@@ -1588,14 +1606,13 @@ std::vector<std::string> Graph::Verification() {
 
 	for (auto it = used.begin(); it != used.end(); ++it) {
 		if (it->second == 0) {
-			std::vector<std::string> cycle = DFSFindCycle(&used, it->first);
+			std::vector<std::vector<std::string> > cycle = DFSFindCycle(&used, it->first);
 			if (cycle.size() != 0) {
-				return cycle;
+				throw GANException(245162, "Graph " + graph_name + " has cycle.");
 			}
 		}
 
 	}
-	return std::vector<std::string>();
 
 }
 
@@ -2147,13 +2164,8 @@ Json::Value WorkSpace::JsonRespond(const Json::Value& query) {
 		QueryAction(&query, this, &answer);
 
 	} else if (query_type == "deploy") {				// deploy graph
-		std::vector<std::string> cycle = Verification(graph_name);
-		if (cycle.size() == 0) {
+		Verification(graph_name);
 			answer["status"] = 1;
-		} else {
-			answer["status"] = 0;
-			answer["cycle"] = CreateJson(cycle);
-		}
 
 	} else if (query_type == "is_deployed") { 			// is graph deploy
 		answer["head"].append("GraphDeployed");
@@ -2225,6 +2237,9 @@ Json::Value WorkSpace::JsonRespond(const Json::Value& query) {
 		} else if (objects_type == "types") {				// show blocks types
 			answer["head"].append("Types");
 			answer["table"] = Block(1,"","EmptyBlock",NULL).GetTableOfBlocksDescriptions() ;
+		}  else if (objects_type == "cycle") {
+			answer["table"] = CreateJson(GetCycle(graph_name));
+			answer["head"].append("BlockName");
 		} else {
 			answer["status"] = 0;
 			answer["error"] = "Incorrect json query.";
@@ -2300,7 +2315,7 @@ Json::Value WorkSpace::JsonRespond(const Json::Value& query) {
 			+ "\tShow Graph Structure:\n"
 			+ "\t\tshow graphs\n"
 			+ "\t\tshow blocks types\n"
-			+ "\t\tshow blocks|edges of graph <graph_name>\n"
+			+ "\t\tshow blocks|edges|cycles of graph <graph_name>\n"
 			+ "\t\tshow params|possible edges of block <block_name> of graph <graph_name>\n"
 			+ "\t\tshow block type of block <block_name> of graph <graph_name>\n"
 			+ "\t\thelp\n"
@@ -2379,13 +2394,14 @@ void WorkSpace::ChangeGraphsValid(const std::string& graph_name, const int graph
 	graphs_table.Execute();
 }
 
+std::vector<std::vector<std::string> > WorkSpace::GetCycle(const std::string& graph_name) const {
+	return graphs.at(graph_name)->GetCycle();
+}
 
-std::vector<std::string> WorkSpace::Verification(const std::string& graph_name) {
-	std::vector<std::string> cycle = graphs[graph_name]->Verification();
-	if (cycle.size() == 0) {
-		ChangeGraphsValid(graph_name, 1);
-	}
-	return cycle;
+
+void WorkSpace::Verification(const std::string& graph_name) {
+	graphs[graph_name]->Verification();
+	ChangeGraphsValid(graph_name, 1);
 }
 
 std::vector<std::vector<std::string> > WorkSpace::ConvertConfigToQueries(
@@ -2606,3 +2622,4 @@ WorkSpace::~WorkSpace() {
 		delete it->second;
 	}
 }
+

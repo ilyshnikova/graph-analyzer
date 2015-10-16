@@ -643,9 +643,9 @@ public:
 
 	void Delete(const std::string& block_name);
 
-	std::vector<std::string> Verification();
+	 void Verification();
 
-	std::vector<std::string> DFSFindCycle(
+	std::vector<std::vector<std::string> > DFSFindCycle(
 		std::unordered_map<std::string, int>* colors,
 		std::string start_block
 	) const;
@@ -704,6 +704,8 @@ public:
 		const StringType& param_value,
 		const std::string& block_name
 	);
+
+	std::vector<std::vector<std::string> > GetCycle() const;
 
 	std::vector<std::vector<std::string> > GetBlocksNames() const;
 
@@ -909,6 +911,8 @@ public:
 
 	WorkSpace();
 
+	std::vector<std::vector<std::string> > GetCycle(const std::string& graph_name) const;
+
 	void AddGaphToTables(Graph* grpah);
 
 	bool IsGraphExist(const std::string& graph_name) const;
@@ -923,7 +927,7 @@ public:
 
 	void ChangeGraphsValid(const std::string& graph_name, const int valid);
 
-	std::vector<std::string> Verification(const std::string& graph_name);
+	void Verification(const std::string& graph_name);
 
 	std::vector<std::vector<std::string> >  ConvertConfigToQueries(
 		const std::string& file_name,
