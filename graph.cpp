@@ -2315,7 +2315,7 @@ Json::Value WorkSpace::JsonRespond(const Json::Value& query) {
 			+ "\tShow Graph Structure:\n"
 			+ "\t\tshow graphs\n"
 			+ "\t\tshow blocks types\n"
-			+ "\t\tshow blocks|edges|cycles of graph <graph_name>\n"
+			+ "\t\tshow blocks|edges|cycle of graph <graph_name>\n"
 			+ "\t\tshow params|possible edges of block <block_name> of graph <graph_name>\n"
 			+ "\t\tshow block type of block <block_name> of graph <graph_name>\n"
 			+ "\t\thelp\n"
