@@ -548,8 +548,22 @@ std::string TerminalClient::CreateJsonForDaemon(const std::string& query) const	
 			})
 		);
 
-	} else if
-		(
+	} else if (
+		boost::regex_match(
+			query,
+			match,
+			boost::regex("\\s*show\\s+cycle\\s+of\\s+graph\\s+(\\w+)\\s*")
+		)
+	) {
+		json_query = CreateJson(
+			std::map<std::string, std::string>({
+				{"type", "show"},
+				{"object", "cycle"},
+				{"graph", match[1]}
+			})
+		);
+
+	} else if  (
 		boost::regex_match(
 			query,
 			match,
@@ -633,9 +647,6 @@ TerminalClient::TerminalClient(const std::string& ip, const std::string& port)
 /*    DaemonBase      */
 
 int DaemonBase::Connect() {
-	std::string ip = "127.0.0.1";
-	std::string port = "8081";
-
 	int socketfd = Start();
 
 
