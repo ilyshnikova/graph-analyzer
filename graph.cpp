@@ -2197,12 +2197,6 @@ Json::Value WorkSpace::JsonRespond(const Json::Value& query) {
 		answer["head"].append("GraphDeployed");
 		int is_deployed = ((graphs[graph_name]->GetGraphValid() == 1) ? 1 : 0);
 		std::vector<std::map<std::string, int> >  table = {{{"GraphDeployed", is_deployed}},};
-//		table[0]["GetGraphValid"] = is_deployed;
-//		table.append(std::map<std::string, std::string>{
-//			"GraphDeployed",
-//			((graphs[graph_name]->GetGraphValid() == 1) ? "1" : "0")
-//
-//		});
 		answer["table"] = CreateJson(table);
 		answer["status"] = 1;
 	}  else if (query_type == "insert") {				// insert point
