@@ -226,11 +226,12 @@ std::string TerminalClient::CreateAnswerFromJson(const std::string& json) {
 	}
 	if (!answer["table"].isNull()) {
 		Json::Value table = answer["table"];
+		Json::Value head = answer["head"];
 		for (size_t i = 0; i < table.size(); ++i) {
 			string_ans += "\n";
 			Json::Value row = table[i];
-			for (size_t j = 0; j < row.size(); ++j) {
-				string_ans += row[j].asString() + "\t";
+			for (size_t j = 0; j < head.size(); ++j) {
+				string_ans += row[head[j].asString()].asString() + "\t";
 			}
 		}
 	}
