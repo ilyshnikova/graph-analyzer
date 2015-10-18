@@ -1007,7 +1007,6 @@ std::string Block::GetAllBlocksDescriptions() const {
 }
 
 std::vector<std::vector<std::string> > Block::GetTableOfBlocksDescriptions() const {
-//	Json::Value res;
 	std::vector<std::vector<std::string> > res(blocks.size());
 	for (size_t i = 0; i < blocks.size(); ++i) {
 		res[i].push_back(blocks[i]->block_name_for_definition);
