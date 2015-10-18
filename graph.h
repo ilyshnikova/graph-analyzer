@@ -15,8 +15,19 @@
 
 /*	Json	*/
 
+std::vector<std::map<std::string, std::string> > CreatreTable(
+	const std::vector<std::vector<std::string> >& matrix,
+	const std::vector<std::string>& head
+);
+
+Json::Value CreateJsonTable(
+	const std::vector<std::vector<std::string> >& matrix,
+	const std::vector<std::string>& head
+);
+
 Json::Value CreateJson(const std::string& value);
 
+Json::Value CreateJson(const int& value);
 
 template
 <typename K,typename V>
@@ -512,7 +523,7 @@ public:
 
 	std::string GetAllBlocksDescriptions() const;
 
-	Json::Value GetTableOfBlocksDescriptions() const;
+	std::vector<std::vector<std::string> > GetTableOfBlocksDescriptions() const;
 
 	Block(
 		const int id,

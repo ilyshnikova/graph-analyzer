@@ -23,7 +23,7 @@ public:
 		tstruct = *localtime(&now);
 		strftime(buf, sizeof(buf), "%Y/%m/%d %X", &tstruct);
 
-		std::cout << buf << "." << milisec << "    " << variable << "\n";
+		std::cout << buf << "." << milisec << "    " << variable << std::endl;
 		return *this;
 	}
 };

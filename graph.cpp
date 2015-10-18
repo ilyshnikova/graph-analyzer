@@ -15,7 +15,36 @@
 
 /*	Json	*/
 
+
+
+std::vector<std::map<std::string, std::string> > CreatreTable(
+	const std::vector<std::vector<std::string> >& matrix,
+	const std::vector<std::string>& head
+) {
+	logger << matrix.size() << head.size();
+	std::vector<std::map<std::string, std::string> > table(matrix.size());
+	for (size_t i = 0; i < matrix.size(); ++i) {
+		for (size_t j = 0; j < matrix[i].size(); ++j) {
+			std::string key = head[j];
+			table[i][key] = matrix[i][j];
+		}
+	}
+	return table;
+}
+
+Json::Value CreateJsonTable(
+	const std::vector<std::vector<std::string> >& matrix,
+	const std::vector<std::string>& head
+) {
+	return CreateJson(CreatreTable(matrix, head));
+}
+
+
 Json::Value CreateJson(const std::string& value) {
+	return Json::Value(value);
+}
+
+Json::Value CreateJson(const int& value) {
 	return Json::Value(value);
 }
 
@@ -977,14 +1006,11 @@ std::string Block::GetAllBlocksDescriptions() const {
 
 }
 
-Json::Value Block::GetTableOfBlocksDescriptions() const {
-	Json::Value res;
+std::vector<std::vector<std::string> > Block::GetTableOfBlocksDescriptions() const {
+	std::vector<std::vector<std::string> > res(blocks.size());
 	for (size_t i = 0; i < blocks.size(); ++i) {
-		Json::Value row;
-		row.append(std::string(blocks[i]->block_name_for_definition));
-		row.append(std::string(blocks[i]->Description()));
-		res.append(row);
-
+		res[i].push_back(blocks[i]->block_name_for_definition);
+		res[i].push_back(blocks[i]->Description());
 	}
 	return res;
 
@@ -1753,6 +1779,7 @@ void Graph::SaveGraphToFile(const std::string& file_name) const {
 
 	out << YAML::Key << "blocks";
 	out << YAML::Value << YAML::BeginSeq;
+	logger << blocks.size();
 	for (auto it = blocks.cbegin(); it != blocks.cend(); ++it) {
 		out << *(it->second);
 	}
@@ -2147,9 +2174,7 @@ Json::Value WorkSpace::JsonRespond(const Json::Value& query) {
 	bool ignore = query["ignore"].asBool();
 	answer["status"] = 0;
 	if (
-		query_type != "create"
-		&& query_type != "load"
-		&& objects_type != "graph"
+		!((query_type == "create" &&  objects_type == "graph") ||query_type == "load")
 		&& graph_name != ""
 		&& graphs.count(graph_name) == 0
 	) {
@@ -2169,9 +2194,9 @@ Json::Value WorkSpace::JsonRespond(const Json::Value& query) {
 
 	} else if (query_type == "is_deployed") { 			// is graph deploy
 		answer["head"].append("GraphDeployed");
-		Json::Value table;
-		table.append(((graphs[graph_name]->GetGraphValid() == 1) ? 1 : 0));
-		answer["table"].append(table);
+		int is_deployed = ((graphs[graph_name]->GetGraphValid() == 1) ? 1 : 0);
+		std::vector<std::map<std::string, int> >  table = {{{"GraphDeployed", is_deployed}},};
+		answer["table"] = CreateJson(table);
 		answer["status"] = 1;
 	}  else if (query_type == "insert") {				// insert point
 		Json::Value points = query["points"];
@@ -2202,50 +2227,50 @@ Json::Value WorkSpace::JsonRespond(const Json::Value& query) {
 		ChangeGraphsValid(graph_name, 0);
 		answer["status"] = 1;
 	} else if (query_type == "show") {				// show
+		std::vector<std::string> head;
+		std::vector<std::vector<std::string> > table;
+		answer["status"] = 1;
 		if (objects_type == "graphs") {					// show graphs
-			answer["head"].append("GraphName");
+			head = {"GraphName"};
 			for (auto it = graphs.begin(); it != graphs.end(); ++it) {
-				Json::Value name;
-				name.append(it->first);
-				answer["table"].append(name);
+				table.push_back(std::vector<std::string>{it->first});
 			}
-		} else if (objects_type == "blocks") {					// show blocks
-			answer["head"] = CreateJson(std::vector<std::string>({"Name", "Type"}));
-			answer["table"] = CreateJson(graphs[graph_name]->GetBlocksNames());
+		} else if (objects_type == "blocks") {				// show blocks
+			head = {"Name", "Type"};
+			table = graphs[graph_name]->GetBlocksNames();
 		} else if (objects_type == "params") {				// show params
 			std::string block_name = query["block"].asString();
 
-			answer["head"] = CreateJson(std::vector<std::string>({"Name", "Value"}));
-			answer["table"] = CreateJson(graphs[graph_name]->GetBlocksParams(block_name));
+			head = {"Name", "Value"};
+			table = graphs[graph_name]->GetBlocksParams(block_name);
 		} else if (objects_type == "edges") {				// show edges
-			answer["head"] = CreateJson<std::string>({"From", "EdgeName", "To"});
-			answer["table"] = CreateJson(graphs[graph_name]->GetEdges());
+			head =  {"From", "EdgeName", "To"};
+			table = graphs[graph_name]->GetEdges();
 		} else if (objects_type == "possible_edges") {			// show possible edges
 			std::string block_name = query["block"].asString();
 
-			answer["head"].append("EdgeName");
-			answer["table"] = CreateJson(graphs[graph_name]->GetPossibleEdges(block_name));
+			head = {"EdgeName"};
+			table = graphs[graph_name]->GetPossibleEdges(block_name);
 		} else if (objects_type == "block_type") {			// show block type
 			std::string block_name = query["block"].asString();
 
-			answer["head"].append("BlockType");
-			answer["table"].append(
-				CreateJson(
-					std::vector<std::string>({graphs[graph_name]->GetBlockType(block_name)})
-				)
-			);
+			head = {"BlockType"};
+			table = std::vector<std::vector<std::string>>({{graphs[graph_name]->GetBlockType(block_name)}});
 		} else if (objects_type == "types") {				// show blocks types
-			answer["head"].append("Types");
-			answer["table"] = Block(1,"","EmptyBlock",NULL).GetTableOfBlocksDescriptions() ;
-		}  else if (objects_type == "cycle") {
-			answer["table"] = CreateJson(GetCycle(graph_name));
-			answer["head"].append("BlockName");
+			head = { "Type", "Description"};
+			table = Block(1,"","EmptyBlock",NULL).GetTableOfBlocksDescriptions();
+		}  else if (objects_type == "cycle") {				// show cycle
+			table = GetCycle(graph_name);
+			head = {"BlockName"};
 		} else {
 			answer["status"] = 0;
 			answer["error"] = "Incorrect json query.";
 		}
-
-		answer["status"] = 1;
+		if (answer["status"].asInt() == 1) {
+			answer["head"] = CreateJson(head);
+			answer["table"] = CreateJsonTable(table, head);
+			answer["status"] = 1;
+		}
 
 	} else if (query_type == "save")  {				// save graph
 		std::string file_name = query["file"].asString();
@@ -2584,9 +2609,9 @@ Json::Value WorkSpace::LoadGraphFromFile(
 			Json::FastWriter fastWriter;
 			table.append(
 				CreateJson(
-					std::vector<std::string>(
-						{fastWriter.write(queries[i])}
-					)
+					std::vector<std::map<std::string, std::string> >({
+						{{"Query", fastWriter.write(queries[i])}}
+					})
 				)
 			);
 			JsonRespond(queries[i]);
