@@ -6,7 +6,7 @@ Build-Depends:
 	debhelper (>=7.0.50),
 	libboost-all-dev,
 	libmysqlcppconn-dev(= 1.1.0-4+b1),
-	libyaml-cpp-dev,
+	libyaml-cpp-dev (= 0.3.0-1),
 	libjsoncpp-dev,
 	gcc-multilib,
 	libudev-dev,
@@ -22,8 +22,19 @@ Architecture: any
 Section: gan
 Priority: extra
 Depends:
+	mysql-server-5.5,
 	rlwrap,
 	nginx,
+	libmysqlcppconn-dev(= 1.1.0-4+b1),
+	libboost-all-dev,
+	libcurl4-gnutls-dev,
+	libfcgi-dev,
+	libcgicc5-dev,
+	libjsoncpp-dev,
+	libyaml-cpp-dev (= 0.3.0-1),
+	libudev-dev,
+	libjson0,
+	libjson0-dev,
 Description: common apache2 settings
 
 
