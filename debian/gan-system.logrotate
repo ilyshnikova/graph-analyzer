@@ -1,0 +1,6 @@
+/nginx-server.log
+/gan-server.log
+{
+	weekly
+	rotate 2
+}
