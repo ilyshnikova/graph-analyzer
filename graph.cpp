@@ -2356,7 +2356,6 @@ Json::Value WorkSpace::JsonRespond(const Json::Value& query) {
 		table =  std::vector<std::vector<std::string> >{{help}};
 		answer["table"] = CreateJsonTable(table, head);
 
-//		answer["table"] = CreateJson(std::vector<std::vector<std::string> >({{help}}));
 		answer["status"] = 1;
 	} else {
 		answer["status"] = 0;
