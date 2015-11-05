@@ -2327,7 +2327,10 @@ Json::Value WorkSpace::JsonRespond(const Json::Value& query) {
 			);
 		}
 	} else if (query_type == "help") { 				// help
-		answer["head"] = CreateJson(std::vector<std::string>({"Help"}));
+		std::vector<std::string> head = std::vector<std::string>({"Help"});
+		std::vector<std::vector<std::string> > table;
+
+		answer["head"] = CreateJson(head);
 		std::string help = std::string("Queries:\n\tCreation/Deletion of objects:\n")
 			+ "\t\tcreate|delete [ignore] graph  <graph_name>\n"
 			+ "\t\tcreate|delete [ignore] block  <block_name>[:<block_type>] in graph <graph_name>\n"
@@ -2350,8 +2353,9 @@ Json::Value WorkSpace::JsonRespond(const Json::Value& query) {
 			+ "\t\tload [replace|ignore] graph <graph_name> from file <file_name> -- in this query file with config is converted to sequence of requests and executed step by step\n"
 			+ "Blocks:\n" + Block(1,"","EmptyBlock",NULL).GetAllBlocksDescriptions();
 
+		table =  std::vector<std::vector<std::string> >{{help}};
+		answer["table"] = CreateJsonTable(table, head);
 
-		answer["table"] = CreateJson(std::vector<std::vector<std::string> >({{help}}));
 		answer["status"] = 1;
 	} else {
 		answer["status"] = 0;
