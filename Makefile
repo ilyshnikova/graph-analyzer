@@ -1,5 +1,5 @@
 all: mysql-test client test-server gan-server testing nginx-server
-BASEP = -Wall -std=c++0x -gdwarf-3 -g
+BASEP = -Wall -std=c++0x
 
 gan-exception.o: gan-exception.cpp
 	g++ $(BASEP) -c gan-exception.cpp
