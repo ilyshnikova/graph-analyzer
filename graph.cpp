@@ -116,7 +116,7 @@ Point Point::Empty() {
 }
 
 Point::operator std::string() const {
-	std::time_t current_time(1440930405);
+	std::time_t current_time(time);
 	char mbstr[100];
 	if (std::strftime(mbstr, sizeof(mbstr), "%A %c", std::localtime(&current_time))) {
 		return std::string("Point(")
