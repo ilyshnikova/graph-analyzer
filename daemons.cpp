@@ -119,7 +119,6 @@ bool BaseClient::GetQuery(std::string* query)  {
 		return false;
 	}
 	return !std::cout.eof();
-//	return true;
 }
 
 

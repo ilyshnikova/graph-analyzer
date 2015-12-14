@@ -1,2 +1,8 @@
-rlwrap /root/gan-system/client
+if [ -f './client' ]; then
+	echo 'runing local client' && rlwrap ./client
+else
+	rlwrap /root/gan-system/client
+fi
+
+#rlwrap /root/gan-system/client
 #rlwrap ./client
