@@ -3,6 +3,3 @@ if [ -f './client' ]; then
 else
 	rlwrap /root/gan-system/client
 fi
-
-#rlwrap /root/gan-system/client
-#rlwrap ./client
