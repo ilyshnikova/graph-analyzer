@@ -118,7 +118,7 @@ bool BaseClient::GetQuery(std::string* query)  {
 		std::cout << "\n";
 		return false;
 	}
-	return true;
+	return !std::cout.eof();
 }
 
 
@@ -162,7 +162,9 @@ void BaseClient::Process() {
 
 	while (1) {
 		std::string answer;
-		Conversation(&answer, RECV_PART, tv);
+		if (!Conversation(&answer, RECV_PART, tv)) {
+			return;
+		}
 		Callback(answer);
 	}
 
