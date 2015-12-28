@@ -43,7 +43,7 @@ void operator >> (const YAML::Node& node, IncomingPoint& point) {
 
 
 bool Test::Testing(const std::string& block_type) const {
- 	BlockBase* block = Block(1, "", block_type, NULL).GetBlock();
+ 	BlockBase* block = Block(1, "", block_type, NULL, NULL).GetBlock();
 	block->param_values = params;
 	for (size_t i = 0; i < incoming_points.size(); ++i) {
 		std::unordered_map<std::string, Point> values = incoming_points[i];

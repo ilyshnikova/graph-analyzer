@@ -619,6 +619,46 @@ std::string TerminalClient::CreateJsonForDaemon(const std::string& query) const	
 		boost::regex_match(
 			query,
 			match,
+			boost::regex("\\s*enable\\s+debug\\s+mode\\s+on\\s+graph\\s+(\\w+)")
+		)
+	) {
+		json_query["type"] = "debug";
+		json_query["object"] = "mode";
+		json_query["enable"] = true;
+		json_query["graph"] = std::string(match[1]);
+
+	} else  if (
+		boost::regex_match(
+			query,
+			match,
+			boost::regex("\\s*disable\\s+debug\\s+mode\\s+on\\s+graph\\s+(\\w+)")
+		)
+	) {
+		json_query["type"] = "debug";
+		json_query["object"] = "mode";
+		json_query["enable"] = false;
+		json_query["graph"] = std::string(match[1]);
+	}  else if (
+		boost::regex_match(
+			query,
+			match,
+			boost::regex("\\s*get\\s+debug\\s+info\\s+of\\s+graph\\s+(\\w+)\\s*")
+		)
+	) {
+		json_query = CreateJson(
+			std::map<std::string, std::string>({
+				{"type", "debug"},
+				{"object", "info"},
+				{"graph", match[1]}
+			})
+		);
+
+
+
+	} else if (
+		boost::regex_match(
+			query,
+			match,
 			boost::regex("\\s*help\\s*")
 		)
 	) {
