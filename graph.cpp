@@ -6,6 +6,8 @@
 #include <limits>
 #include <fstream>
 #include <json/json.h>
+#include <fstream>
+#include <cstdio>
 #include "gan-exception.h"
 #include "graph.h"
 #include "logger.h"
@@ -135,6 +137,15 @@ Point::operator std::string() const {
 std::ostream& operator<< (std::ostream& out, const Point& point) {
 	out << std::string(point);
 	return out;
+}
+
+Json::Value CreateJson(const Point& point) {
+	Json::Value jpoint;
+	jpoint["series_name"] = point.GetSeriesName();
+	jpoint["value"] = point.GetValue();
+	jpoint["time"] = (long long int)point.GetTime();
+
+	return jpoint;
 }
 
 
@@ -955,11 +966,13 @@ Block::Block(
 	const int id,
 	const std::string& block_name,
 	const std::string& block_type,
+	Graph* parent_graph,
 	BlockCacheUpdaterBuffer* block_buffer
 )
 : block()
 , id(id)
 , block_name(block_name)
+, parent_graph(parent_graph)
 , data()
 , blocks({
 	new Sum(1),
@@ -1167,6 +1180,19 @@ void Block::Insert(const Point& point, const std::string& edge_name) {
 		data.erase(time);
 
 		if (!result.IsEmpty()) {
+			if (parent_graph->IsDebugModeEnabled()) {
+				Json::Value info = CreateJson(
+					std::map<std::string, std::string>({
+						{"type", "point_emmition"},
+						{"block", block_name},
+					})
+				);
+
+
+				info["point"] = CreateJson(result);
+				Json::FastWriter writer;
+				parent_graph->WriteToBedugInfo(writer.write(info));
+			}
 			SendByAllEdges(result);
 		}
 	}
@@ -1270,6 +1296,7 @@ Graph::Graph(
 , blocks_params_table(blocks_params_table)
 , valid(valid)
 , block_buffer(block_buffer)
+, debug_mode(false)
 {
 	Load();
 }
@@ -1363,7 +1390,7 @@ Block* Graph::CreateBlock(
 ) {
 
 	if (blocks.count(block_name) == 0) {
-		Block* block = new Block(block_id, block_name, block_type, block_buffer);
+		Block* block = new Block(block_id, block_name, block_type, this, block_buffer);
 		blocks[block_name] = block;
 		return block;
 	} else {
@@ -1717,8 +1744,11 @@ void Graph::AddParam(const std::string& param_name, const StringType& param_valu
 	}
 
 	blocks[block_name]->AddParam(param_name, param_value);
+}
 
 
+bool Graph::IsDebugModeEnabled() {
+	return debug_mode;
 }
 
 
@@ -1797,12 +1827,54 @@ void Graph::SaveGraphToFile(const std::string& file_name) const {
 	config.close();
 }
 
+
+void Graph::WriteToBedugInfo(const std::string& info) {
+	logger << info;
+	debug_info_file << info;
+	debug_info_file.flush();
+}
+
+
+
+void Graph::EnableDebugMode() {
+	debug_mode = true;
+	logger << "create file /root/gan-system/debug_info/" + std::to_string(id);
+	debug_info_file.open("/root/gan-system/debug_info/" + std::to_string(id), std::ofstream::out | std::ofstream::trunc);
+}
+
+
+void Graph::DisableDebugMode() {
+	std::string file_name  =  std::string("/root/gan-system/debug_info/" + std::to_string(id));
+	std::remove(file_name.c_str());
+	debug_mode = false;
+	debug_info_file.close();
+}
+
+
+std::vector<std::vector<std::string> > Graph::GetDebugInfo() {
+	logger << std::string("Debug mode ")  + (debug_mode ? "true" : "false");
+	if (!debug_mode) {
+		throw GANException(124583, "Debug mode of graph " + graph_name  +  " disabled.");
+	}
+	std::vector<std::vector<std::string> > table;
+	std::ifstream in;
+	in.open("/root/gan-system/debug_info/" + std::to_string(id));
+	std::string event_info;
+	while (std::getline(in, event_info)) {
+		table.push_back(std::vector<std::string>({event_info}));
+	}
+	return table;
+}
+
 Graph::~Graph() {
 	for (auto it = blocks.begin(); it != blocks.end(); ++it) {
 		delete it->second;
 	}
-}
+	if (debug_mode) {
+		debug_info_file.close();
 
+	}
+}
 
 
 /*   WorkSpace    */
@@ -2258,7 +2330,7 @@ Json::Value WorkSpace::JsonRespond(const Json::Value& query) {
 			table = std::vector<std::vector<std::string>>({{graphs[graph_name]->GetBlockType(block_name)}});
 		} else if (objects_type == "types") {				// show blocks types
 			head = { "Type", "Description"};
-			table = Block(1,"","EmptyBlock",NULL).GetTableOfBlocksDescriptions();
+			table = Block(1,"","EmptyBlock",NULL, NULL).GetTableOfBlocksDescriptions();
 		}  else if (objects_type == "cycle") {				// show cycle
 			table = GetCycle(graph_name);
 			head = {"BlockName"};
@@ -2326,7 +2398,21 @@ Json::Value WorkSpace::JsonRespond(const Json::Value& query) {
 				graph_name
 			);
 		}
-	} else if (query_type == "help") { 				// help
+	} else if (query_type  == "debug") {
+		if (objects_type == "mode") {
+			if (query["enable"].asBool()) {
+				graphs[graph_name]->EnableDebugMode();
+			} else {
+				graphs[graph_name]->DisableDebugMode();
+			}
+			answer["status"] = 1;
+		} else if (objects_type == "info") {
+			std::vector<std::string> head = std::vector<std::string>({"Event"});
+			answer["head"].append("Event");
+			answer["table"] = CreateJsonTable(graphs[graph_name]->GetDebugInfo(), head);
+			answer["status"] = 1;
+		}
+	}  else if (query_type == "help") { 				// help
 		std::vector<std::string> head = std::vector<std::string>({"Help"});
 		std::vector<std::vector<std::string> > table;
 
@@ -2351,7 +2437,9 @@ Json::Value WorkSpace::JsonRespond(const Json::Value& query) {
 			+ "\t\tsave graph <graph_name> to file <file_name>\n"
 			+ "\t\tconvert config <file_name> to queries\n"
 			+ "\t\tload [replace|ignore] graph <graph_name> from file <file_name> -- in this query file with config is converted to sequence of requests and executed step by step\n"
-			+ "Blocks:\n" + Block(1,"","EmptyBlock",NULL).GetAllBlocksDescriptions();
+			+ "\t\t[en|dis]able debug mode on graph <graph_name>\n"
+			+ "\t\tget debug info of graph <graph_name>"
+			+ "Blocks:\n" + Block(1,"","EmptyBlock",NULL, NULL).GetAllBlocksDescriptions();
 
 		table =  std::vector<std::vector<std::string> >{{help}};
 		answer["table"] = CreateJsonTable(table, head);

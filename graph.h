@@ -7,6 +7,7 @@
 #include <vector>
 #include <unordered_set>
 #include <json/json.h>
+#include <fstream>
 #include "yaml-cpp/yaml.h"
 #include "daemons.h"
 #include "mysql.h"
@@ -502,11 +503,14 @@ public:
 
 /*	Block	*/
 
+class Graph;
+
 class Block {
 private:
 	BlockBase* block;
 	int id;
 	std::string block_name;
+	Graph* parent_graph;
 	std::unordered_map<std::time_t, std::unordered_map<std::string, Point> > data;
 	std::vector<BlockBase*> blocks;
 	BlockCacheUpdaterBuffer* block_buffer;
@@ -529,6 +533,7 @@ public:
 		const int id,
 		const std::string& block_name,
 		const std::string& block_type,
+		Graph* parent_graph,
 		BlockCacheUpdaterBuffer* block_buffer
 
 	);
@@ -604,7 +609,8 @@ private:
 	Table* blocks_params_table;
 	bool valid;
 	BlockCacheUpdaterBuffer* block_buffer;
-
+	bool debug_mode;
+	std::ofstream debug_info_file;
 
 
 	Block* GetBlock(
@@ -731,6 +737,16 @@ public:
 	std::string GetBlockType(const std::string& block_name) const;
 
 	void SaveGraphToFile(const std::string& file_name ) const;
+
+	bool IsDebugModeEnabled();
+
+	void WriteToBedugInfo(const std::string& info);
+
+	void EnableDebugMode();
+
+	void DisableDebugMode();
+
+	std::vector<std::vector<std::string> > GetDebugInfo();
 
 	~Graph();
 
