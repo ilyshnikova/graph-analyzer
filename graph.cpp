@@ -1870,9 +1870,11 @@ Graph::~Graph() {
 	for (auto it = blocks.begin(); it != blocks.end(); ++it) {
 		delete it->second;
 	}
-	debug_info_file.close();
-}
+	if (debug_mode) {
+		debug_info_file.close();
 
+	}
+}
 
 
 /*   WorkSpace    */
