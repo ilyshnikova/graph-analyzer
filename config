@@ -1,11 +1,19 @@
 server {
 	server_name localhost;
 
-	location / {
+	location /query {
+		include /etc/nginx/fastcgi_params;
+
 		fastcgi_pass 127.0.0.1:9000;
 		#fastcgi_pass  unix:/tmp/fastcgi/mysocket;
 		#fastcgi_pass localhost:9000;
 
-		include fastcgi_params;
 	}
+
+	location / {
+		root /var/www/;
+	}
+
+	gzip_types *;
+	client_max_body_size 20M;
 }

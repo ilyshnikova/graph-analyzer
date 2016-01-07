@@ -1,0 +1,40 @@
+.draggable
+{
+	position: absolute;
+	cursor: move;
+	z-index: 1;
+}
+
+.connector
+{
+	background-color: black;
+}
+
+.unselectable {
+	-moz-user-select: none;
+	-khtml-user-select: none;
+	-webkit-user-select: none;
+	user-select: none;
+}
+
+div.block, h1.block, h2.block, p.block
+{
+	border: 1px solid #9DA3B3;
+	background-color: #E0E8FF;
+	padding: 5px;
+}
+
+
+.middle-label, .source-label, .destination-label
+{
+	font-size: 15px;
+	font-weight: bold;
+	padding: 5px;
+}
+
+div.connector
+{
+	background-color: #FF9900;
+	z-index: 1000;
+}
+
