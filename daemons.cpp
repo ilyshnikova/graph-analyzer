@@ -522,6 +522,22 @@ std::string TerminalClient::CreateJsonForDaemon(const std::string& query) const	
 				{"graph", match[2]}
 			})
 		);
+	} else if (
+		boost::regex_match(
+			query,
+			match,
+			boost::regex("\\s*show\\s+missing\\s+edges\\s+of\\s+block\\s+(\\w+)\\s+of\\s+graph\\s+(\\w+)\\s*")
+		)
+	) {
+
+		json_query = CreateJson(
+			std::map<std::string, std::string>({
+				{"type", "show"},
+				{"object", "missing_edges"},
+				{"block", match[1]},
+				{"graph", match[2]}
+			})
+		);
 	} else  if (
 		boost::regex_match(
 			query,

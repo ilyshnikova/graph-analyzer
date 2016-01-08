@@ -46,12 +46,15 @@ State.prototype.init_context = function (state) {
 
 State.go_to = function (context, params) {
 	if (params.new_state !== undefined) {
-		if (params.type == 'next') {
-			context.next(params.new_state);
-		} else if (params.type == 'substate') {
-			context.substate(params.new_state);
+		var new_state = call_or_get(params.new_state, context);
+		var type = call_or_get(params.type, context);
+
+		if (type == 'next') {
+			context.next(new_state);
+		} else if (type == 'substate') {
+			context.substate(new_state);
 		} else {
-			context.exit_state(params.new_state);
+			context.exit_state(new_state);
 		}
 	}
 }
@@ -64,8 +67,9 @@ function Binder(params) {
 
 Binder.prototype.on_enter = function (context) {
 	var _this = this;
-	this.target = call_or_get(this.params.target);
+	this.target = call_or_get(this.params.target, context);
 	this.func = function () {
+		context[_this.params.write_to || 'actor'] = $(this);
 		State.go_to(context, _this.params);
 	};
 
@@ -97,7 +101,7 @@ function Builder(params) {
 }
 
 Builder.prototype.on_enter = function (context) {
-	this.container = call_or_get(this.params.container);
+	this.container = call_or_get(this.params.container, context);
 	this.container.append(
 		'<div'
 			+ ' id=inner_container' + this.id
@@ -136,7 +140,7 @@ function Dialog(params) {
 
 Dialog.prototype.on_enter = function(context) {
 	var _this = this;
-	this.target = call_or_get(this.params.target);
+	this.target = call_or_get(this.params.target, context);
 	this.target.dialog({
 		'modal' : true,
 		'buttons' : {
@@ -148,7 +152,7 @@ Dialog.prototype.on_enter = function(context) {
 }
 
 Dialog.prototype.on_exit = function(context) {
-	this.target.dialog("close");
+	this.target.dialog("destroy");
 }
 
 //
@@ -176,6 +180,7 @@ SendQuery.prototype.on_enter = function(context) {
 	$.ajax({
 		method: "GET",
 		url: "http://192.168.56.10/query",
+		cache: false,
 		data: {
 			"json" : JSON.stringify(this.params.ajax_data(context)),
 		},
@@ -198,6 +203,32 @@ SendQuery.prototype.on_enter = function(context) {
 }
 
 SendQuery.prototype.on_exit = function(context) {}
+
+function Enabler(params) {
+	this.params = params;
+}
+
+Enabler.prototype.on_enter = function(context) {
+	this.target = call_or_get(this.params.target, context);
+	this.target.prop("disabled", false);
+}
+
+Enabler.prototype.on_exit = function(context) {
+	this.target.prop("disabled", true);
+}
+
+//
+function StopGraphDraggable(params) {
+	this.params = params;
+}
+
+StopGraphDraggable.prototype.on_enter = function (context) {
+	this.params.graph(context).stop_dragging();
+}
+
+StopGraphDraggable.prototype.on_exit = function (context) {
+	this.params.graph(context).start_dragging();
+}
 
 /*new Combine([
 	new Binder({

@@ -13,7 +13,7 @@ function Edge(params) {
 }
 
 Edge.get_id = function(edge) {
-	return edge.params.from + ':' + edge.params.to;
+	return edge.params.from + ':' + edge.params.to + ':' + edge.params.label;
 }
 
 Edge.prototype.init_elements = function () {
@@ -47,7 +47,7 @@ Edge.prototype.init_elements = function () {
 		+ '</label>'
 		+ '<img'
 			+ ' class="edge_' + edge_id + '"'
-			+ ' src="arrow.gif"'
+			+ ' src="arrow_r.gif"'
 			+ ' id="arrow_' + edge_id + '"'
 			+ ' style="position: absolute; overflow: hidden;"'
 		+ '>'
@@ -210,6 +210,18 @@ Vertex.prototype.remove_bad_edge = function (edge) {
 	}
 }
 
+Vertex.prototype.stop_dragging = function () {
+	var vertex_div = this.get_vertex_div();
+	vertex_div.removeClass('draggable');
+	vertex_div.unbind('mousedown', this.mouse_down_handler);
+}
+
+Vertex.prototype.start_dragging = function () {
+	var vertex_div = this.get_vertex_div();
+	vertex_div.addClass('draggable');
+	vertex_div.bind('mousedown', this.mouse_down_handler);
+}
+
 Vertex.prototype.init_mouse_move = function () {
 	var _this = this;
 	var vertex_div = this.get_vertex_div();
@@ -231,10 +243,12 @@ Vertex.prototype.init_mouse_move = function () {
 		}
 	}
 
-	vertex_div.bind('mousedown', function (e) {
+	this.mouse_down_handler = function (e) {
 		_this.params.graph.params.container.addClass('unselectable');
 		_this.params.graph.params.container.bind('mousemove', mouse_move_handler);
-	});
+	}
+
+	_this.start_dragging();
 
 	_this.params.graph.params.container.bind('mouseup', function (e) {
 		_this.params.graph.params.container.removeClass('unselectable');
@@ -371,6 +385,11 @@ Graph.prototype.get_vertex_by_id = function (id) {
 	return this.vertices.get(new Vertex({'id':id}));
 }
 
+Graph.prototype.has_vertex = function (params) {
+	return this.vertices.count(new Vertex(params));
+}
+
+
 Graph.prototype.add_vertex = function (params) {
 	params.graph = this;
 
@@ -411,6 +430,18 @@ Graph.prototype.add_edge = function (params) {
 
 		this.edges.add(edge);
 	}
+}
+
+Graph.prototype.start_dragging = function () {
+	this.vertices.each(function (vertex) {
+		vertex.start_dragging();
+	});
+}
+
+Graph.prototype.stop_dragging = function () {
+	this.vertices.each(function (vertex) {
+		vertex.stop_dragging();
+	});
 }
 
 Graph.prototype.remove_edge = function (params) {

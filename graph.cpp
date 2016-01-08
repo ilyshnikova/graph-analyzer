@@ -1063,7 +1063,7 @@ void Block::Verification() const {
 	}
 }
 
-bool Block::DoesEdgeExist(const std::string& incoming_edge_name) {
+bool Block::DoesEdgeExist(const std::string& incoming_edge_name) const {
 	if (block->incoming_edges_names.count(incoming_edge_name) == 0) {
 		throw GANException(
 			519720,
@@ -1246,6 +1246,19 @@ std::vector<std::vector<std::string> > Block::GetPossibleEdges() const {
 	}
 	return possible_edges;
 }
+
+
+std::vector<std::vector<std::string> > Block::GetMissingEdges() const {
+	std::vector<std::vector<std::string> > missing_edges;
+	for (auto it = block->incoming_edges_names.cbegin(); it != block->incoming_edges_names.cend(); ++it) {
+		if (!DoesEdgeExist(*it)) {
+			missing_edges.push_back({*it});
+		}
+	}
+	return missing_edges;
+}
+
+
 
 YAML::Emitter& operator << (YAML::Emitter& out, const Block& block) {
 	std::map<std::string, std::string> params;
@@ -1787,6 +1800,14 @@ std::vector<std::vector<std::string> > Graph::GetPossibleEdges(const std::string
 	return blocks.at(block_name)->GetPossibleEdges();
 }
 
+std::vector<std::vector<std::string> > Graph::GetMissingEdges(const std::string& block_name) const {
+	if (blocks.count(block_name) == 0) {
+		throw GANException(825245, "Block with name " + block_name + " does not exist.");
+	}
+
+	return blocks.at(block_name)->GetMissingEdges();
+}
+
 
 std::string Graph::GetBlockType(const std::string& block_name) const {
 	if (blocks.count(block_name) == 0) {
@@ -2245,6 +2266,7 @@ Json::Value WorkSpace::JsonRespond(const Json::Value& query) {
 	std::string objects_type = query["object"].asString();
 	bool ignore = query["ignore"].asBool();
 	answer["status"] = 0;
+	answer["table"] = Json::Value(Json::arrayValue);
 	if (
 		!((query_type == "create" &&  objects_type == "graph") ||query_type == "load")
 		&& graph_name != ""
@@ -2253,7 +2275,7 @@ Json::Value WorkSpace::JsonRespond(const Json::Value& query) {
 		throw GANException(
 			419294,
 			"Graph with name " + graph_name  +  " does not exist."
-		);
+	 	);
 	}
 	if (query_type == "empty_query") {
 		answer["status"] = 1;
@@ -2334,6 +2356,11 @@ Json::Value WorkSpace::JsonRespond(const Json::Value& query) {
 		}  else if (objects_type == "cycle") {				// show cycle
 			table = GetCycle(graph_name);
 			head = {"BlockName"};
+		} else if (objects_type == "missing_edges") {
+		       	std::string block_name = query["block"].asString();
+			table = graphs[graph_name]->GetMissingEdges(block_name);
+			head = {"EdgeName"};
+
 		} else {
 			answer["status"] = 0;
 			answer["error"] = "Incorrect json query.";
