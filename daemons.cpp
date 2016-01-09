@@ -397,6 +397,10 @@ std::string TerminalClient::CreateJsonForDaemon(const std::string& query) const	
 				jpoint["series"] = std::string(point[1]);
 				jpoint["time"] = std::stoll(point[2]);
 				jpoint["value"] = std::stod(point[3]);
+				if (match[3] != std::string("")) {
+					jpoint["block"] = std::string(match[3]);
+				}
+
 				jpoints.append(jpoint);
 			}
 		}
@@ -408,9 +412,6 @@ std::string TerminalClient::CreateJsonForDaemon(const std::string& query) const	
 			})
 		);
 		json_query["points"] = jpoints;
-		if (match[3] != std::string("")) {
-			json_query["block"] = std::string(match[3]);
-		}
  	} else  if (
 		boost::regex_match(
 			query,

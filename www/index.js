@@ -193,6 +193,16 @@ $(function() {
 					return $('#delete_edge');
 				},
 			}),
+			new Enabler({
+				'target' : function() {
+					return $('#show_params');
+				},
+			}),
+			new Enabler({
+				'target' : function() {
+					return $('#send_points');
+				}
+			}),
 			new Binder({
 				'target' : function () {
 					return $('#new_vertex');
@@ -233,7 +243,381 @@ $(function() {
 				'type' : 'next',
 				'new_state' : 'edit_graph::choose_edge_to_delete',
 			}),
+			new Binder({
+				'target' : function() {
+					return $('#show_params');
+				},
+				'action' : 'click',
+				'type' : 'next',
+				'new_state' : 'edit_graph::choose_vertex_to_show_params',
+			}),
+			new Binder({
+				'target' : function() {
+					return $('#send_points');
+				},
+				'action' : 'click',
+				'type' : 'next',
+				'new_state' : 'edit_graph::deploy_graph',
+			}),
 		]),
+		'edit_graph::deploy_graph' : new SendQuery({
+			'ajax_data' : function(context) {
+				return {
+					'type' : 'check_graph',
+					'object' : 'graph',
+					'graph' : context.parent.graph_name,
+				};
+			},
+			'write_to' : 'graph_info',
+			'type' : 'next',
+			'new_state' : 'edit_graph::check_graph',
+		}),
+		'edit_graph::check_graph' : new Combine([
+			new Executer(function(context) {
+				if (context.graph_info.Status == '0') {
+					alert('Invalid graph: ' + context.graph_info.Reason);
+				}
+			}),
+			new GoTo({
+				'type' : 'next',
+				'new_state' : function (context) {
+					if (context.graph_info.Status == '0') {
+						return 'edit_graph::listen';
+					} else {
+						return 'edit_graph::set_points';
+					}
+				},
+			}),
+		]),
+		'edit_graph::set_points' : new Combine([
+			new Builder({
+				'container' : $('body'),
+				'func' : function(context, container) {
+					container.append(
+						'<div id=new_points_dialog title="Set points">'
+							+ '<textarea id=points placeholder="series_name 1452291138 -3.4 [target_block]">'
+							+ '</textarea>'
+						+ '</div>'
+					);
+				},
+
+			}),
+			new Dialog({
+				'target' : function() {
+					return $('#new_points_dialog');
+				},
+			}),
+			new GoTo({
+				'type' : 'substate',
+				'new_state' : 'edit_graph::set_points::listen',
+			}),
+		]),
+		'edit_graph::set_points::listen' : new Combine([
+			new Binder({
+				'target' : function () {
+					return $('.ui-button-text-only');
+				},
+				'action' : 'click',
+				'type' : 'next',
+				'new_state' : 'edit_graph::set_points::enable_debug_mode',
+			}),
+			new Binder({
+				'target' : function() {
+					return $('.ui-dialog-titlebar-close');
+				},
+				'action' : 'click',
+				'type' : 'exit_state',
+				'new_state' : 'edit_graph::listen',
+			}),
+
+		]),
+		'edit_graph::set_points::enable_debug_mode' : new SendQuery({
+			'ajax_data' : function(context) {
+				return {
+					'type' : 'debug',
+					'object' : 'mode',
+					'graph' : context.parent.parent.graph_name,
+					'enable' : true,
+				};
+			},
+			'type' : 'next',
+			'new_state' : 'edit_graph::set_points::send_points',
+		}),
+		'edit_graph::set_points::send_points' : new SendQuery({
+			'ajax_data' : function(context) {
+				var points_info = $('#points').val().split('\n');
+				var points = [];
+				for (var i = 0; i < points_info.length; ++i) {
+					var point = points_info[i].split(/\s+/);
+					if (point.length >= 3) {
+						var point_hash = {
+							'series' : point[0],
+							'time' : parseFloat(point[1]),
+							'value' : parseFloat(point[2]),
+						};
+						if (point.length >= 4) {
+							point_hash['block'] = point[3];
+						}
+						points.push(point_hash);
+					}
+				}
+				return {
+					'type' : 'insert',
+					'graph' : context.parent.parent.graph_name,
+					'points' : points,
+					'ignore' : 0,
+				}
+			},
+			'type' : 'next',
+			'new_state' : 'edit_graph::set_points::get_debug_info',
+		}),
+		'edit_graph::set_points::get_debug_info' : new SendQuery({
+			'ajax_data' : function(context) {
+				return {
+					'type' : 'debug',
+					'object' : 'info',
+					'graph' : context.parent.parent.graph_name,
+				};
+			},
+			'write_to' : 'debug_info',
+			'type' : 'next',
+			'new_state' : 'edit_graph::set_points::disable_debug_mode',
+		}),
+		'edit_graph::set_points::disable_debug_mode' : new SendQuery({
+			'ajax_data' : function(context) {
+				return {
+					'type' : 'debug',
+					'object' : 'mode',
+					'graph' : context.parent.parent.graph_name,
+					'enable' : false,
+				};
+			},
+			'type' : 'next',
+			'new_state' : 'edit_graph::set_points::parse_debug_info',
+		}),
+		'edit_graph::set_points::parse_debug_info' : new Combine([
+			new Executer(function(context) {
+				context.parent.block_series_name = {};
+				context.parent.block_points = {};
+				for (var i = 0; i < context.debug_info.length; ++i) {
+					var event = JSON.parse(context.debug_info[i].Event);
+					if (event.type == 'point_emmition') {
+						context.parent.block_series_name[event.block] = event.point.series_name;
+						if (!context.parent.block_points[event.block]) {
+							context.parent.block_points[event.block] = [];
+						}
+						context.parent.block_points[event.block].push([event.point.time * 1000, event.point.value]);
+					}
+				}
+			}),
+			new GoTo({
+				'type' : 'exit_state',
+				'new_state' : 'edit_graph::series',
+			}),
+		]),
+		'edit_graph::series' : new Combine([
+			new Builder({
+				'container' : $('body'),
+				'func' : function(context, container) {
+					container.append('<div id=series style="height:400px"></div>');
+				},
+			}),
+			new GoTo({
+				'type' : 'substate',
+				'new_state' : 'edit_graph::series::choose_block_to_show_series'
+			}),
+		]),
+		'edit_graph::series::choose_block_to_show_series' : new Combine([
+			new Enabler({
+				'target' : function() {
+					return $('#finish_send_points');
+				},
+			}),
+			new Binder({
+				'target' : function() {
+					return $('#finish_send_points');
+				},
+				'action' : 'click',
+				'type' : 'exit_state',
+				'new_state' : 'edit_graph::listen',
+			}),
+			new Binder({
+				'target' : function() {
+					return $('.block');
+				},
+				'action' : 'click',
+				'write_to' : 'block',
+				'type' : 'next',
+				'new_state' : 'edit_graph::series::draw_series',
+			}),
+			new StopGraphDraggable({
+				'graph' : function(context) {
+					return context.parent.parent.graph;
+				},
+			}),
+		]),
+		'edit_graph::series::draw_series' : new Combine([
+			new Executer(function(context) {
+				var block = context.block.attr('id');
+				$('#series').html('');
+				if (context.parent.block_series_name[block]) {
+					$('#series').highcharts({
+						'title' : {
+							text: 'Points from block ' + block,
+						},
+						'xAxis' : {
+							'type' : 'datetime',
+							'title' : {
+								'text' : 'Time',
+							},
+						},
+						'yAxis' : {
+							'title' : {
+								'text' : 'Value',
+							},
+						},
+						'series' : [{
+							'name': context.parent.block_series_name[block],
+							'data' : context.parent.block_points[block].sort(function (x,y) {
+								if (x[0] < y[0]) {
+									return -1;
+								} else if (x[0] > y[0]) {
+									return 1;
+								} else {
+									return 0;
+								}
+							}),
+						}],
+					});
+				} else {
+					alert('No points emmited from vertex ' + block);
+				}
+			}),
+			new GoTo({
+				'type' : 'next',
+				'new_state' : 'edit_graph::series::choose_block_to_show_series'
+			}),
+		]),
+		'edit_graph::choose_vertex_to_show_params' : new Combine([
+			new Binder({
+				'target' : function() {
+					return $('.block');
+				},
+				'action' : 'click',
+				'write_to' : 'block',
+				'type' : 'next',
+				'new_state' : 'edit_graph::get_params',
+			}),
+			new StopGraphDraggable({
+				'graph' : function(context) {
+					return context.parent.graph;
+				},
+			}),
+		]),
+		'edit_graph::get_params' : new SendQuery({
+			'ajax_data' : function(context) {
+				return {
+					'type' : 'show',
+					'object' : 'params',
+					'graph' : context.parent.graph_name,
+					'block' : context.block.attr('id'),
+				};
+			},
+			'write_to' : 'blocks_params',
+			'type' : 'next',
+			'new_state' : 'edit_graph::set_params',
+		}),
+		'edit_graph::set_params' : new Combine([
+			new Builder({
+				'container' : $('body'),
+				'func' : function(context, container) {
+					if (context.blocks_params.length) {
+						var input_html = '';
+						for (var i = 0; i < context.blocks_params.length; ++i) {
+							input_html += (
+								context.blocks_params[i].Name + ':'
+								+ '<input type=text'
+									+ ' value="' + context.blocks_params[i].Value + '"'
+									+ ' id=' + context.blocks_params[i].Name
+								+ '>'
+								+ '<br>'
+							);
+						}
+						container.append(
+							'<div id=new_params_dialog title="Change params of block">'
+								+ input_html
+							+ '</div>'
+						);
+					} else {
+						alert("No params in block " + context.block.attr('id'));
+					}
+				}
+			}),
+			new Dialog({
+				'target' : function () {
+					return $('#new_params_dialog');
+				},
+			}),
+			new GoTo({
+				'type' : function(context) {
+					if (context.blocks_params.length) {
+						return 'substate';
+					} else {
+						return 'next';
+					}
+				},
+				'new_state' : function (context) {
+					if (context.blocks_params.length) {
+						return 'edit_graph::set_params::listen';
+					} else {
+						return 'edit_graph::listen';
+					}
+				},
+			}),
+		]),
+		'edit_graph::set_params::listen' : new Combine([
+			new Binder({
+				'target' : function () {
+					return $('.ui-button-text-only');
+				},
+				'action' : 'click',
+				'type' : 'next',
+				'new_state' : 'edit_graph::set_params::save_params',
+			}),
+			new Binder({
+				'target' : function() {
+					return $('.ui-dialog-titlebar-close');
+				},
+				'action' : 'click',
+				'type' : 'exit_state',
+				'new_state' : 'edit_graph::listen',
+			}),
+		]),
+		'edit_graph::set_params::save_params' : new SendQuery({
+			'ajax_data' : function(context) {
+				var new_params_values = [];
+
+				for (var i = 0; i < context.parent.blocks_params.length; ++i) {
+					var value = $('#' + context.parent.blocks_params[i].Name).val();
+					if (value != '') {
+						new_params_values.push({
+							'name' : context.parent.blocks_params[i].Name,
+							'value' : value,
+						});
+					}
+				}
+
+				return {
+					'type' : 'modify',
+					'object' : 'params',
+					"values" : new_params_values,
+					"block" : context.parent.block.attr('id'),
+					"graph" : context.parent.parent.graph_name,
+				};
+			},
+			'type' : 'exit_state',
+			'new_state' : 'edit_graph::listen',
+		}),
 		'edit_graph::choose_edge_to_delete' : new Binder({
 			'target' : function() {
 				return $('.destination-label');
@@ -325,44 +709,43 @@ $(function() {
 			new Builder({
 				'container' : $('body'),
 				'func' : function(context, container) {
-					context.missing_edges.sort(function (x,y) {
-						if (x.EdgeName < y.EdgeName) {
-							return -1;
-						} else if (x.EdgeName > y.EdgeName) {
-							return 1;
-						} else {
-							return 0;
+					if (context.missing_edges.length) {
+						context.missing_edges.sort(function (x,y) {
+							if (x.EdgeName < y.EdgeName) {
+								return -1;
+							} else if (x.EdgeName > y.EdgeName) {
+								return 1;
+							} else {
+								return 0;
+							}
+						});
+						select_html = '';
+						for (var i = 0; i < context.missing_edges.length; ++i) {
+							select_html += (
+								'<option'
+									+' value="' + context.missing_edges[i].EdgeName + '"'
+								+ '>'
+									+ context.missing_edges[i].EdgeName
+								+ '</option>'
+							);
 						}
-					});
-					select_html = '';
-					for (var i = 0; i < context.missing_edges.length; ++i) {
-						select_html += (
-							'<option'
-							 	+' value=' + context.missing_edges[i].EdgeName
-							+ '>'
-								+ context.missing_edges[i].EdgeName
-							+ '</option>'
+						container.append(
+							'<div id=new_edge_dialog title="Choose edge name">'
+								+ 'Edge name:'
+								+ '<select id=edge_name>'
+									+ select_html
+								+ '</select>'
+							+ '</div>'
 						);
+					} else {
+						alert('Vertex ' + context.to.attr('id') + ' can\'t have more incoming edges.');
 					}
-					container.append(
-						'<div id=new_edge_dialog title="Choose edge name">'
-							+ 'Edge name:'
-							+ '<select id=edge_name>'
-								+ select_html
-							+ '</select>'
-						+ '</div>'
-					);
 				}
 			}),
 			new Dialog({
 				'target' : function() {
 					return $('#new_edge_dialog');
 				},
-			}),
-			new Executer(function(context) {
-				if (context.missing_edges.length == 0) {
-					alert('Vertex ' + context.to.attr('id') + ' can\'t have more incoming edges.');
-				}
 			}),
 			new GoTo({
 				'type' : function(context) {
@@ -618,8 +1001,8 @@ $(function() {
 				});
 			}),
 			new GoTo({
-				'new_state' : 'edit_graph::listen',
 				'type' : 'exit_state',
+				'new_state' : 'edit_graph::listen',
 			})
 		]),
 

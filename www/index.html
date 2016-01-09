@@ -5,6 +5,8 @@
 		<link rel="stylesheet" href="jquery-ui.css">
 		<script src="jquery-1.10.2.js" type="text/javascript"></script>
 		<script src="jquery-ui.js" type="text/javascript"></script>
+		<script src="highcharts.js"></script>
+		<script src="exporting.js"></script>
 		<script type="text/javascript" src="js-graph-it3.js"></script>
 		<script type="text/javascript" src="cookie_handling.js"></script>
 		<script type="text/javascript" src="set.js"></script>
@@ -22,12 +24,23 @@
 			<button type=button id=delete_vertex disabled>
 				Удалить вершину
 			</button>
+			<button type=button id=show_params disabled>
+				Показать параметры
+			</button>
 			<button type=button id=new_edge disabled>
 				Новое ребро
 			</button>
 			<button type=button id=delete_edge disabled>
 				Удалить ребро
 			</button>
+			<button type=button id=send_points disabled>
+				Прогнать точки
+			</button>
+			<button type=button id=finish_send_points disabled>
+				Закончить прогон точек
+			</button>
+
+
 
 			<button type=button id=finish_editing disabled>
 				Закончить редактирование графа

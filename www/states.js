@@ -7,6 +7,12 @@ function State(params) {
 State.prototype.enter_state = function (state) {
 	this.init_context(state);
 	this.context.after_on_enter = [];
+	if (!this.params[state]) {
+		throw new Error("State " + state + " undefined");
+	}
+	if (!this.params[state].on_enter) {
+		throw new Error("Undefined on_enter of state " + state);
+	}
 	this.params[state].on_enter(this.context);
 	this.state = state;
 	for (var index = 0; index < this.context.after_on_enter.length; ++index) {
