@@ -1,7 +1,7 @@
 .draggable
 {
 	cursor: move;
-	z-index: 1;
+	z-index: 2;
 }
 
 .connector
@@ -30,6 +30,7 @@ div.block, h1.block, h2.block, p.block
 	font-size: 15px;
 	font-weight: bold;
 	padding: 5px;
+	z-index: 1;
 }
 
 div.connector

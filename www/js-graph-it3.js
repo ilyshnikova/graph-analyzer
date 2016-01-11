@@ -1,7 +1,9 @@
 ONE_EDGE_WIDTH = 30;
 INITIAL_EDGE_OFFSET = 10;
 ARROW_IMAGE_SIZE = 7;
-
+DEFAULT_COLOR = "#E0E8FF";
+ERROR_COLOR = "#FF8787";
+SELECTED_COLOR = "#E0FFE8";
 // Edge
 
 function Edge(params) {
@@ -199,13 +201,13 @@ function Vertex(params) {
 
 Vertex.prototype.add_bad_edge = function (edge) {
 	this.bad_edges.add(edge);
-	this.get_vertex_div().css('background-color', '#FF8787');
+	this.get_vertex_div().css('background-color', ERROR_COLOR);
 }
 
 Vertex.prototype.remove_bad_edge = function (edge) {
 	this.bad_edges.remove(edge);
 	if (this.bad_edges.size() == 0) {
-		this.get_vertex_div().css('background-color', '#E0E8FF');
+		this.get_vertex_div().css('background-color', DEFAULT_COLOR);
 
 	}
 }
@@ -220,6 +222,31 @@ Vertex.prototype.start_dragging = function () {
 	var vertex_div = this.get_vertex_div();
 	vertex_div.addClass('draggable');
 	vertex_div.bind('mousedown', this.mouse_down_handler);
+}
+
+Vertex.prototype.enable_select_mode = function () {
+	var vertex_div = this.get_vertex_div();
+
+	vertex_div.bind('mouseover', this.selecting_mouse_over_handler);
+	vertex_div.bind('mouseout', this.selecting_mouse_out_handler);
+	vertex_div.bind('click', this.selecting_click_handler);
+}
+
+Vertex.prototype.disable_select_mode = function () {
+	var vertex_div = this.get_vertex_div();
+
+	this.deselect();
+
+	vertex_div.unbind('mouseover', this.selecting_mouse_over_handler);
+	vertex_div.unbind('mouseout', this.selecting_mouse_out_handler);
+	vertex_div.unbind('click', this.selecting_click_handler);
+}
+
+Vertex.prototype.deselect = function () {
+	var vertex_div = this.get_vertex_div();
+
+	vertex_div.css('border-width', '1px');
+	vertex_div.css('background-color', DEFAULT_COLOR);
 }
 
 Vertex.prototype.init_mouse_move = function () {
@@ -246,6 +273,22 @@ Vertex.prototype.init_mouse_move = function () {
 	this.mouse_down_handler = function (e) {
 		_this.params.graph.params.container.addClass('unselectable');
 		_this.params.graph.params.container.bind('mousemove', mouse_move_handler);
+	}
+
+	this.selecting_mouse_over_handler = function (e) {
+		vertex_div.css('border-width', '5px');
+		vertex_div.css('top', (vertex_div.position().top - 4) + 'px');
+		vertex_div.css('left', (vertex_div.position().left - 4) + 'px');
+	}
+
+	this.selecting_mouse_out_handler = function (e) {
+		vertex_div.css('border-width', '1px');
+		vertex_div.css('top', (vertex_div.position().top + 4) + 'px');
+		vertex_div.css('left', (vertex_div.position().left + 4) + 'px');
+	}
+
+	this.selecting_click_handler = function (e) {
+		vertex_div.css('background-color', SELECTED_COLOR);
 	}
 
 	_this.start_dragging();
@@ -277,7 +320,7 @@ Vertex.prototype.init_elements = function () {
 	var saved_coordinates = this.get_saved_coordinates();
 	vertex_div.css('left', saved_coordinates.x + 'px');
 	vertex_div.css('top', saved_coordinates.y + 'px');
-	vertex_div.css('z-index', 1);
+	vertex_div.css('z-index', 2);
 	this.save_coordinates();
 }
 
@@ -432,16 +475,31 @@ Graph.prototype.add_edge = function (params) {
 	}
 }
 
-Graph.prototype.start_dragging = function () {
+Graph.prototype.launch_blocks_func = function (func_name) {
 	this.vertices.each(function (vertex) {
-		vertex.start_dragging();
+		vertex[func_name]();
 	});
+
+}
+
+Graph.prototype.start_dragging = function () {
+	this.launch_blocks_func('start_dragging');
 }
 
 Graph.prototype.stop_dragging = function () {
-	this.vertices.each(function (vertex) {
-		vertex.stop_dragging();
-	});
+	this.launch_blocks_func('stop_dragging');
+}
+
+Graph.prototype.enable_select_mode = function () {
+	this.launch_blocks_func('enable_select_mode');
+}
+
+Graph.prototype.disable_select_mode = function () {
+	this.launch_blocks_func('disable_select_mode');
+}
+
+Graph.prototype.deselect_all = function () {
+	this.launch_blocks_func('deselect');
 }
 
 Graph.prototype.remove_edge = function (params) {

@@ -225,7 +225,7 @@ $(function() {
 				},
 				'action' : 'click',
 				'type' : 'next',
-				'new_state' : 'edit_graph::choose_vertex_to_delete',
+				'new_state' : 'edit_graph::delete_vertex',
 			}),
 			new Binder({
 				'target' : function() {
@@ -233,7 +233,7 @@ $(function() {
 				},
 				'action' : 'click',
 				'type' : 'next',
-				'new_state' : 'edit_graph::choose_from_vertex',
+				'new_state' : 'edit_graph::create_edges',
 			}),
 			new Binder({
 				'target' : function() {
@@ -241,7 +241,7 @@ $(function() {
 				},
 				'action' : 'click',
 				'type' : 'next',
-				'new_state' : 'edit_graph::choose_edge_to_delete',
+				'new_state' : 'edit_graph::delete_edges',
 			}),
 			new Binder({
 				'target' : function() {
@@ -249,7 +249,7 @@ $(function() {
 				},
 				'action' : 'click',
 				'type' : 'next',
-				'new_state' : 'edit_graph::choose_vertex_to_show_params',
+				'new_state' : 'edit_graph::change_params',
 			}),
 			new Binder({
 				'target' : function() {
@@ -416,10 +416,21 @@ $(function() {
 			}),
 		]),
 		'edit_graph::series' : new Combine([
+			new HTMLReplacer({
+				'target' : function() {
+					return $('#send_points');
+				},
+				'new_html' : 'Завершить прогон точек',
+			}),
 			new Builder({
 				'container' : $('body'),
 				'func' : function(context, container) {
 					container.append('<div id=series style="height:400px"></div>');
+				},
+			}),
+			new SwitchToSelectMode({
+				'graph' : function(context) {
+					return context.parent.graph;
 				},
 			}),
 			new GoTo({
@@ -430,12 +441,12 @@ $(function() {
 		'edit_graph::series::choose_block_to_show_series' : new Combine([
 			new Enabler({
 				'target' : function() {
-					return $('#finish_send_points');
+					return $('#send_points');
 				},
 			}),
 			new Binder({
 				'target' : function() {
-					return $('#finish_send_points');
+					return $('#send_points');
 				},
 				'action' : 'click',
 				'type' : 'exit_state',
@@ -450,14 +461,13 @@ $(function() {
 				'type' : 'next',
 				'new_state' : 'edit_graph::series::draw_series',
 			}),
-			new StopGraphDraggable({
-				'graph' : function(context) {
-					return context.parent.parent.graph;
-				},
-			}),
 		]),
 		'edit_graph::series::draw_series' : new Combine([
 			new Executer(function(context) {
+				if (context.prev_block) {
+					context.parent.parent.graph.get_vertex_by_id(context.prev_block.attr('id')).deselect();
+				}
+				context.prev_block = context.block;
 				var block = context.block.attr('id');
 				$('#series').html('');
 				if (context.parent.block_series_name[block]) {
@@ -498,7 +508,40 @@ $(function() {
 				'new_state' : 'edit_graph::series::choose_block_to_show_series'
 			}),
 		]),
-		'edit_graph::choose_vertex_to_show_params' : new Combine([
+		'edit_graph::change_params' : new Combine([
+			new HTMLReplacer({
+				'target' : function() {
+					return $('#show_params');
+				},
+				'new_html' : 'Завершить редактирование параметров',
+			}),
+			new Enabler({
+				'target' : function() {
+					return $('#show_params');
+				},
+			}),
+			new SwitchToSelectMode({
+				'graph' : function(context) {
+					return context.parent.graph;
+				},
+			}),
+			new GoTo({
+				'type' : 'substate',
+				'new_state' : 'edit_graph::change_params::listen',
+			}),
+		]),
+		'edit_graph::change_params::listen' : new Combine([
+			new Executer(function (context) {
+				context.parent.parent.graph.deselect_all();
+			}),
+			new Binder({
+				'target' : function() {
+					return $('#show_params');
+				},
+				'action' : 'click',
+				'type' : 'exit_state',
+				'new_state' : 'edit_graph::listen',
+			}),
 			new Binder({
 				'target' : function() {
 					return $('.block');
@@ -506,28 +549,23 @@ $(function() {
 				'action' : 'click',
 				'write_to' : 'block',
 				'type' : 'next',
-				'new_state' : 'edit_graph::get_params',
-			}),
-			new StopGraphDraggable({
-				'graph' : function(context) {
-					return context.parent.graph;
-				},
+				'new_state' : 'edit_graph::change_params::get_params',
 			}),
 		]),
-		'edit_graph::get_params' : new SendQuery({
+		'edit_graph::change_params::get_params' : new SendQuery({
 			'ajax_data' : function(context) {
 				return {
 					'type' : 'show',
 					'object' : 'params',
-					'graph' : context.parent.graph_name,
+					'graph' : context.parent.parent.graph_name,
 					'block' : context.block.attr('id'),
 				};
 			},
 			'write_to' : 'blocks_params',
 			'type' : 'next',
-			'new_state' : 'edit_graph::set_params',
+			'new_state' : 'edit_graph::change_params::set_params',
 		}),
-		'edit_graph::set_params' : new Combine([
+		'edit_graph::change_params::set_params' : new Combine([
 			new Builder({
 				'container' : $('body'),
 				'func' : function(context, container) {
@@ -568,21 +606,21 @@ $(function() {
 				},
 				'new_state' : function (context) {
 					if (context.blocks_params.length) {
-						return 'edit_graph::set_params::listen';
+						return 'edit_graph::change_params::set_params::listen';
 					} else {
-						return 'edit_graph::listen';
+						return 'edit_graph::change_params::listen';
 					}
 				},
 			}),
 		]),
-		'edit_graph::set_params::listen' : new Combine([
+		'edit_graph::change_params::set_params::listen' : new Combine([
 			new Binder({
 				'target' : function () {
 					return $('.ui-button-text-only');
 				},
 				'action' : 'click',
 				'type' : 'next',
-				'new_state' : 'edit_graph::set_params::save_params',
+				'new_state' : 'edit_graph::change_params::set_params::save_params',
 			}),
 			new Binder({
 				'target' : function() {
@@ -590,10 +628,10 @@ $(function() {
 				},
 				'action' : 'click',
 				'type' : 'exit_state',
-				'new_state' : 'edit_graph::listen',
+				'new_state' : 'edit_graph::change_params::listen',
 			}),
 		]),
-		'edit_graph::set_params::save_params' : new SendQuery({
+		'edit_graph::change_params::set_params::save_params' : new SendQuery({
 			'ajax_data' : function(context) {
 				var new_params_values = [];
 
@@ -612,22 +650,49 @@ $(function() {
 					'object' : 'params',
 					"values" : new_params_values,
 					"block" : context.parent.block.attr('id'),
-					"graph" : context.parent.parent.graph_name,
+					"graph" : context.parent.parent.parent.graph_name,
 				};
 			},
 			'type' : 'exit_state',
-			'new_state' : 'edit_graph::listen',
+			'new_state' : 'edit_graph::change_params::listen',
 		}),
-		'edit_graph::choose_edge_to_delete' : new Binder({
-			'target' : function() {
-				return $('.destination-label');
-			},
-			'action' : 'click',
-			'write_to' : 'edge',
-			'type' : 'next',
-			'new_state' : 'edit_graph::delete_edge',
-		}),
-		'edit_graph::delete_edge' : new SendQuery({
+		'edit_graph::delete_edges': new Combine([
+			new Enabler({
+				'target' : function() {
+					return $('#delete_edge');
+				},
+			}),
+			new HTMLReplacer({
+				'target' : function() {
+					return $('#delete_edge');
+				},
+				'new_html' : 'Завершить удаление ребер',
+			}),
+			new GoTo({
+				'type' : 'substate',
+				'new_state' : 'edit_graph::delete_edges::listen',
+			}),
+		]),
+		'edit_graph::delete_edges::listen' : new Combine([
+			new Binder({
+				'target' : function() {
+					return $('.destination-label');
+				},
+				'action' : 'click',
+				'write_to' : 'edge',
+				'type' : 'next',
+				'new_state' : 'edit_graph::delete_edges::delete_edge',
+			}),
+			new Binder({
+				'target' : function() {
+					return $('#delete_edge');
+				},
+				'action' : 'click',
+				'type' : 'exit_state',
+				'new_state' : 'edit_graph::listen',
+			}),
+		]),
+		'edit_graph::delete_edges::delete_edge' : new SendQuery({
 			'ajax_data' : function(context) {
 				var edge_params = context.edge.attr('id').replace('label_', '').split(':');
 				context.from = edge_params[0];
@@ -638,18 +703,18 @@ $(function() {
 					'type' : 'delete',
 					'object' : 'edge',
 					'edge' : context.label,
-					'graph' : context.parent.graph_name,
+					'graph' : context.parent.parent.graph_name,
 					'from' : context.from,
 					'to': context.to,
 					'ignore' : 0,
 				};
 			},
 			'type' : 'next',
-			'new_state' : 'edit_graph::clear_edge',
+			'new_state' : 'edit_graph::delete_edges::clear_edge',
 		}),
-		'edit_graph::clear_edge' : new Combine([
+		'edit_graph::delete_edges::clear_edge' : new Combine([
 			new Executer(function(context) {
-				context.parent.graph.remove_edge({
+				context.parent.parent.graph.remove_edge({
 					'from' : context.from,
 					'to': context.to,
 					'label' : context.label,
@@ -657,10 +722,43 @@ $(function() {
 			}),
 			new GoTo({
 				'type' : 'next',
-				'new_state' : 'edit_graph::listen',
+				'new_state' : 'edit_graph::delete_edges::listen',
 			}),
 		]),
-		'edit_graph::choose_from_vertex' : new Combine([
+		'edit_graph::create_edges' : new Combine([
+			new Enabler({
+				'target' : function() {
+					return $('#new_edge');
+				},
+			}),
+			new HTMLReplacer({
+				'target' : function() {
+					return $('#new_edge');
+				},
+				'new_html' : 'Завершить создания ребер',
+			}),
+			new SwitchToSelectMode({
+				'graph' : function(context) {
+					return context.parent.graph;
+				},
+			}),
+			new GoTo({
+				'type' : 'substate',
+				'new_state' : 'edit_graph::create_edges::listen',
+			}),
+		]),
+		'edit_graph::create_edges::listen' : new Combine([
+			new Executer(function (context) {
+				context.parent.parent.graph.deselect_all();
+			}),
+			new Binder({
+				'target' : function() {
+					return $('#new_edge');
+				},
+				'action' : 'click',
+				'type' : 'exit_state',
+				'new_state' : 'edit_graph::listen',
+			}),
 			new Binder({
 				'target' : function() {
 					return $('.block');
@@ -668,15 +766,10 @@ $(function() {
 				'action' : 'click',
 				'write_to' : 'from',
 				'type' : 'next',
-				'new_state' : 'edit_graph::choose_to_vertex',
-			}),
-			new StopGraphDraggable({
-				'graph' : function(context) {
-					return context.parent.graph;
-				},
+				'new_state' : 'edit_graph::create_edges::choose_to_vertex',
 			}),
 		]),
-		'edit_graph::choose_to_vertex' : new Combine([
+		'edit_graph::create_edges::choose_to_vertex' : new Combine([
 			new Binder({
 				'target' : function() {
 					return $('.block');
@@ -684,28 +777,23 @@ $(function() {
 				'action' : 'click',
 				'write_to' : 'to',
 				'type' : 'next',
-				'new_state' : 'edit_graph::download_missing_edges',
-			}),
-			new StopGraphDraggable({
-				'graph' : function(context) {
-					return context.parent.graph;
-				},
+				'new_state' : 'edit_graph::create_edges::download_missing_edges',
 			}),
 		]),
-		'edit_graph::download_missing_edges' : new SendQuery({
+		'edit_graph::create_edges::download_missing_edges' : new SendQuery({
 			'ajax_data' : function(context) {
 				return {
 					'type' : 'show',
 					'object' : 'missing_edges',
 					'block' : context.to.attr('id'),
-					'graph' : context.parent.graph_name,
+					'graph' : context.parent.parent.graph_name,
 				};
 			},
 			'write_to' : 'missing_edges',
 			'type' : 'next',
-			'new_state' : 'edit_graph::set_edge',
+			'new_state' : 'edit_graph::create_edges::set_edge',
 		}),
-		'edit_graph::set_edge' : new Combine([
+		'edit_graph::create_edges::set_edge' : new Combine([
 			new Builder({
 				'container' : $('body'),
 				'func' : function(context, container) {
@@ -757,21 +845,21 @@ $(function() {
 				},
 				'new_state' : function(context) {
 					if (context.missing_edges.length) {
-						return 'edit_graph::set_edge::listen';
+						return 'edit_graph::create_edges::set_edge::listen';
 					} else {
-						return 'edit_graph::listen';
+						return 'edit_graph::create_edges::listen';
 					}
 				}
 			}),
 		]),
-		'edit_graph::set_edge::listen' : new Combine([
+		'edit_graph::create_edges::set_edge::listen' : new Combine([
 			new Binder({
 				'target' : function () {
 					return $('.ui-button-text-only');
 				},
 				'action' : 'click',
 				'type' : 'next',
-				'new_state' : 'edit_graph::set_edge::save_edge',
+				'new_state' : 'edit_graph::create_edges::set_edge::save_edge',
 			}),
 			new Binder({
 				'target' : function() {
@@ -779,28 +867,28 @@ $(function() {
 				},
 				'action' : 'click',
 				'type' : 'exit_state',
-				'new_state' : 'edit_graph::listen',
+				'new_state' : 'edit_graph::create_edges::listen',
 			})
 
 		]),
-		'edit_graph::set_edge::save_edge' : new SendQuery({
+		'edit_graph::create_edges::set_edge::save_edge' : new SendQuery({
 			'ajax_data' : function(context) {
 				return {
 					'type' : 'create',
 					'object' : 'edge',
 					'edge' : $('#edge_name').val(),
-					'graph' : context.parent.parent.graph_name,
+					'graph' : context.parent.parent.parent.graph_name,
 					'from' : context.parent.from.attr('id'),
 					'to' : context.parent.to.attr('id'),
 					'ignore' : 0
 				};
 			},
 			'type' : 'next',
-			'new_state' : 'edit_graph::set_edge::draw_edge',
+			'new_state' : 'edit_graph::create_edges::set_edge::draw_edge',
 		}),
-		'edit_graph::set_edge::draw_edge' : new Combine([
+		'edit_graph::create_edges::set_edge::draw_edge' : new Combine([
 			new Executer(function(context) {
-				context.parent.parent.graph.add_edge({
+				context.parent.parent.parent.graph.add_edge({
 					'from' : context.parent.from.attr('id'),
 					'to' : context.parent.to.attr('id'),
 					'label' : $('#edge_name').val(),
@@ -808,44 +896,69 @@ $(function() {
 			}),
 			new GoTo({
 				'type' : 'exit_state',
-				'new_state' : 'edit_graph::listen',
+				'new_state' : 'edit_graph::create_edges::listen',
 			}),
 		]),
-		'edit_graph::choose_vertex_to_delete' : new Combine([
+		'edit_graph::delete_vertex' : new Combine([
+			new Enabler({
+				'target' : function() {
+					return $('#delete_vertex');
+				},
+			}),
+			new HTMLReplacer({
+				'target' : function() {
+					return $('#delete_vertex');
+				},
+				'new_html' : 'Завершить удаление вершин',
+			}),
+			new GoTo({
+				'type' : 'substate',
+				'new_state' : 'edit_graph::delete_vertex::listen',
+			}),
+			new SwitchToSelectMode({
+				'graph' : function(context) {
+					return context.parent.graph;
+				},
+			}),
+		]),
+		'edit_graph::delete_vertex::listen' : new Combine([
+			new Binder({
+				'target' : function() {
+					return $('#delete_vertex');
+				},
+				'action' : 'click',
+				'type' : 'exit_state',
+				'new_state' : 'edit_graph::listen'
+			}),
 			new Binder({
 				'target' : function() {
 					return $('.block');
 				},
 				'action' : 'click',
 				'type' : 'next',
-				'new_state' : 'edit_graph::delete_vertex',
-			}),
-			new StopGraphDraggable({
-				'graph' : function(context) {
-					return context.parent.graph;
-				},
+				'new_state' : 'edit_graph::delete_vertex::delete_vertex',
 			}),
 		]),
-		'edit_graph::delete_vertex' : new SendQuery({
+		'edit_graph::delete_vertex::delete_vertex' : new SendQuery({
 			'ajax_data' : function(context) {
 				return {
 					'type' : 'delete',
 					'object' : 'block',
 					'block' : context.actor.attr('id'),
-					'graph' : context.parent.graph_name,
+					'graph' : context.parent.parent.graph_name,
 					'ignore' : 0
 				};
 			},
 			'type' : 'next',
-			'new_state' : 'edit_graph::clear_vertex',
+			'new_state' : 'edit_graph::delete_vertex::clear_vertex',
 		}),
-		'edit_graph::clear_vertex' : new Combine([
+		'edit_graph::delete_vertex::clear_vertex' : new Combine([
 			new Executer(function(context) {
-				context.parent.graph.remove_vertex({'id' : context.actor.attr('id')});
+				context.parent.parent.graph.remove_vertex({'id' : context.actor.attr('id')});
 			}),
 			new GoTo({
 				'type' : 'next',
-				'new_state' : 'edit_graph::listen'
+				'new_state' : 'edit_graph::delete_vertex::listen',
 			}),
 		]),
 		'edit_graph::get_vertex_types' : new SendQuery({

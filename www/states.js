@@ -224,16 +224,33 @@ Enabler.prototype.on_exit = function(context) {
 }
 
 //
-function StopGraphDraggable(params) {
+function SwitchToSelectMode(params) {
 	this.params = params;
 }
 
-StopGraphDraggable.prototype.on_enter = function (context) {
+SwitchToSelectMode.prototype.on_enter = function (context) {
 	this.params.graph(context).stop_dragging();
+	this.params.graph(context).enable_select_mode();
 }
 
-StopGraphDraggable.prototype.on_exit = function (context) {
+SwitchToSelectMode.prototype.on_exit = function (context) {
 	this.params.graph(context).start_dragging();
+	this.params.graph(context).disable_select_mode();
+}
+
+function HTMLReplacer(params) {
+	this.params = params;
+}
+
+HTMLReplacer.prototype.on_enter = function(context) {
+	this.target = call_or_get(this.params.target, context);
+	this.new_html = call_or_get(this.params.new_html, context);
+	this.old_html = this.target.html();
+	this.target.html(this.new_html);
+}
+
+HTMLReplacer.prototype.on_exit = function(context) {
+	this.target.html(this.old_html);
 }
 
 /*new Combine([
