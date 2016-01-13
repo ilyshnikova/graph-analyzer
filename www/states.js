@@ -259,13 +259,10 @@ function Enabler(params) {
 Enabler.prototype.on_enter = function(context) {
 	this.target = call_or_get(this.params.target, context);
 	this.target.removeClass("disabled");
-//	this.target.prop("disabled", false);
 }
 
 Enabler.prototype.on_exit = function(context) {
 	this.target.addClass("disabled");
-
-//	this.target.prop("disabled", true);
 }
 
 //
