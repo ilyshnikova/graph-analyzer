@@ -166,9 +166,6 @@ BDialog.prototype.on_enter = function(context) {
 
 						+ '</div>'
 						+ '<div class="modal-footer">'
-							+ call_or_get(this.params.buttons)
-						/*	+ '<button id=Ok type="button" class="btn btn-default" data-dismiss="modal">Ok</button>'
-							+ '<button id=Ok1 type="button" class="btn btn-default" data-dismiss="modal">Ok1</button>'*/
 						+ '</div>'
 					+ '</div>'
 				+'</div>'
