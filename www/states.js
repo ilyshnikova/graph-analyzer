@@ -140,6 +140,51 @@ Combine.prototype.on_exit = function (context) {
 }
 
 //
+function BDialog(params) {
+	this.params = params;
+}
+
+BDialog.prototype.on_enter = function(context) {
+	$('body').append(
+		'<div class="my-modal-dialog">'
+			+' <div class="modal fade" '
+				+'id="'
+			       		+  call_or_get(this.params.id, context)
+				+'" role="dialog">'
+    				+'<div class="modal-dialog">'
+					+'<div class="modal-content">'
+						+ '<div class="modal-header">'
+							+ '<button id=close type="button" class="close" >&times;</button>'
+							+ '<h4 class="modal-title">'
+								+ call_or_get(this.params.title, context)
+							+'</h4>'
+						+ '</div>'
+						+ '<div class="modal-body">'
+							+ '<p>'
+								+ call_or_get(this.params.data, context)
+							+ '</p>'
+
+						+ '</div>'
+						+ '<div class="modal-footer">'
+							+ call_or_get(this.params.buttons)
+						/*	+ '<button id=Ok type="button" class="btn btn-default" data-dismiss="modal">Ok</button>'
+							+ '<button id=Ok1 type="button" class="btn btn-default" data-dismiss="modal">Ok1</button>'*/
+						+ '</div>'
+					+ '</div>'
+				+'</div>'
+			+ '</div>'
+		+ '</div>'
+	);
+	$('#' + this.params.id).modal('show').unbind('click');
+
+}
+
+BDialog.prototype.on_exit = function(context) {
+	$('.my-modal-dialog').remove();
+	$('.modal-backdrop').remove();
+}
+
+//
 function Dialog(params) {
 	this.params = params;
 }
@@ -154,7 +199,7 @@ Dialog.prototype.on_enter = function(context) {
 			}
 		},
 	});
-	$('.ui-dialog-titlebar-close').unbind('click');
+	$('.close').unbind('click');
 }
 
 Dialog.prototype.on_exit = function(context) {
@@ -216,11 +261,14 @@ function Enabler(params) {
 
 Enabler.prototype.on_enter = function(context) {
 	this.target = call_or_get(this.params.target, context);
-	this.target.prop("disabled", false);
+	this.target.removeClass("disabled");
+//	this.target.prop("disabled", false);
 }
 
 Enabler.prototype.on_exit = function(context) {
-	this.target.prop("disabled", true);
+	this.target.addClass("disabled");
+
+//	this.target.prop("disabled", true);
 }
 
 //

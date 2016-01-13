@@ -7,15 +7,34 @@ function call_or_get(object, context) {
 }
 
 $(function() {
+	function sec() {
+		alert("Are you stupid? I told you! Don\'t touch it!");
+	}
+
+	function first() {
+		$('#gan').unbind('click', first);
+		$('#gan').bind('click', sec);
+		alert('Don\'t touch it!');
+	}
+
+	$('#gan').bind('click', first);
+
 	new State({
 		'start' : new Combine([
 			new Builder({
-				'container' : $('#button_panel'),
+				'container' : $('#get_graph_button'),
 				'func' : function (context, container) {
 					container.append(
-						'<button type=button id=download_graph>'
-							+ 'Загрузить граф'
-						+ '</button>'
+						'<div class="text-center">'
+							+ '<button'
+								+ ' id=download_graph'
+								+ ' class="btn btn-lg"'
+								+ ' type="button"'
+								+ ' style="background-color: #101010; color:#9d9d9d;"'
+							+'>'
+								+'Загрузить граф'
+							+'</button>'
+						+ '</div>'
 					);
 				},
 			}),
@@ -58,9 +77,10 @@ $(function() {
 			'new_state' : 'edit_graph::set_graph',
 		}),
 		'edit_graph::set_graph' : new Combine([
-			new Builder({
-				'container' : $('body'),
-				'func' : function(context, container) {
+			new BDialog({
+				'id' : 'new_graph_dialog',
+				'title' : 'Choose graph.',
+				'data' : function(context) {
 					var select_html = '';
 					for (var i = 0; i < context.graphs_names.length; ++i) {
 						select_html += (
@@ -71,22 +91,23 @@ $(function() {
 							+ '</option>'
 						);
 					}
-					container.append(
-						'<div id=download_graph_dialog title="Choose graph.">'
-							+ '<select id=graph_names>'
+					return 	(
+						'<div class="input-group">'
+							+'<span class="input-group-addon" id="basic-addon1">'
+								+ 'Graph name'
+							+ '</span>'
+							+ '<select'
+								+ ' id=graph_names'
+								+ ' class="form-control input-sm"'
+								+ ' style="width:50%"'
+							+ ' >'
 								+ select_html
 							+ '</select>'
-						+ '</div>'
+						+ '</div><br>'
 					);
-
 				},
-			}),
-			new Dialog({
-				'target' : function() {
-					return $('#download_graph_dialog')
-				}
-			}),
-			new GoTo({
+				'buttons' :  '<button id=Ok type="button" class="btn btn-default">Ok</button>',
+			}),			new GoTo({
 				'new_state' : 'edit_graph::set_graph::listen',
 		       		'type' : 'substate'
 			}),
@@ -94,7 +115,7 @@ $(function() {
 		'edit_graph::set_graph::listen' : new Combine ([
 			new Binder({
 				'target' : function () {
-					return $('.ui-button-text-only');
+					return $('#Ok');
 				},
 				'action' : 'click',
 				'type' : 'next',
@@ -102,7 +123,7 @@ $(function() {
 			}),
 			new Binder({
 				'target' : function() {
-					return $('.ui-dialog-titlebar-close');
+					return $('#close');
 				},
 				'action' : 'click',
 				'type' : 'exit_state',
@@ -113,8 +134,10 @@ $(function() {
 			'type' : 'exit_state',
 			'new_state' : 'start',
 		}),
+
 		'edit_graph::set_graph::get_vertices' : new Combine([
 			new Executer(function(context) {
+				$('.modal-backdrop').remove();
 				context.parent.parent.graph_name = $('#graph_names').val();
 			}),
 			new SendQuery({
@@ -170,37 +193,37 @@ $(function() {
 		'edit_graph::listen': new Combine([
 			new Enabler({
 				'target' : function() {
-					return $('#new_vertex');
+					return $('#new_vertex_link');
 				}
 			}),
 			new Enabler({
 				'target' : function() {
-					return $('#delete_vertex');
+					return $('#delete_vertex_link');
 				}
 			}),
 			new Enabler({
 				'target' : function() {
-					return $('#finish_editing');
+					return $('#finish_editing_link');
 				}
 			}),
 			new Enabler({
 				'target' : function() {
-					return $('#new_edge');
+					return $('#new_edge_link');
 				},
 			}),
 			new Enabler({
 				'target' : function() {
-					return $('#delete_edge');
+					return $('#delete_edge_link');
 				},
 			}),
 			new Enabler({
 				'target' : function() {
-					return $('#show_params');
+					return $('#show_params_link');
 				},
 			}),
 			new Enabler({
 				'target' : function() {
-					return $('#send_points');
+					return $('#send_points_link');
 				}
 			}),
 			new Binder({
@@ -290,22 +313,18 @@ $(function() {
 			}),
 		]),
 		'edit_graph::set_points' : new Combine([
-			new Builder({
-				'container' : $('body'),
-				'func' : function(context, container) {
-					container.append(
+			new BDialog({
+				'id' : 'new_points_dialog',
+				'title' : 'Set points',
+				'data' : function(context) {
+					return 	(
 						'<div id=new_points_dialog title="Set points">'
-							+ '<textarea id=points placeholder="series_name 1452291138 -3.4 [target_block]">'
+							+ '<textarea class="form-control" rows="5" id=points placeholder="series_name 1452291138 -3.4 [target_block]">'
 							+ '</textarea>'
 						+ '</div>'
 					);
 				},
-
-			}),
-			new Dialog({
-				'target' : function() {
-					return $('#new_points_dialog');
-				},
+				'buttons' :  '<button id=Ok type="button" class="btn btn-default">Ok</button>',
 			}),
 			new GoTo({
 				'type' : 'substate',
@@ -315,7 +334,7 @@ $(function() {
 		'edit_graph::set_points::listen' : new Combine([
 			new Binder({
 				'target' : function () {
-					return $('.ui-button-text-only');
+					return $('#Ok');
 				},
 				'action' : 'click',
 				'type' : 'next',
@@ -323,13 +342,12 @@ $(function() {
 			}),
 			new Binder({
 				'target' : function() {
-					return $('.ui-dialog-titlebar-close');
+					return $('#close');
 				},
 				'action' : 'click',
 				'type' : 'exit_state',
 				'new_state' : 'edit_graph::listen',
 			}),
-
 		]),
 		'edit_graph::set_points::enable_debug_mode' : new SendQuery({
 			'ajax_data' : function(context) {
@@ -355,7 +373,7 @@ $(function() {
 							'time' : parseFloat(point[1]),
 							'value' : parseFloat(point[2]),
 						};
-						if (point.length >= 4) {
+						if (point.length >= 4 && point[3] !== '') {
 							point_hash['block'] = point[3];
 						}
 						points.push(point_hash);
@@ -441,7 +459,7 @@ $(function() {
 		'edit_graph::series::choose_block_to_show_series' : new Combine([
 			new Enabler({
 				'target' : function() {
-					return $('#send_points');
+					return $('#send_points_link');
 				},
 			}),
 			new Binder({
@@ -471,7 +489,13 @@ $(function() {
 				var block = context.block.attr('id');
 				$('#series').html('');
 				if (context.parent.block_series_name[block]) {
-					$('#series').highcharts({
+					var chart  = new Highcharts.Chart({
+						chart: {
+							type: 'line',
+							renderTo: "progresschart",
+							renderTo: 'series',
+				        	},
+						'height' : 300,
 						'title' : {
 							text: 'Points from block ' + block,
 						},
@@ -513,11 +537,11 @@ $(function() {
 				'target' : function() {
 					return $('#show_params');
 				},
-				'new_html' : 'Завершить редактирование параметров',
+				'new_html' : 'Завершить изменение параметров',
 			}),
 			new Enabler({
 				'target' : function() {
-					return $('#show_params');
+					return $('#show_params_link');
 				},
 			}),
 			new SwitchToSelectMode({
@@ -566,35 +590,38 @@ $(function() {
 			'new_state' : 'edit_graph::change_params::set_params',
 		}),
 		'edit_graph::change_params::set_params' : new Combine([
-			new Builder({
-				'container' : $('body'),
-				'func' : function(context, container) {
+			new BDialog({
+				'id' : 'new_params_dialog',
+				'title' : 'Change params of block',
+				'data' : function(context) {
 					if (context.blocks_params.length) {
 						var input_html = '';
 						for (var i = 0; i < context.blocks_params.length; ++i) {
 							input_html += (
-								context.blocks_params[i].Name + ':'
-								+ '<input type=text'
-									+ ' value="' + context.blocks_params[i].Value + '"'
-									+ ' id=' + context.blocks_params[i].Name
-								+ '>'
-								+ '<br>'
+								'<div class="input-group">'
+									+'<span class="input-group-addon" id="basic-addon1">'
+										+ context.blocks_params[i].Name
+									+ '</span>'
+									+'<input'
+
+										+ ' type="text"'
+										+ ' class="form-control"'
+										+ ' placeholder=""'
+										+ ' aria-describedby="basic-addon1"'
+										+ ' value="' + context.blocks_params[i].Value + '"'
+										+ ' id=' + context.blocks_params[i].Name
+									+ '>'
+								+ '</div><br>'
+
 							);
 						}
-						container.append(
-							'<div id=new_params_dialog title="Change params of block">'
-								+ input_html
-							+ '</div>'
-						);
+
+						return input_html;
 					} else {
 						alert("No params in block " + context.block.attr('id'));
 					}
-				}
-			}),
-			new Dialog({
-				'target' : function () {
-					return $('#new_params_dialog');
 				},
+				'buttons' :  '<button id=Ok type="button" class="btn btn-default">Ok</button>',
 			}),
 			new GoTo({
 				'type' : function(context) {
@@ -616,7 +643,7 @@ $(function() {
 		'edit_graph::change_params::set_params::listen' : new Combine([
 			new Binder({
 				'target' : function () {
-					return $('.ui-button-text-only');
+					return $('#Ok');
 				},
 				'action' : 'click',
 				'type' : 'next',
@@ -624,7 +651,7 @@ $(function() {
 			}),
 			new Binder({
 				'target' : function() {
-					return $('.ui-dialog-titlebar-close');
+					return $('#close');
 				},
 				'action' : 'click',
 				'type' : 'exit_state',
@@ -659,7 +686,7 @@ $(function() {
 		'edit_graph::delete_edges': new Combine([
 			new Enabler({
 				'target' : function() {
-					return $('#delete_edge');
+					return $('#delete_edge_link');
 				},
 			}),
 			new HTMLReplacer({
@@ -728,7 +755,7 @@ $(function() {
 		'edit_graph::create_edges' : new Combine([
 			new Enabler({
 				'target' : function() {
-					return $('#new_edge');
+					return $('#new_edge_link');
 				},
 			}),
 			new HTMLReplacer({
@@ -794,9 +821,10 @@ $(function() {
 			'new_state' : 'edit_graph::create_edges::set_edge',
 		}),
 		'edit_graph::create_edges::set_edge' : new Combine([
-			new Builder({
-				'container' : $('body'),
-				'func' : function(context, container) {
+			new BDialog({
+				'id' : 'new_edge_dialog',
+				'title' : 'Choose edge name.',
+				'data' : function(context) {
 					if (context.missing_edges.length) {
 						context.missing_edges.sort(function (x,y) {
 							if (x.EdgeName < y.EdgeName) {
@@ -817,23 +845,26 @@ $(function() {
 								+ '</option>'
 							);
 						}
-						container.append(
-							'<div id=new_edge_dialog title="Choose edge name">'
-								+ 'Edge name:'
-								+ '<select id=edge_name>'
-									+ select_html
-								+ '</select>'
-							+ '</div>'
-						);
+					return 	(
+
+						'<div class="input-group">'
+							+'<span class="input-group-addon" id="basic-addon1">'
+								+ 'Edge name'
+							+ '</span>'
+							+ '<select'
+								+ ' id=edge_name'
+								+ ' class="form-control"'
+								+ ' style="width:50%"'
+							+ ' >'
+								+ select_html
+							+ '</select>'
+						+ '</div><br>'
+					);
 					} else {
 						alert('Vertex ' + context.to.attr('id') + ' can\'t have more incoming edges.');
 					}
-				}
-			}),
-			new Dialog({
-				'target' : function() {
-					return $('#new_edge_dialog');
 				},
+				'buttons' :  '<button id=Ok type="button" class="btn btn-default">Ok</button>',
 			}),
 			new GoTo({
 				'type' : function(context) {
@@ -855,7 +886,7 @@ $(function() {
 		'edit_graph::create_edges::set_edge::listen' : new Combine([
 			new Binder({
 				'target' : function () {
-					return $('.ui-button-text-only');
+					return $('#Ok');
 				},
 				'action' : 'click',
 				'type' : 'next',
@@ -863,13 +894,12 @@ $(function() {
 			}),
 			new Binder({
 				'target' : function() {
-					return $('.ui-dialog-titlebar-close');
+					return $('#close');
 				},
 				'action' : 'click',
 				'type' : 'exit_state',
 				'new_state' : 'edit_graph::create_edges::listen',
-			})
-
+			}),
 		]),
 		'edit_graph::create_edges::set_edge::save_edge' : new SendQuery({
 			'ajax_data' : function(context) {
@@ -902,7 +932,7 @@ $(function() {
 		'edit_graph::delete_vertex' : new Combine([
 			new Enabler({
 				'target' : function() {
-					return $('#delete_vertex');
+					return $('#delete_vertex_link');
 				},
 			}),
 			new HTMLReplacer({
@@ -967,16 +997,16 @@ $(function() {
 					'type' : 'show',
 					'object' : 'types',
 				};
-
 			},
 			'write_to' : 'types',
 			'type' : 'next',
 			'new_state' : 'edit_graph::set_vertex',
 		}),
 		'edit_graph::set_vertex' : new Combine ([
-			new Builder({
-				'container' : $('body'),
-				'func' : function(context, container) {
+			new BDialog({
+				'id' : 'new_vertex_dialog',
+				'title' : 'Chose type of vertex',
+				'data' : function(context) {
 					context.descriptions_by_types = {};
 					var select_html = '';
 					for(var i = 0; i < context.types.length; ++i) {
@@ -991,28 +1021,59 @@ $(function() {
 							+ '</option>'
 						);
 					}
-					container.append(
-						'<div id=new_vertex_dialog title="Chose type of vertex">'
-							+ '<div>'
-								+ '<select id=vertex_types>'
-									+ select_html
-								+ '</select>'
-								+ '&nbsp; <input type=number value=1 id=edges_count min=1 max=99>'
-							+ '</div><br>'
-							+ 'Vertex name:'
-							+ '<input type="text" id="vertex_name" value=""><br>'
-							+ '<div id=vertex_description>'
-							+ '</div><br>'
-						+ '</div>'
+					return (
+						'<div class="input-group">'
+							+'<span class="input-group-addon" id="basic-addon1">'
+								+ 'Vertex type'
+							+ '</span>'
+							+ '<select'
+								+ ' id=vertex_types'
+								+ ' class="form-control"'
+								+ ' style="width:50%"'
+							+ ' >'
+								+ select_html
+							+ '</select>'
+						+ '</div><br>'
+
+						+'<div class="input-group" id=edges_count_div>'
+							+'<span class="input-group-addon" id="basic-addon1">'
+								+ 'Edges count'
+							+ '</span>'
+							+'<input'
+								+ ' type="number"'
+								+ ' class="form-control"'
+								+ ' placeholder=""'
+								+ ' aria-describedby="basic-addon1"'
+								+ ' id=edges_count'
+							+ '>'
+						+ '</div><br>'
+
+						+'<div class="input-group">'
+							+'<span class="input-group-addon" id="basic-addon1">'
+								+ 'Vertex name'
+							+ '</span>'
+							+'<input'
+								+ ' type="text"'
+								+ ' class="form-control"'
+								+ ' placeholder=""'
+								+ ' aria-describedby="basic-addon1"'
+								+ ' id=vertex_name'
+							+ '>'
+						+ '</div><br><hr color="#101010>'
+						+ '<div id=vertex_description>'
+						+ '</div><br>'
 					);
-					$('#edges_count').hide();
-					context.change_description = function () {
+				},
+				'buttons' :  '<button id=Ok type="button" class="btn btn-default">Ok</button>',
+			}),
+			new Executer(function(context) {
+				context.change_description = function () {
 						var type = $('#vertex_types').val();
 						$('#vertex_description').html(context.descriptions_by_types[type]);
 						if (type.indexOf('%d') == -1) {
-							$('#edges_count').hide();
+							$('#edges_count_div').hide();
 						} else {
-							$('#edges_count').show();
+							$('#edges_count_div').show();
 						}
 					};
 					context.change_description();
@@ -1021,12 +1082,6 @@ $(function() {
 
 						return type.replace('%d', $('#edges_count').val() || "0");
 					}
-				},
-			}),
-			new Dialog({
-				'target' : function () {
-					return $('#new_vertex_dialog');
-				},
 			}),
 			new GoTo({
 				'type' : 'substate',
@@ -1044,7 +1099,7 @@ $(function() {
 			}),
 			new Binder({
 				'target' : function () {
-					return $('.ui-button-text-only');
+					return $('#Ok');
 				},
 				'action' : 'click',
 				'type' : 'next',
@@ -1052,12 +1107,12 @@ $(function() {
 			}),
 			new Binder({
 				'target' : function() {
-					return $('.ui-dialog-titlebar-close');
+					return $('#close');
 				},
 				'action' : 'click',
 				'type' : 'exit_state',
 				'new_state' : 'edit_graph::listen',
-			})
+			}),
 		]),
 		'edit_graph::set_vertex::check_vertex_name' : new Combine([
 			new Executer(function(context) {

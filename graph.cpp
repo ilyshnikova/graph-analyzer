@@ -2398,12 +2398,11 @@ Json::Value WorkSpace::JsonRespond(const Json::Value& query) {
 			Json::Value point = points[i];
 			Point p(point["series"].asString(), point["value"].asDouble(), point["time"].asInt());
 
-			std::string block_name = point["block"].asString();
 			logger << p;
 			if (point["block"].isNull()) {
 				graphs[graph_name]->InsertPointToAllPossibleBlocks(p);
 			} else {
-				graphs[graph_name]->InsertPoint(p, block_name);
+				graphs[graph_name]->InsertPoint(p, point["block"].asString());
 			}
 		}
 		answer["status"] = 1;
