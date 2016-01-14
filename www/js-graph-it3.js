@@ -1,9 +1,10 @@
 ONE_EDGE_WIDTH = 30;
 INITIAL_EDGE_OFFSET = 10;
 ARROW_IMAGE_SIZE = 7;
-DEFAULT_COLOR = "#E0E8FF";
+DEFAULT_COLOR = "#E0E0E0";
+TEXT_COLOR = "#101010";
 ERROR_COLOR = "#FF8787";
-SELECTED_COLOR = "#E0FFE8";
+SELECTED_COLOR = "#d7e7f7";
 // Edge
 
 function Edge(params) {
@@ -43,7 +44,7 @@ Edge.prototype.init_elements = function () {
 		+ '<label'
 			+ ' id="label_' + edge_id + '"'
 			+ ' class="destination-label edge_' + edge_id + '"'
-			+ ' style="position: absolute; overflow: hidden; z-index: 2;"'
+			+ ' style="position: absolute; overflow: hidden; z-index: 2; background-color:white"'
 		+ '>'
 			+ (this.params.label || '')
 		+ '</label>'
@@ -58,13 +59,13 @@ Edge.prototype.init_elements = function () {
 
 Edge.change_segment = function(segment, start_x, start_y, stop_x, stop_y) {
 	if (start_x == stop_x) {
-		segment.css('width', '1px');
+		segment.css('width', '2px');
 		segment.css('height', Math.abs(start_y - stop_y) + 'px');
 		segment.css('left', start_x + 'px');
 		segment.css('top', Math.min(start_y, stop_y) + 'px');
 	} else if (start_y == stop_y) {
 		segment.css('width',  Math.abs(start_x - stop_x) + 'px');
-		segment.css('height', '1px');
+		segment.css('height', '2px');
 		segment.css('left', Math.min(start_x, stop_x) + 'px');
 		segment.css('top', start_y + 'px');
 	} else {
@@ -100,6 +101,8 @@ Edge.prototype.render = function () {
 	this.params.vertex_from.remove_bad_edge(this);
 	this.params.vertex_to.remove_bad_edge(this);
 
+	var shift = -0.5;
+
 	if (
 		from.position().left + from.outerWidth() < to.position().left
 	) {
@@ -108,7 +111,10 @@ Edge.prototype.render = function () {
 		var from_y = INITIAL_EDGE_OFFSET + ONE_EDGE_WIDTH * this.from_index + from.position().top;
 		var to_x = to.position().left;
 		var to_y = INITIAL_EDGE_OFFSET + ONE_EDGE_WIDTH * this.to_index + to.position().top;
-		var middle_x = (to.position().left + from.position().left + from.outerWidth()) / 2;
+		var middle_x = (
+			(to.position().left + from.position().left + from.outerWidth()) / 2
+			- (to_x - from_x) / ((this.to_index + 1) * 4)
+		);
 
 		Edge.change_segment(first_edge, from_x, from_y, middle_x, from_y);
 		Edge.change_segment(second_edge, middle_x, from_y, middle_x, to_y);
@@ -116,15 +122,19 @@ Edge.prototype.render = function () {
 
 		image.attr('src', 'arrow_r.gif');
 		image.css('left', (to_x - ARROW_IMAGE_SIZE) + 'px');
-		image.css('top', (to_y - ARROW_IMAGE_SIZE / 2) + 'px');
+		image.css('top', (to_y - ARROW_IMAGE_SIZE / 2) - shift + 'px');
 	} else if (
 		to.position().left + to.outerWidth() < from.position().left
 	) {
 		var from_x = from.position().left;
 		var from_y = INITIAL_EDGE_OFFSET + ONE_EDGE_WIDTH * this.from_index + from.position().top;
-		var to_x = to.position().left + to.outerWidth();
+		var to_x = to.position().left + to.outerWidth()
 		var to_y = INITIAL_EDGE_OFFSET + ONE_EDGE_WIDTH * this.to_index + to.position().top;
-		var middle_x = (to.position().left + to.outerWidth() + from.position().left) / 2;
+		var middle_x = (
+			(to.position().left + to.outerWidth() + from.position().left) / 2
+			+ (from_x - to_x) / ((this.to_index + 1) * 4)
+		);
+
 
 		Edge.change_segment(first_edge, from_x, from_y, middle_x, from_y);
 		Edge.change_segment(second_edge, middle_x, from_y, middle_x, to_y);
@@ -132,7 +142,7 @@ Edge.prototype.render = function () {
 
 		image.attr('src', 'arrow_l.gif');
 		image.css('left', to_x + 'px');
-		image.css('top', (to_y - ARROW_IMAGE_SIZE / 2) + 'px');
+		image.css('top', (to_y - ARROW_IMAGE_SIZE / 2) - shift + 'px');
 	} else if (
 		to.position().top + to.outerHeight() < from.position().top
 	) {
@@ -140,14 +150,17 @@ Edge.prototype.render = function () {
 		var from_y = from.position().top;
 		var to_x = INITIAL_EDGE_OFFSET + ONE_EDGE_WIDTH * this.to_index + to.position().left;
 		var to_y = to.position().top + to.outerHeight();
-		var middle_y = (to.position().top + to.outerHeight() + from.position().top) / 2;
+		var middle_y = (
+			(to.position().top + to.outerHeight() + from.position().top) / 2
+			- (to_y - to_x) / ((this.to_index + 1) * 4)
+		);
 
 		Edge.change_segment(first_edge, from_x, from_y, from_x, middle_y);
 		Edge.change_segment(second_edge, from_x, middle_y, to_x, middle_y);
 		Edge.change_segment(third_edge, to_x, middle_y, to_x, to_y);
 
 		image.attr('src', 'arrow_u.gif');
-		image.css('left', (to_x - ARROW_IMAGE_SIZE / 2) + 'px');
+		image.css('left', (to_x - ARROW_IMAGE_SIZE / 2) - shift + 'px');
 		image.css('top', to_y + 'px');
 	} else if (
 		from.position().top + from.outerHeight() < to.position().top
@@ -156,14 +169,17 @@ Edge.prototype.render = function () {
 		var from_y = from.position().top + from.outerHeight();
 		var to_x = INITIAL_EDGE_OFFSET + ONE_EDGE_WIDTH * this.to_index + to.position().left;
 		var to_y = to.position().top;
-		var middle_y = (to.position().top + from.position().top + from.outerHeight()) / 2;
+		var middle_y = (
+			(to.position().top + from.position().top + from.outerHeight()) / 2
+			+ (to_y - to_x) / ((this.to_index + 1) * 4)
+		);
 
 		Edge.change_segment(first_edge, from_x, from_y, from_x, middle_y);
 		Edge.change_segment(second_edge, from_x, middle_y, to_x, middle_y);
 		Edge.change_segment(third_edge, to_x, middle_y, to_x, to_y);
 
 		image.attr('src', 'arrow_d.gif');
-		image.css('left', (to_x - ARROW_IMAGE_SIZE / 2) + 'px');
+		image.css('left', (to_x - ARROW_IMAGE_SIZE / 2) - shift + 'px');
 		image.css('top', (to_y - ARROW_IMAGE_SIZE) + 'px');
 	} else {
 		first_edge.hide();
@@ -207,6 +223,7 @@ Vertex.prototype.add_bad_edge = function (edge) {
 Vertex.prototype.remove_bad_edge = function (edge) {
 	this.bad_edges.remove(edge);
 	if (this.bad_edges.size() == 0) {
+		this.get_vertex_div().css('color', TEXT_COLOR);
 		this.get_vertex_div().css('background-color', DEFAULT_COLOR);
 
 	}
@@ -245,7 +262,8 @@ Vertex.prototype.disable_select_mode = function () {
 Vertex.prototype.deselect = function () {
 	var vertex_div = this.get_vertex_div();
 
-	vertex_div.css('border-width', '1px');
+	vertex_div.css('border-width', '2px');
+	vertex_div.css('color', TEXT_COLOR);
 	vertex_div.css('background-color', DEFAULT_COLOR);
 }
 
@@ -282,7 +300,7 @@ Vertex.prototype.init_mouse_move = function () {
 	}
 
 	this.selecting_mouse_out_handler = function (e) {
-		vertex_div.css('border-width', '1px');
+		vertex_div.css('border-width', '2px');
 		vertex_div.css('top', (vertex_div.position().top + 4) + 'px');
 		vertex_div.css('left', (vertex_div.position().left + 4) + 'px');
 	}

@@ -26,14 +26,26 @@ $(function() {
 				'func' : function (context, container) {
 					container.append(
 						'<div class="text-center">'
-							+ '<button'
-								+ ' id=download_graph'
-								+ ' class="btn btn-lg"'
-								+ ' type="button"'
-								+ ' style="background-color: #101010; color:#9d9d9d;"'
-							+'>'
-								+'Загрузить граф'
-							+'</button>'
+							+ '<p>'
+									+ '<button'
+									+ ' id=create_new_graph'
+									+ ' class="btn btn-lg"'
+									+ ' type="button"'
+									+ ' style="background-color: #101010; color:#9d9d9d;"'
+								+'>'
+									/*+ '<span class="glyphicon glyphicon-plus"></span>'*/
+									+ 'Создать новый граф'
+								+'</button>'
+								+ '&nbsp&nbsp&nbsp'
+								+ '<button'
+									+ ' id=download_graph'
+									+ ' class="btn btn-lg"'
+									+ ' type="button"'
+									+ ' style="background-color: #101010; color:#9d9d9d;"'
+								+'>'
+									+'Загрузить граф'
+								+'</button>'
+							+ '</p>'
 						+ '</div>'
 					);
 				},
@@ -44,8 +56,34 @@ $(function() {
 				},
 			    	'action' : 'click',
 			    	'type' : 'next',
-			    	'new_state' : 'edit_graph',
-			})
+			    	'new_state' : 'set_edit_graph',
+			}),
+			new Binder({
+				'target' : function() {
+					return $('#create_new_graph');
+				},
+				'action' : 'click',
+				'type' : 'next',
+				'new_state' : 'set_create_graph',
+			}),
+		]),
+		'set_edit_graph' : new Combine([
+			new Executer(function (context) {
+				context.create = false;
+			}),
+			new GoTo({
+				'type' : 'next',
+				'new_state' : 'edit_graph',
+			}),
+		]),
+		'set_create_graph' : new Combine([
+			new Executer(function (context) {
+				context.create = true;
+			}),
+			new GoTo({
+				'type' : 'next',
+				'new_state' : 'edit_graph',
+			}),
 		]),
 		'edit_graph' : new Combine([
 			new Builder({
@@ -74,7 +112,97 @@ $(function() {
 			},
 	      		'write_to' : 'graphs_names',
 			'type' : 'next',
-			'new_state' : 'edit_graph::set_graph',
+			'new_state' : function (context) {
+				if (context.parent.create) {
+					return 'edit_graph::set_new_graph';
+				} else {
+					return 'edit_graph::set_graph';
+				}
+			},
+		}),
+		'edit_graph::set_new_graph' : new Combine([
+			new BDialog({
+				'id' : 'new_create_graph_dialog',
+				'title' : 'Create graph.',
+				'data' : function(context) {
+					return 	(
+						'<div class="input-group">'
+							+'<span class="input-group-addon" id="basic-addon1">'
+								+ 'Graph name'
+							+ '</span>'
+							+'<input'
+
+								+ ' type="text"'
+								+ ' class="form-control"'
+								+ ' placeholder="new_graph_name"'
+								+ ' aria-describedby="basic-addon1"'
+								+ ' id=new_graph_name'
+							+ '>'
+						+ '</div><br>'
+					);
+				},
+				'buttons' :  '<button id=Ok type="button" class="btn btn-default">Ok</button>',
+			}),
+			new GoTo({
+				'new_state' : 'edit_graph::set_new_graph::listen',
+				'type' : 'substate',
+			}),
+		]),
+		'edit_graph::set_new_graph::listen' : new Combine([
+			new Binder({
+				'target' : function () {
+					return $('#Ok');
+				},
+				'action' : 'click',
+				'type' : 'next',
+				'new_state' : 'edit_graph::set_new_graph::check_graph_name',
+			}),
+			new Binder({
+				'target' : function() {
+					return $('#close');
+				},
+				'action' : 'click',
+				'type' : 'exit_state',
+				'new_state' : 'edit_graph::cancel_edit',
+			}),
+		]),
+		'edit_graph::set_new_graph::check_graph_name' : new Combine([
+			new Executer(function(context) {
+				context.is_graph_exist = false;
+				for (var i = 0; i < context.parent.graphs_names.length; ++i) {
+					if ($('#new_graph_name').val() == context.parent.graphs_names[i].GraphName) {
+						context.is_graph_exist = true;
+						return;
+					}
+				}
+			}),
+			new GoTo({
+				'type' : 'next',
+				'new_state' : function(context) {
+					if (context.is_graph_exist) {
+						alert(
+							'Graph with name '
+							+ $('#new_graph_name').val()
+							+ ' already exist'
+						);
+						return 'edit_graph::set_new_graph::listen';
+					} else {
+						return 'edit_graph::set_new_graph::create_graph';
+					}
+				},
+			}),
+		]),
+		'edit_graph::set_new_graph::create_graph' : new SendQuery({
+			'ajax_data' : function(context) {
+				context.parent.parent.graph_name = $('#new_graph_name').val();
+				return {
+					'type' : 'create',
+		 			'object' : 'graph',
+		 			'graph' : context.parent.parent.graph_name,
+				};
+			},
+			'type' : 'exit_state',
+			'new_state' : 'edit_graph::listen',
 		}),
 		'edit_graph::set_graph' : new Combine([
 			new BDialog({
@@ -107,7 +235,8 @@ $(function() {
 					);
 				},
 				'buttons' :  '<button id=Ok type="button" class="btn btn-default">Ok</button>',
-			}),			new GoTo({
+			}),
+			new GoTo({
 				'new_state' : 'edit_graph::set_graph::listen',
 		       		'type' : 'substate'
 			}),
