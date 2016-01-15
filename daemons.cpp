@@ -397,6 +397,10 @@ std::string TerminalClient::CreateJsonForDaemon(const std::string& query) const	
 				jpoint["series"] = std::string(point[1]);
 				jpoint["time"] = std::stoll(point[2]);
 				jpoint["value"] = std::stod(point[3]);
+				if (match[3] != std::string("")) {
+					jpoint["block"] = std::string(match[3]);
+				}
+
 				jpoints.append(jpoint);
 			}
 		}
@@ -408,9 +412,6 @@ std::string TerminalClient::CreateJsonForDaemon(const std::string& query) const	
 			})
 		);
 		json_query["points"] = jpoints;
-		if (match[3] != std::string("")) {
-			json_query["block"] = std::string(match[3]);
-		}
  	} else  if (
 		boost::regex_match(
 			query,
@@ -518,6 +519,22 @@ std::string TerminalClient::CreateJsonForDaemon(const std::string& query) const	
 			std::map<std::string, std::string>({
 				{"type", "show"},
 				{"object", "possible_edges"},
+				{"block", match[1]},
+				{"graph", match[2]}
+			})
+		);
+	} else if (
+		boost::regex_match(
+			query,
+			match,
+			boost::regex("\\s*show\\s+missing\\s+edges\\s+of\\s+block\\s+(\\w+)\\s+of\\s+graph\\s+(\\w+)\\s*")
+		)
+	) {
+
+		json_query = CreateJson(
+			std::map<std::string, std::string>({
+				{"type", "show"},
+				{"object", "missing_edges"},
 				{"block", match[1]},
 				{"graph", match[2]}
 			})

@@ -33,7 +33,7 @@ Json::Value CreateJson(const int& value);
 template
 <typename K,typename V>
 Json::Value CreateJson(const std::map<K,V>& value) {
-	Json::Value jvalue;
+	Json::Value jvalue = Json::Value();
 	for (auto it = value.cbegin(); it != value.cend(); ++it) {
 		jvalue[it->first] = CreateJson(it->second);
 	}
@@ -44,7 +44,7 @@ Json::Value CreateJson(const std::map<K,V>& value) {
 template
 <typename T>
 Json::Value CreateJson(const std::vector<T>& value) {
-	Json::Value jvalue;
+	Json::Value jvalue = Json::Value(Json::arrayValue);
 	for (size_t i = 0; i < value.size(); ++i) {
 		jvalue.append(CreateJson(value[i]));
 	}
@@ -496,6 +496,8 @@ public:
 
 	BlockCacheUpdaterBuffer&  SetTable(Table* table);
 
+	void RemoveBlock(const int block_id);
+
 	void PushUpdate(const int block_id, Block* block);
 
 	void Update();
@@ -519,7 +521,7 @@ public:
 
 
 	std::unordered_map<std::string, Edge*> incoming_edges;
-	std::unordered_map<std::string, Edge*> outgoing_edges;
+	std::unordered_map<std::string, std::unordered_map<std::string, Edge*> > outgoing_edges;
 
 	BlockBase* GetBlock(const std::string& block_type) const;
 
@@ -554,13 +556,13 @@ public:
 
 	void AddOutgoingEdge(Edge* edge);
 
-	void DeleteOutgoingEdge(const std::string& edge_name, Table* blocks_and_outgoing_edges_table);
+	void DeleteOutgoingEdge(const std::string& to, const std::string& edge_name, Table* blocks_and_outgoing_edges_table);
 
 	void Verification() const;
 
-	bool DoesEdgeExist(const std::string& incoming_edge_name);
+	bool DoesEdgeExist(const std::string& incoming_edge_name) const;
 
-	Edge* GetOutgoingEdge(const std::string& edge_name);
+	Edge* GetOutgoingEdge(const std::string& to, const std::string& edge_name);
 
 	Edge* GetIncomingEdge(const std::string& edge_name);
 
@@ -586,6 +588,8 @@ public:
 	std::vector<std::vector<std::string> > GetParams() const;
 
 	std::vector<std::vector<std::string> > GetPossibleEdges() const;
+
+	std::vector<std::vector<std::string> > GetMissingEdges() const;
 
 	friend YAML::Emitter& operator<< (YAML::Emitter& out, const Block& block);
 
@@ -733,6 +737,8 @@ public:
 	std::vector<std::vector<std::string> > GetEdges() const;
 
 	std::vector<std::vector<std::string> > GetPossibleEdges(const std::string& block_name) const;
+
+	std::vector<std::vector<std::string> > GetMissingEdges(const std::string& block_name) const;
 
 	std::string GetBlockType(const std::string& block_name) const;
 
@@ -973,6 +979,13 @@ public:
 	) const;
 
 	Table* GetTable(const std::string& object_type);
+
+	void ChangeParam(
+		const std::string& graph_name,
+		const std::string& block_name,
+		const std::string& param_name,
+		const StringType& param_value
+	);
 
 	~WorkSpace();
 

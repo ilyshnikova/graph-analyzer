@@ -6,3 +6,4 @@ nginx-server /usr/bin/
 gan-server /usr/bin/
 gan-client /usr/bin/
 config /etc/nginx/sites-available/
+www /var/

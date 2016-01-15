@@ -64,6 +64,7 @@ static void *doit(void *a) {
 
 		char* query_string = FCGX_GetParam("QUERY_STRING", request.envp);
 		std::string s = query_string;
+		std::cout << "Got query " << std::string(query_string) << std::endl;
 		std::string json_query = ParseURLQuery(std::string(query_string));
 
 		client.AddQuery(json_query);
