@@ -33,7 +33,6 @@ $(function() {
 									+ ' type="button"'
 									+ ' style="background-color: #101010; color:#9d9d9d;"'
 								+'>'
-									/*+ '<span class="glyphicon glyphicon-plus"></span>'*/
 									+ 'Создать новый граф'
 								+'</button>'
 								+ '&nbsp&nbsp&nbsp'
@@ -1244,7 +1243,6 @@ $(function() {
 							+ '>'
 						+ '</div><br>'
 						+ '<hr color="#101010">'
-						+ ' Description'
 						+ '<div id=vertex_description>'
 						+ '</div><br>'
 					);
