@@ -45,6 +45,16 @@ $(function() {
 								+'>'
 									+'Загрузить граф'
 								+'</button>'
+								+ '&nbsp&nbsp&nbsp'
+								+ '<button'
+									+ ' id=delete_graph'
+									+ ' class="btn btn-lg"'
+									+ ' type="button"'
+									+ ' style="background-color: #101010; color:#9d9d9d;"'
+								+'>'
+									+'Удалить граф'
+								+'</button>'
+
 							+ '</p>'
 						+ '</div>'
 					);
@@ -65,6 +75,23 @@ $(function() {
 				'action' : 'click',
 				'type' : 'next',
 				'new_state' : 'set_create_graph',
+			}),
+			new Binder({
+				'target' : function() {
+					return $('#delete_graph');
+				},
+				'action' : 'click',
+				'type' : 'next',
+				'new_state' : 'set_delete_graph',
+			}),
+		]),
+		'set_delete_graph' : new Combine([
+			new Executer(function(context) {
+				context.remove_graph = true;
+			}),
+			new GoTo({
+				'type' : 'next',
+				'new_state' : 'set_edit_graph',
 			}),
 		]),
 		'set_edit_graph' : new Combine([
@@ -116,9 +143,20 @@ $(function() {
 				if (context.parent.create) {
 					return 'edit_graph::set_new_graph';
 				} else {
-					return 'edit_graph::set_graph';
+					return 'edit_graph::check_graphs_count';
 				}
 			},
+		}),
+		'edit_graph::check_graphs_count' : new GoTo({
+			'type' : 'next',
+			'new_state' : function(context) {
+				if (context.graphs_names.length > 0) {
+					return 'edit_graph::set_graph';
+				} else {
+					alert("No graphs.");
+					return 'edit_graph::cancel_edit';
+				}
+			}
 		}),
 		'edit_graph::set_new_graph' : new Combine([
 			new BDialog({
@@ -248,7 +286,13 @@ $(function() {
 				},
 				'action' : 'click',
 				'type' : 'next',
-				'new_state' : 'edit_graph::set_graph::get_vertices',
+				'new_state' : function(context) {
+					if (context.parent.parent.remove_graph){
+						return 'edit_graph::set_graph::delete_graph';
+					} else {
+						return 'edit_graph::set_graph::get_vertices';
+					}
+				},
 			}),
 			new Binder({
 				'target' : function() {
@@ -263,7 +307,17 @@ $(function() {
 			'type' : 'exit_state',
 			'new_state' : 'start',
 		}),
-
+		'edit_graph::set_graph::delete_graph' : new SendQuery({
+			'ajax_data' : function(context) {
+				return {
+					'type' : 'delete',
+				 	'object' :  'graph',
+				 	'graph' : $('#graph_names').val(),
+				};
+			},
+			'type' : 'exit_state',
+			'new_state' : 'edit_graph::cancel_edit'
+		}),
 		'edit_graph::set_graph::get_vertices' : new Combine([
 			new Executer(function(context) {
 				$('.modal-backdrop').remove();
@@ -1188,7 +1242,9 @@ $(function() {
 								+ ' aria-describedby="basic-addon1"'
 								+ ' id=vertex_name'
 							+ '>'
-						+ '</div><br><hr color="#101010>'
+						+ '</div><br>'
+						+ '<hr color="#101010">'
+						+ ' Description'
 						+ '<div id=vertex_description>'
 						+ '</div><br>'
 					);
