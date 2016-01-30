@@ -8,6 +8,7 @@
 #include <json/json.h>
 #include <fstream>
 #include <cstdio>
+#include <cmath>
 #include "gan-exception.h"
 #include "graph.h"
 #include "logger.h"
@@ -16,7 +17,6 @@
 
 
 /*	Json	*/
-
 
 
 std::vector<std::map<std::string, std::string> > CreatreTable(
@@ -46,7 +46,11 @@ Json::Value CreateJson(const std::string& value) {
 	return Json::Value(value);
 }
 
-Json::Value CreateJson(const int& value) {
+Json::Value CreateJson(const double value) {
+	return Json::Value(value);
+}
+
+Json::Value CreateJson(const int value) {
 	return Json::Value(value);
 }
 
@@ -685,7 +689,7 @@ Point Scale::Do(
 	const std::unordered_map<std::string, Point>& values,
 	const std::time_t& time
 ) {
-	return Point(GetResultSeriesName(values), values.at("to_scale").GetValue() + param_values["value"], time);
+	return Point(GetResultSeriesName(values), values.at("to_scale").GetValue() * param_values["value"], time);
 }
 
 
@@ -699,8 +703,43 @@ BlockBase* Scale::GetBlock(const std::string& type) const {
 
 
 std::string Scale::Description() const {
-	return std::string("\tThis block summarize incoming points with value param 'value'.\n")
+	return std::string("\tThis block multiply incoming points with value param 'value'.\n")
 		+ "\t\tIncoming edges: to_scale.\n"
+		+ "\t\tParams: value.";
+}
+
+/*	Move	*/
+
+Move::Move()
+: BlockBase(
+	{"to_move"},
+	std::string("Move"),
+	{"value"},
+	std::unordered_map<std::string, StringType>()
+)
+{}
+
+
+Point Move::Do(
+	const std::unordered_map<std::string, Point>& values,
+	const std::time_t& time
+) {
+	return Point(GetResultSeriesName(values), values.at("to_move").GetValue() + param_values["value"], time);
+}
+
+
+BlockBase* Move::GetBlock(const std::string& type) const {
+	boost::smatch match;
+	if (type == block_type) {
+		return new Move();
+	}
+	return NULL;
+}
+
+
+std::string Move::Description() const {
+	return std::string("\tThis block summarize incoming points with value param 'value'.\n")
+		+ "\t\tIncoming edges: to_move.\n"
 		+ "\t\tParams: value.";
 }
 
@@ -803,10 +842,11 @@ Point SendEmail::Do(
 	const std::time_t& time
 ) {
 	for (auto it = values.begin(); it != values.end(); ++it) {
+		logger << "send email: " + std::to_string(it->second.GetValue());
 		if (it->second.GetValue()) {
 			std::string message = std::string("echo \"")
 				+ std::string(it->second)
-				+ "\" | mail -s \" GAN massage \" \"" + std::string(param_values["email"]) + "\"";
+				+ "\" | mail -s \" GAN massage \" " + std::string(param_values["email"]) + "\"";
 			logger << "send email : " + message;
 			ExecuteHandler eh(
 				message.c_str()
@@ -826,9 +866,9 @@ BlockBase* SendEmail::GetBlock(const std::string& type) const {
 
 
 std::string SendEmail::Description() const {
-	return std::string("\tThis block is used for sending email if points' series name == true\n")
+	return std::string("\tThis block is used for sending email if points' value == true\n")
 		+ "\t\tIncoming edges: to_send.\n"
-		+ "\t\tPrams: mail.\n";
+		+ "\t\tPrams: email.\n";
 }
 
 
@@ -998,6 +1038,7 @@ Block::Block(
 	new Min(1),
 	new Max(1),
 	new Scale(),
+	new Move(),
 	new Threshold(),
 	new SendEmail(),
 	})
@@ -1148,6 +1189,9 @@ void Block::DeleteOutgoingEdge(const std::string& to_block_name, const std::stri
 		&& outgoing_edges[to_block_name].count(edge_name) != 0
 	) {
 		outgoing_edges[to_block_name].erase(edge_name);
+		if (outgoing_edges[to_block_name].size() == 0) {
+			outgoing_edges.erase(to_block_name);
+		}
 
 		logger << "DeleteOutgoingEdge from BlocksAndOutgoingEdges where BlockID = " + std::to_string(id);
 		blocks_and_outgoing_edges_table->Delete("BlockID = " + std::to_string(id));
@@ -1210,6 +1254,7 @@ void Block::Insert(const Point& point, const std::string& edge_name) {
 
 				info["point"] = CreateJson(result);
 				Json::FastWriter writer;
+				logger <<  writer.write(info);
 				parent_graph->WriteToBedugInfo(writer.write(info));
 			}
 			SendByAllEdges(result);
@@ -1750,6 +1795,19 @@ size_t Graph::IncomingEdgesCount(const std::string& block_name) const {
 }
 
 
+bool Graph::DoesOutgoingEdgesExist(const std::string& block_name) const {
+	if (blocks.count(block_name) != 0) {
+		if (blocks.at(block_name)->outgoing_edges.size() == 0) {
+			return false;
+		} else {
+			return true;
+		}
+	} else {
+		throw GANException(226503, "Block with name " + block_name + " does not exist.");
+	}
+}
+
+
 void Graph::InsertPoint(const Point& point, const std::string& block_name) {
 	if (!valid) {
 		throw GANException(207530, "Graph " + graph_name + " is not valid, try to deploy graph.");
@@ -1958,6 +2016,7 @@ std::vector<std::vector<std::string> > Graph::GetDebugInfo() {
 	}
 	return table;
 }
+
 
 Graph::~Graph() {
 	for (auto it = blocks.begin(); it != blocks.end(); ++it) {
@@ -2307,6 +2366,32 @@ void WorkSpace::ChangeParam(
 	ChangeGraphsValid(graph_name, 0);
 }
 
+void WorkSpace::InsertPoints(Graph* graph, const Json::Value& points) {
+	for (size_t i = 0; i < points.size(); ++i) {
+		Json::Value point = points[i];
+		Point p(point["series"].asString(), point["value"].asDouble(), point["time"].asInt());
+
+		logger << p;
+		if (graph->IsDebugModeEnabled()) {
+			Json::Value info;
+			info["type"] = "insert_point";
+			info["time"] = int(p.GetTime());
+			if (!point["is_bad"].isNull()) {
+				info["is_bad"] = point["is_bad"];
+			}
+			Json::FastWriter writer;
+			graph->WriteToBedugInfo(writer.write(info));
+		}
+		if (point["block"].isNull()) {
+			graph->InsertPointToAllPossibleBlocks(p);
+		} else {
+			graph->InsertPoint(p, point["block"].asString());
+		}
+	}
+
+}
+
+
 
 /*	QueryAction	*/
 
@@ -2392,19 +2477,7 @@ Json::Value WorkSpace::JsonRespond(const Json::Value& query) {
 		answer["table"] = CreateJson(table);
 		answer["status"] = 1;
 	}  else if (query_type == "insert") {				// insert point
-		Json::Value points = query["points"];
-
-		for (size_t i = 0; i < points.size(); ++i) {
-			Json::Value point = points[i];
-			Point p(point["series"].asString(), point["value"].asDouble(), point["time"].asInt());
-
-			logger << p;
-			if (point["block"].isNull()) {
-				graphs[graph_name]->InsertPointToAllPossibleBlocks(p);
-			} else {
-				graphs[graph_name]->InsertPoint(p, point["block"].asString());
-			}
-		}
+		InsertPoints(graphs[graph_name], query["points"]);
 		answer["status"] = 1;
 	} else if (query_type == "modify") {				// modify params
 		if (objects_type == "param") {
@@ -2555,6 +2628,17 @@ Json::Value WorkSpace::JsonRespond(const Json::Value& query) {
 			answer["table"] = CreateJsonTable(graphs[graph_name]->GetDebugInfo(), head);
 			answer["status"] = 1;
 		}
+	} else if (query_type == "fit_graph") {
+		IteraiveGraphBuilder builder(
+			this,
+			query["graph"].asString(),
+			query["build_graph_method"].asString(),
+			query["ml_method"].asString(),
+			query["train_data"],
+			query["iteration_count"].asInt()
+		);
+		builder.Fit();
+		answer["status"] = 1;
 	}  else if (query_type == "help") { 				// help
 		std::vector<std::string> head = std::vector<std::string>({"Help"});
 		std::vector<std::vector<std::string> > table;
@@ -2877,9 +2961,436 @@ Table* WorkSpace::GetTable(const std::string& object_type) {
 }
 
 
+void WorkSpace::CreateBlockThroughRespond(
+	const std::string& graph_name,
+	const std::string& block_name,
+	const std::string& block_type
+) {
+	JsonRespond(
+		CreateJson(
+			std::map<std::string, std::string>({
+				{"type", "create"},
+				{"object", "block"},
+				{"block", block_name},
+				{"block_type", block_type},
+				{"graph", graph_name},
+			})
+		)
+
+	);
+
+}
+
+void WorkSpace::DeleteBlockThroughRespond(const std::string& graph_name, const std::string& block_name) {
+	JsonRespond(
+		CreateJson(
+			std::map<std::string, std::string>({
+				{"type", "delete"},
+				{"object", "block"},
+				{"block", block_name},
+				{"graph", graph_name}
+			})
+		)
+	);
+
+}
+
+
+
+void WorkSpace::CreateEdgeThroughRespond(const std::string& graph_name, const std::string& from, const std::string& to, const std::string& edge_name) {
+	JsonRespond(
+		CreateJson(
+			std::map<std::string, std::string>({
+				{"type", "create"},
+				{"object", "edge"},
+				{"edge", edge_name},
+				{"graph", graph_name},
+				{"from", from},
+				{"to", to}
+			})
+		)
+	);
+
+}
+
+
+void WorkSpace::ModifyParamsThroughRespond(const std::string& graph_name, const std::string& block_name, const std::string& param_name, const StringType& value) {
+	JsonRespond(
+		CreateJson(
+			std::map<std::string, std::string>({
+				{"type", "modify"},
+				{"object", "param"},
+				{"name", param_name},
+				{"value", value},
+				{"block", block_name},
+				{"graph", graph_name}
+			})
+		)
+	);
+
+
+}
+
+
+void WorkSpace::DeployGraphThroughRespond(const std::string& graph_name) {
+	JsonRespond(
+		CreateJson(
+			std::map<std::string, std::string>({
+				{"type", "deploy"},
+				{"object", "graph"},
+				{"graph", graph_name},
+			})
+		)
+	);
+}
+
+
 WorkSpace::~WorkSpace() {
 	for (auto it = graphs.begin(); it != graphs.end(); ++it) {
 		delete it->second;
 	}
+}
+
+
+/*	IterativeInitialGraphGeneratorBase	*/
+
+Graph* IterativeInitialGraphGeneratorBase::BuildGraph() {
+	return NULL;
+}
+
+
+IterativeInitialGraphGeneratorBase::IterativeInitialGraphGeneratorBase(
+	WorkSpace* work_space,
+	const std::string& graph_name
+)
+: work_space(work_space)
+, graph()
+, graph_name(graph_name)
+{}
+
+
+IterativeInitialGraphGeneratorBase::~IterativeInitialGraphGeneratorBase() {}
+
+
+/* TakeInitialGraph */
+
+Graph* TakeInitialGraph::BuildGraph() {
+	return work_space->GetGraph(graph_name);
+}
+
+
+TakeInitialGraph::TakeInitialGraph(WorkSpace* work_space, const std::string& graph_name)
+: IterativeInitialGraphGeneratorBase(work_space, graph_name)
+{}
+
+
+TakeInitialGraph::~TakeInitialGraph() {}
+
+/*	IterativeInitialGraphGenerator	*/
+IterativeInitialGraphGenerator::IterativeInitialGraphGenerator(
+	WorkSpace* work_space,
+	const std::string& graph_name,
+	const std::string& build_graph_method
+)
+: graph_generator()
+{
+	if (build_graph_method == "take_initial") {
+		graph_generator = new TakeInitialGraph(work_space, graph_name);
+	}
+}
+
+
+Graph* IterativeInitialGraphGenerator::BuildGraph() {
+	return graph_generator->BuildGraph();
+}
+
+
+IterativeInitialGraphGenerator::~IterativeInitialGraphGenerator() {
+	delete graph_generator;
+}
+
+/*	IterativeLearningBase	*/
+
+IterativeLearningBase::IterativeLearningBase(WorkSpace* work_space, const std::string& graph_name)
+: work_space(work_space)
+, graph(NULL)
+, graph_name(graph_name)
+, head()
+, table()
+, times_types()
+{
+	graph = work_space->GetGraph(graph_name);
+	head = GetHorizontalHead();
+}
+
+
+std::vector<std::string> IterativeLearningBase::GetHorizontalHead() const {
+	std::vector<std::vector<std::string> > blocks_info = graph->GetBlocksNames();
+	std::vector<std::string> blocks_names(blocks_info.size());
+
+	for (size_t i = 0; i < blocks_info.size(); ++i) {
+		blocks_names[i] = blocks_info[i][0];
+	}
+	return blocks_names;
+}
+
+
+
+
+void IterativeLearningBase::CreateTrainTable(const Json::Value& points) {
+	work_space->DeployGraphThroughRespond(graph_name);
+	if (graph->IsDebugModeEnabled()) {
+		graph->DisableDebugMode();
+	}
+	graph->EnableDebugMode();
+	work_space->InsertPoints(graph, points);
+
+	std::vector<std::vector<std::string> > debug_info = graph->GetDebugInfo();
+
+	std::unordered_map<std::string, double> last_emmited_points;
+
+	for (size_t i = 0; i < head.size(); ++i) {
+		last_emmited_points[head[i]] = 0;
+	}
+
+	long long int current_time = 0;
+	int is_bad = 0;
+
+	for (size_t i = 0; i < debug_info.size(); ++i) {
+		Json::Value event;
+		Json::Reader reader;
+		bool is_parsing_successful = reader.parse(debug_info[i][0], event);
+		if (!is_parsing_successful) {
+			throw GANException(256285, "Incorrect answer from server: " + debug_info[i][0] + ".");
+		}
+
+		bool is_end_of_row = (i == debug_info.size() - 1 ? true : false);
+
+
+		if (event["type"] == "insert_point" && current_time < event["time"].asInt()) {
+			current_time = event["time"].asInt();
+			logger << "change cur time to " + std::to_string(current_time);
+
+			if (i != 0) {
+				is_end_of_row = true;
+			}
+		} else if (event["type"] == "point_emmition" || event["type"] == "insert_point") {
+			last_emmited_points[event["block"].asString()] = event["point"]["value"].asDouble();
+		}
+
+
+		if (is_end_of_row) {
+			table.push_back(std::vector<double>(head.size()));
+			logger << "is_bad" + std::to_string(is_bad);
+			times_types.push_back(is_bad);
+			is_bad = 0;
+			logger << "cur time:";
+			logger << current_time;
+			for (size_t i = 0; i < head.size(); ++i) {
+				table[table.size() - 1][i]  = last_emmited_points[head[i]];
+				logger << std::to_string(table.size() - 1) + ":" + std::to_string(i) + " ==> " + std::to_string(last_emmited_points[head[i]]);
+			}
+
+		}
+
+		if (!event["is_bad"].isNull() && event["is_bad"].asInt() == 1) {
+			logger << event["time"].asString();
+			logger << "is_bad chaned to 1";
+			is_bad = 1;
+		}
+
+	}
+}
+
+IterativeLearningBase::~IterativeLearningBase() {}
+
+
+/*	SvnIterativeLearning	*/
+
+SvnIterativeLearning::SvnIterativeLearning(WorkSpace* work_space, const std::string& graph_name)
+: IterativeLearningBase(work_space, graph_name)
+{}
+
+
+void SvnIterativeLearning::FitGraph() {
+	Json::FastWriter writer;
+	std::string s_table = writer.write(CreateJson(table));
+	std::string svm_query = (
+		"python /root/gan-system/svm.py "
+		+ s_table.substr(0, s_table.size() - 1)
+		+ " "
+		+ writer.write(CreateJson(times_types))
+	);
+	ExecuteHandler ex(svm_query);
+	logger << svm_query;
+
+	std::string json_coeffs;
+	ex >> json_coeffs;
+
+	Json::Reader reader;
+	Json::Value svm_coeffs;
+	reader.parse(json_coeffs, svm_coeffs);
+
+	if (svm_coeffs["blocks_coeffs"].size() != head.size()) {
+		throw GANException(214551, "Incorrect size of svm coeffs table " + std::to_string(svm_coeffs["blocks_coeffs"].size()) + "/" + std::to_string(head.size()));
+	}
+
+
+	if (svm_coeffs["blocks_coeffs"].size() != 0) {
+		Json::Value blocks_coeffs = svm_coeffs["blocks_coeffs"];
+		std::unordered_map<std::string, double> coeffs;
+
+		double max_coeff = blocks_coeffs[0].asDouble();
+		for (size_t i = 0; i < blocks_coeffs.size(); ++i) {
+			double coeff = blocks_coeffs[i].asDouble();
+			if (std::fabs(max_coeff) < std::fabs(coeff)) {
+				max_coeff = coeff;
+			}
+			coeffs[head[i]] = coeff;
+		}
+
+		double  shift_coeff = - svm_coeffs["shift_coeff"].asDouble() / std::fabs(max_coeff);
+		int deleted_blocks_count = -1;
+
+		while(deleted_blocks_count != 0) {
+			std::vector<std::string> blocks_to_erase;
+			deleted_blocks_count = 0;
+			for (auto it = coeffs.begin(); it != coeffs.end(); ++it) {
+				std::string block_name = it->first;
+				double coeff = it->second;
+				logger << block_name;
+				if (
+					std::fabs(coeff) < std::fabs(max_coeff) / 1000.
+					&& !graph->DoesOutgoingEdgesExist(block_name)
+				) {
+					work_space->DeleteBlockThroughRespond(graph_name, block_name);
+
+					blocks_to_erase.push_back(block_name);
+					++deleted_blocks_count;
+				}
+			}
+
+			for (size_t i = 0; i < blocks_to_erase.size(); ++i) {
+				coeffs.erase(blocks_to_erase[i]);
+			}
+
+		}
+
+		std::string svm_block_name = "svm_sum" + std::to_string(coeffs.size());
+
+		logger  << "FIT; FIT: Rebuild graph";
+
+		logger  << "FIT; create block " + svm_block_name;
+		work_space->CreateBlockThroughRespond(graph_name, svm_block_name, "Sum" + std::to_string(coeffs.size()));
+
+		int block_index = 1;
+
+		for (auto it = coeffs.begin(); it != coeffs.end(); ++it) {
+			std::string block_name = it->first;
+			double coeff = roundf((it->second) / std::fabs(max_coeff) * 100) / 100;
+			std::string to_sum_block_name = block_name;
+			if (coeff != 1) {
+				std::string scale_block_name = "scale_block_" + block_name;
+
+
+				logger  << "FIT; create block " + scale_block_name;
+				work_space->CreateBlockThroughRespond(graph_name, scale_block_name, "Scale");
+
+				logger  << "FIT; modify params of block " + scale_block_name;
+				work_space->ModifyParamsThroughRespond(graph_name, scale_block_name, "value", std::to_string(coeff));
+
+
+				logger  << "FIT; create edge to_scale from bolck " + block_name;
+				work_space->CreateEdgeThroughRespond(graph_name, block_name, scale_block_name, "to_scale");
+
+				to_sum_block_name = scale_block_name;
+			}
+
+			logger  << "FIT; create edge from block " + to_sum_block_name;
+			work_space->CreateEdgeThroughRespond(graph_name, to_sum_block_name, svm_block_name, "arg" + std::to_string(block_index++));
+		}
+
+		std::string svm_threshold = "threshold_svm_linear_comb";
+
+		logger  << "FIT; create block " + svm_threshold;
+		work_space->CreateBlockThroughRespond(graph_name, svm_threshold, "Threshold");
+
+		logger  << "FIT; modify params of block " +  svm_threshold;
+		work_space->ModifyParamsThroughRespond(graph_name, svm_threshold, "bound", std::to_string(shift_coeff));
+
+		logger  << "FIT; create edge value from block " + svm_block_name;
+		work_space->CreateEdgeThroughRespond(graph_name, svm_block_name,  svm_threshold, "value");
+
+		std::string alert_block_name = "alert";
+
+		work_space->CreateBlockThroughRespond(graph_name, alert_block_name, "PrintToLogs");
+		work_space->CreateEdgeThroughRespond(graph_name, svm_threshold, alert_block_name, "to_print");
+
+
+		std::string send_email_block = "svn_send_email";
+		work_space->CreateBlockThroughRespond(graph_name, send_email_block, "SendEmail");
+		work_space->CreateEdgeThroughRespond(graph_name, svm_threshold, send_email_block, "to_send");
+		work_space->ModifyParamsThroughRespond(graph_name, send_email_block, "email", std::string("ilyshnikova@yandex.ru"));
+
+		work_space->DeployGraphThroughRespond(graph_name);
+
+		graph->DisableDebugMode();
+	}
+}
+
+ SvnIterativeLearning::~SvnIterativeLearning() {}
+
+
+/*	IterativeLearning	*/
+
+IterativeLearning::IterativeLearning(WorkSpace* work_space, const std::string& graph_name, const std::string& ml_method_name)
+: learning_base()
+{
+	if (ml_method_name == "SVM") {
+		learning_base = new SvnIterativeLearning(work_space, graph_name);
+	} else {
+		throw GANException(245411, "Incorrect ML methods name.");
+	}
+}
+
+void IterativeLearning::Fit(const Json::Value& points) {
+	learning_base->CreateTrainTable(points);
+	learning_base->FitGraph();
+}
+
+IterativeLearning::~IterativeLearning() {
+	delete learning_base;
+}
+
+
+/*	IteraiveGraphBuilder	*/
+
+
+
+IteraiveGraphBuilder::IteraiveGraphBuilder(
+	WorkSpace* work_space,
+	const std::string& graph_name,
+	const std::string& build_graph_method,
+	const std::string& ml_method_name,
+	const Json::Value& json_train_data,
+	const size_t iteration_count
+)
+: graph_generator(new IterativeInitialGraphGenerator(work_space, graph_name, build_graph_method))
+, iterative_learning_graph(new IterativeLearning(work_space, graph_name, ml_method_name))
+, train_data(json_train_data)
+, iteration_count(iteration_count)
+{}
+
+void IteraiveGraphBuilder::Fit() {
+	graph_generator->BuildGraph();
+	for (size_t i = 0; i < iteration_count; ++i) {
+		iterative_learning_graph->Fit(train_data);
+	}
+}
+
+
+IteraiveGraphBuilder::~IteraiveGraphBuilder(){
+	delete iterative_learning_graph;
+	delete graph_generator;
 }
 

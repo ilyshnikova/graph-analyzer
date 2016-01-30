@@ -116,7 +116,7 @@ $(function() {
 				'container' : $('body'),
 				'func' : function(context, container) {
 					container.append(
-						'<div id="mainCanvas" class=canvas style="border-color:black; border-width: 3px;  border-style: double;  width: 100%; height: 400px;"></div>'
+						'<div id="mainCanvas" class=canvas style="border-color:black; border-width: 3px;  border-style: double;  width: 100%; height: 1000px;"></div>'
 					);
 					context.graph = new Graph({
 						'container' : $('#mainCanvas'),
@@ -216,7 +216,10 @@ $(function() {
 			new GoTo({
 				'type' : 'next',
 				'new_state' : function(context) {
-					if (context.is_graph_exist) {
+					if ($('#new_graph_name').val() === "") {
+						alert("Input of graph name is emplty.");
+						return 'edit_graph::set_new_graph::listen';
+					} else if (context.is_graph_exist) {
 						alert(
 							'Graph with name '
 							+ $('#new_graph_name').val()
@@ -289,7 +292,7 @@ $(function() {
 					if (context.parent.parent.remove_graph){
 						return 'edit_graph::set_graph::delete_graph';
 					} else {
-						return 'edit_graph::set_graph::get_vertices';
+						return 'edit_graph::set_graph::save_graph_name';
 					}
 				},
 			}),
@@ -300,6 +303,15 @@ $(function() {
 				'action' : 'click',
 				'type' : 'exit_state',
 				'new_state' : 'edit_graph::cancel_edit',
+			}),
+		]),
+		'edit_graph::set_graph::save_graph_name' : new Combine([
+			new Executer(function(context) {
+				context.parent.parent.graph_name  = $('#graph_names').val();
+			}),
+			new GoTo({
+				'type' : 'exit_state',
+				'new_state' : 'edit_graph::get_vertices',
 			}),
 		]),
 		'edit_graph::cancel_edit' : new GoTo({
@@ -317,40 +329,39 @@ $(function() {
 			'type' : 'exit_state',
 			'new_state' : 'edit_graph::cancel_edit'
 		}),
-		'edit_graph::set_graph::get_vertices' : new Combine([
+		'edit_graph::get_vertices' : new Combine([
 			new Executer(function(context) {
 				$('.modal-backdrop').remove();
-				context.parent.parent.graph_name = $('#graph_names').val();
 			}),
 			new SendQuery({
 				'ajax_data' : function(context) {
 					return {
 						'type' : 'show',
 						'object' : 'blocks',
-						'graph' : $('#graph_names').val(),
+						'graph' : context.parent.graph_name,
 					};
 				},
 				'write_to' : 'blocks',
 				'type' : 'next',
-				'new_state' : 'edit_graph::set_graph::get_edges',
+				'new_state' : 'edit_graph::get_edges',
 			}),
 		]),
-		'edit_graph::set_graph::get_edges' : new SendQuery({
+		'edit_graph::get_edges' : new SendQuery({
 			'ajax_data' : function(context) {
 				return {
 					'type' : 'show',
 					'object' : 'edges',
-					'graph' : $('#graph_names').val(),
+					'graph' : context.parent.graph_name,
 				};
 			},
 			'write_to' : 'edges',
 			'type' : 'next',
-			'new_state' : 'edit_graph::set_graph::draw',
+			'new_state' : 'edit_graph::draw',
 		}),
-		'edit_graph::set_graph::draw' : new Combine([
+		'edit_graph::draw' : new Combine([
 			new Executer(function(context) {
 				for (var i = 0; i < context.blocks.length; ++i) {
-					context.parent.parent.graph.add_vertex({
+					context.parent.graph.add_vertex({
 						'id' : context.blocks[i].Name,
 						'content' : (
 							context.blocks[i].Name
@@ -360,7 +371,7 @@ $(function() {
 					});
 				}
 				for (var i = 0; i < context.edges.length; ++i) {
-					context.parent.parent.graph.add_edge({
+					context.parent.graph.add_edge({
 						'from' : context.edges[i].From,
 						'to' : context.edges[i].To,
 						'label' : context.edges[i].EdgeName,
@@ -368,7 +379,7 @@ $(function() {
 				}
 			}),
 			new GoTo({
-				'type' : 'exit_state',
+				'type' : 'next',
 				'new_state' : 'edit_graph::listen',
 			})
 		]),
@@ -406,7 +417,12 @@ $(function() {
 			new Enabler({
 				'target' : function() {
 					return $('#send_points_link');
-				}
+				},
+			}),
+			new Enabler({
+				'target' : function() {
+					return $('#fit_graph_link');
+				},
 			}),
 			new Binder({
 				'target' : function () {
@@ -463,6 +479,93 @@ $(function() {
 				'action' : 'click',
 				'type' : 'next',
 				'new_state' : 'edit_graph::deploy_graph',
+			}),
+			new Binder({
+				'target' : function() {
+					return $('#fit_graph');
+				},
+				'action' : 'click',
+				'type' : 'next',
+				'new_state' : 'edit_graph::set_points_for_fit'
+			}),
+		]),
+		'edit_graph::set_points_for_fit' : new Combine([
+			new BDialog({
+				'id' : 'new_points_dialog',
+				'title' : 'Set points for fit graph',
+				'data' : function(context) {
+					return 	(
+						'<div id=new_points_dialog title="Set points for fit graph">'
+							+ '<textarea class="form-control" rows="5" id=points placeholder="series_name 1452291138 -3.4 <1 if point is bad or 0> [target_block]">'
+							+ '</textarea>'
+						+ '</div>'
+					);
+				},
+				'buttons' :  '<button id=Ok type="button" class="btn btn-default">Ok</button>',
+			}),
+			new GoTo({
+				'type' : 'substate',
+				'new_state' : 'edit_graph::set_points_for_fit::listen',
+			}),
+		]),
+		'edit_graph::set_points_for_fit::listen' : new Combine([
+			new Binder({
+				'target' : function () {
+					return $('#Ok');
+				},
+				'action' : 'click',
+				'type' : 'next',
+				'new_state' : 'edit_graph::set_points_for_fit::fit_graph',
+			}),
+			new Binder({
+				'target' : function() {
+					return $('#close');
+				},
+				'action' : 'click',
+				'type' : 'exit_state',
+				'new_state' : 'edit_graph::listen',
+			}),
+		]),
+		'edit_graph::set_points_for_fit::fit_graph' : new SendQuery({
+			'ajax_data' : function(context) {
+				var points_info = $('#points').val().split('\n');
+				var points = [];
+				for (var i = 0; i < points_info.length; ++i) {
+					var point = points_info[i].split(/\s+/);
+					if (point.length >= 3) {
+						var point_hash = {
+							'series' : point[0],
+							'time' : parseFloat(point[1]),
+							'value' : parseFloat(point[2]),
+							'is_bad' : parseFloat(point[3]),
+						};
+						if (point.length >= 5 && point[4] !== '') {
+							point_hash['block'] = point[4];
+						}
+						points.push(point_hash);
+					}
+				}
+				return {
+					'type' : 'fit_graph',
+					'graph' : context.parent.parent.graph_name,
+					'train_data' : points,
+					'build_graph_method' : 'take_initial',
+					'ml_method' : 'SVM',
+					'iteration_count' : 1,
+				}
+			},
+			'type' : 'next',
+			'new_state' : 'edit_graph::set_points_for_fit::redraw_graph'
+
+		}),
+		'edit_graph::set_points_for_fit::redraw_graph' : new Combine([
+			new Executer(function(context) {
+				context.parent.parent.graph.remove();
+				context.parent.is_graph_chosen = true;
+			}),
+			new GoTo({
+				'type' : 'exit_state',
+				'new_state' : 'edit_graph::get_vertices',
 			}),
 		]),
 		'edit_graph::deploy_graph' : new SendQuery({
@@ -1309,7 +1412,9 @@ $(function() {
 			new GoTo({
 				'type' : 'next',
 				'new_state' : function (context) {
-					if (context.has_vertex) {
+					if ($('#vertex_name').val() === "") {
+						alert("Input of vertex name is empty.");
+					} else if (context.has_vertex) {
 						return 'edit_graph::set_vertex::listen';
 					} else {
 						return 'edit_graph::set_vertex::save_vertex';

@@ -13,7 +13,6 @@
 #include "mysql.h"
 #include "gan-exception.h"
 
-
 /*	Json	*/
 
 std::vector<std::map<std::string, std::string> > CreatreTable(
@@ -28,7 +27,9 @@ Json::Value CreateJsonTable(
 
 Json::Value CreateJson(const std::string& value);
 
-Json::Value CreateJson(const int& value);
+Json::Value CreateJson(const double value);
+
+Json::Value CreateJson(const int value);
 
 template
 <typename K,typename V>
@@ -373,6 +374,24 @@ public:
 	std::string Description() const;
 };
 
+/*	Move	*/
+
+class Move : public BlockBase {
+public:
+	Move();
+
+	Point Do(
+		const std::unordered_map<std::string, Point>& values,
+		const std::time_t& time
+	);
+
+	BlockBase* GetBlock(const std::string& type) const;
+
+	std::string Description() const;
+};
+
+
+
 
 /*	Scale	*/
 
@@ -716,6 +735,8 @@ public:
 
 	size_t IncomingEdgesCount(const std::string& block_name) const;
 
+	bool DoesOutgoingEdgesExist(const std::string& block_name) const;
+
 	void InsertPointToAllPossibleBlocks(const Point& point);
 
 	void ChangeGraphsValid(const bool new_valid);
@@ -756,9 +777,10 @@ public:
 
 	~Graph();
 
-
 };
 
+
+class IteraiveGraphBuilder;
 
 /*    WorkSpace    */
 
@@ -913,17 +935,11 @@ private:
 
 	};
 
-
-
-
-
-
 	class  QueryAction {
 	public:
 		QueryAction(const Json::Value* json_params, WorkSpace* work_space, Json::Value* answer);
 
 	};
-
 
 
 	struct IgnoreChecker {
@@ -938,6 +954,7 @@ private:
 //	std::string Respond(const std::string& query);
 
 	Json::Value JsonRespond(const Json::Value& query);
+
 public:
 
 	void Load();
@@ -987,7 +1004,157 @@ public:
 		const StringType& param_value
 	);
 
+	void InsertPoints(Graph* graph, const Json::Value& points);
+
+
+
+
+	void CreateBlockThroughRespond(
+		const std::string& graph_name,
+		const std::string& block_name,
+		const std::string& block_type
+	);
+
+	void DeleteBlockThroughRespond(const std::string& graph_name, const std::string& block_name);
+
+	void CreateEdgeThroughRespond(const std::string& graph_name, const std::string& from, const std::string& to, const std::string& edge_name);
+
+	void ModifyParamsThroughRespond(const std::string& graph_name, const std::string& block_name, const std::string& param_name, const StringType& value);
+
+	void DeployGraphThroughRespond(const std::string& graph_name);
+
+
+
 	~WorkSpace();
 
 };
+
+/*	IterativeInitialGraphGeneratorBase	*/
+
+
+class IterativeInitialGraphGeneratorBase {
+protected:
+	WorkSpace* work_space;
+	Graph* graph;
+	std::string graph_name;
+public:
+	IterativeInitialGraphGeneratorBase(WorkSpace* work_space, const std::string& graph_name);
+
+	virtual Graph* BuildGraph();
+
+	virtual ~IterativeInitialGraphGeneratorBase();
+};
+
+/* TakeInitialGraph */
+
+class TakeInitialGraph : public IterativeInitialGraphGeneratorBase {
+private:
+
+public:
+	TakeInitialGraph(WorkSpace* work_space, const std::string& graph_name);
+
+	Graph* BuildGraph();
+
+	~TakeInitialGraph();
+};
+
+
+/*	IterativeInitialGraphGenerator	*/
+
+class IterativeInitialGraphGenerator {
+private:
+	IterativeInitialGraphGeneratorBase* graph_generator;
+public:
+	IterativeInitialGraphGenerator(
+		WorkSpace* work_space,
+		const std::string& graph_name,
+		const std::string& build_graph_method
+
+	);
+
+	Graph* BuildGraph();
+
+	~IterativeInitialGraphGenerator();
+};
+
+/*	IterativeLearningBase	*/
+
+class IterativeLearningBase {
+protected:
+	WorkSpace* work_space;
+	Graph* graph;
+	std::string graph_name;
+	std::vector<std::string> head;
+	std::vector<std::vector<double> > table;
+	std::vector<int> times_types; //1--bad
+
+	std::vector<std::string> GetHorizontalHead() const;
+
+public:
+	IterativeLearningBase(WorkSpace* work_space, const std::string& graph_name);
+
+	void CreateTrainTable(const Json::Value& points);
+
+	virtual void FitGraph() = 0;
+
+	virtual ~IterativeLearningBase();
+
+};
+
+
+/*	SvnIterativeLearning	*/
+
+
+class  SvnIterativeLearning : public IterativeLearningBase {
+private:
+public:
+	SvnIterativeLearning(WorkSpace* work_space, const std::string& graph_name);
+
+	void FitGraph();
+
+	~SvnIterativeLearning();
+
+};
+
+
+/*	IterativeLearning	*/
+
+class IterativeLearning {
+private:
+	IterativeLearningBase* learning_base;
+public:
+	IterativeLearning(WorkSpace* work_space, const std::string& graph_name, const std::string& ml_method_name);
+
+	void CreateTrainTable();
+
+	void Fit(const Json::Value& points);
+
+	~IterativeLearning();
+};
+
+/*	IteraiveGraphBuilder	*/
+
+class IteraiveGraphBuilder {
+private:
+	IterativeInitialGraphGenerator* graph_generator;
+	IterativeLearning* iterative_learning_graph;
+	Json::Value train_data;
+	size_t iteration_count;
+public:
+	IteraiveGraphBuilder(
+		WorkSpace* work_space,
+		const std::string& graph_name,
+		const std::string& build_graph_method,
+		const std::string& ml_method_name,
+		const Json::Value& json_train_data,
+		const size_t iteration_count
+	);
+
+	void Fit();
+
+	~IteraiveGraphBuilder();
+
+};
+
+
 #endif
