@@ -846,7 +846,7 @@ Point SendEmail::Do(
 		if (it->second.GetValue()) {
 			std::string message = std::string("echo \"")
 				+ std::string(it->second)
-				+ "\" | mail -s \" GAN massage \" " + std::string(param_values["email"]) + "\"";
+				+ "\" | mail -s \" GAN massage \" \"" + std::string(param_values["email"]) + "\"";
 			logger << "send email : " + message;
 			ExecuteHandler eh(
 				message.c_str()
@@ -3226,6 +3226,14 @@ void SvnIterativeLearning::FitGraph() {
 
 	std::string json_coeffs;
 	ex >> json_coeffs;
+
+
+	std::string s_h = "";
+	for (size_t i = 0; i < head.size(); ++i) {
+		s_h += ", " +  head[i];
+	}
+	logger << s_h;
+	logger << "svm coeffs: " + json_coeffs;
 
 	Json::Reader reader;
 	Json::Value svm_coeffs;

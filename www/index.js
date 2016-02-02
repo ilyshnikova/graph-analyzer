@@ -561,6 +561,9 @@ $(function() {
 		'edit_graph::set_points_for_fit::redraw_graph' : new Combine([
 			new Executer(function(context) {
 				context.parent.parent.graph.remove();
+				context.parent.parent.graph = new Graph({
+					'container' : $('#mainCanvas'),
+				});
 				context.parent.is_graph_chosen = true;
 			}),
 			new GoTo({
