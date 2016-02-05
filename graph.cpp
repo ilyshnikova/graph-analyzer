@@ -846,10 +846,10 @@ Point SendEmail::Do(
 		if (it->second.GetValue()) {
 			std::string message = std::string("echo \"")
 				+ std::string(it->second)
-				+ "\" | mail -s \" GAN massage \" \"" + std::string(param_values["email"]) + "\"";
+				+ "\" | mail -s \" GAN massage \" \"" + std::string(param_values["email"]) + "\" &";
 			logger << "send email : " + message;
 			ExecuteHandler eh(
-				message.c_str()
+				"/root/gan-system/send_email \""  + std::string(it->second) + "\" " + "\"" + std::string(param_values["email"]) + "\""
 			);
 			return it->second;
 		}
@@ -968,7 +968,7 @@ BlockCacheUpdaterBuffer::BlockCacheUpdaterBuffer()
 : blocks()
 , blocks_table(NULL)
 , last_update_time(time(0))
-, timeout(60)
+, timeout(180)
 , max_blocks_count(5000)
 {}
 
@@ -989,10 +989,7 @@ void BlockCacheUpdaterBuffer::PushUpdate(const int block_id, Block* block) {
 		Update();
 		last_update_time = std::time(0);
 	}
-	logger << "Output all vertices from buffer";
-	for (auto it = blocks.begin(); it != blocks.end(); ++it) {
-		logger << it->first << it->second;
-	}
+//	}
 }
 
 void BlockCacheUpdaterBuffer::Update() {

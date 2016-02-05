@@ -226,12 +226,15 @@ function SendQuery(params) {
 
 SendQuery.prototype.on_enter = function(context) {
 	var _this = this;
+	var data = this.params.ajax_data(context);
+	data['client'] = 'browser';
+	data = JSON.stringify(data);
 	$.ajax({
 		method: "GET",
 		url: "http://192.168.56.10/query",
 		cache: false,
 		data: {
-			"json" : JSON.stringify(this.params.ajax_data(context)),
+			"json" : data,
 		},
 		success: function(response) {
 			if (response.status) {

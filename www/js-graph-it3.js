@@ -113,7 +113,7 @@ Edge.prototype.render = function () {
 		var to_y = INITIAL_EDGE_OFFSET + ONE_EDGE_WIDTH * this.to_index + to.position().top;
 		var middle_x = (
 			(to.position().left + from.position().left + from.outerWidth()) / 2
-			- (to_x - from_x) / ((this.to_index + 1) * 4)
+			//- (to_x - from_x) / ((this.to_index + 1) * 4)
 		);
 
 		Edge.change_segment(first_edge, from_x, from_y, middle_x, from_y);
@@ -132,7 +132,7 @@ Edge.prototype.render = function () {
 		var to_y = INITIAL_EDGE_OFFSET + ONE_EDGE_WIDTH * this.to_index + to.position().top;
 		var middle_x = (
 			(to.position().left + to.outerWidth() + from.position().left) / 2
-			+ (from_x - to_x) / ((this.to_index + 1) * 4)
+			//+ (from_x - to_x) / ((this.to_index + 1) * 4)
 		);
 
 
@@ -152,7 +152,7 @@ Edge.prototype.render = function () {
 		var to_y = to.position().top + to.outerHeight();
 		var middle_y = (
 			(to.position().top + to.outerHeight() + from.position().top) / 2
-			- (to_y - to_x) / ((this.to_index + 1) * 4)
+			//- (to_y - to_x) / ((this.to_index + 1) * 4)
 		);
 
 		Edge.change_segment(first_edge, from_x, from_y, from_x, middle_y);
@@ -171,7 +171,7 @@ Edge.prototype.render = function () {
 		var to_y = to.position().top;
 		var middle_y = (
 			(to.position().top + from.position().top + from.outerHeight()) / 2
-			+ (to_y - to_x) / ((this.to_index + 1) * 4)
+			//+ (to_y - to_x) / ((this.to_index + 1) * 4)
 		);
 
 		Edge.change_segment(first_edge, from_x, from_y, from_x, middle_y);

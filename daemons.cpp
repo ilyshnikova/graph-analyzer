@@ -838,7 +838,9 @@ void DaemonBase::Daemon() {
 		std::string str_answer = styledWriter.write(answer);
 		logger << "answer = " + str_answer;
 
+		logger << "start send answer to client";
 		SendMessage(client_socketfd, str_answer);
+		logger << "finish send answer to client";
 
 		close(client_socketfd);
 	}

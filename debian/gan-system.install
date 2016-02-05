@@ -7,4 +7,5 @@ nginx-server /usr/bin/
 gan-server /usr/bin/
 gan-client /usr/bin/
 config /etc/nginx/sites-available/
+send_email /root/gan-system/
 www /var/
