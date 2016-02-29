@@ -3161,7 +3161,7 @@ void IterativeLearningBase::CreateTrainTable(const Json::Value& points) {
 			throw GANException(256285, "Incorrect answer from server: " + debug_info[i][0] + ".");
 		}
 
-		bool is_end_of_row = (i == debug_info.size() - 1 ? true : false);
+		bool is_end_of_row = (i + 1 == debug_info.size() ? true : false);
 
 
 		if (event["type"] == "insert_point" && current_time < event["time"].asInt()) {
@@ -3227,7 +3227,7 @@ void SvnIterativeLearning::FitGraph() {
 
 	std::string s_h = "";
 	for (size_t i = 0; i < head.size(); ++i) {
-		s_h += ", " +  head[i];
+		s_h += head[i] + ", ";
 	}
 	logger << s_h;
 	logger << "svm coeffs: " + json_coeffs;
@@ -3261,6 +3261,9 @@ void SvnIterativeLearning::FitGraph() {
 			std::vector<std::string> blocks_to_erase;
 			deleted_blocks_count = 0;
 			for (auto it = coeffs.begin(); it != coeffs.end(); ++it) {
+				logger << it->first + " " + std::to_string(it->second);
+			}
+			for (auto it = coeffs.begin(); it != coeffs.end(); ++it) {
 				std::string block_name = it->first;
 				double coeff = it->second;
 				logger << block_name;
@@ -3269,17 +3272,54 @@ void SvnIterativeLearning::FitGraph() {
 					&& !graph->DoesOutgoingEdgesExist(block_name)
 				) {
 					work_space->DeleteBlockThroughRespond(graph_name, block_name);
-
+					logger <<
+						"Delete block "
+						+ block_name
+						+ " with coeff "
+						+ std::to_string(coeff)
+						+ "(max coeff: "
+						+ std::to_string(max_coeff)
+						+ ") "
+						+ std::to_string(std::fabs(coeff))
+						+ " "
+						+ std::to_string(std::fabs(max_coeff) / 1000.);
 					blocks_to_erase.push_back(block_name);
 					++deleted_blocks_count;
+				} else  {
+					logger <<
+						"Dont delete block "
+						+ block_name
+						+ " with coeff "
+						+ std::to_string(coeff)
+						+ "(max coeff: "
+						+ std::to_string(max_coeff)
+						+ ")"
+						+ std::to_string(std::fabs(coeff))
+						+ " "
+						+ std::to_string(std::fabs(max_coeff) / 1000.);
+
 				}
 			}
 
-			for (size_t i = 0; i < blocks_to_erase.size(); ++i) {
-				coeffs.erase(blocks_to_erase[i]);
+			for (auto it = coeffs.begin(); it != coeffs.end(); ++it) {
+				logger << it->first + " " + std::to_string(it->second);
 			}
 
+
+			for (size_t i = 0; i < blocks_to_erase.size(); ++i) {
+				logger << "delete block " + blocks_to_erase[i] + " from map.";
+				coeffs.erase(blocks_to_erase[i]);
+			}
+			for (auto it = coeffs.begin(); it != coeffs.end(); ++it) {
+				logger << it->first + " " + std::to_string(it->second);
+			}
+
+
 		}
+			for (auto it = coeffs.begin(); it != coeffs.end(); ++it) {
+				logger << it->first + " " + std::to_string(it->second);
+			}
+
 
 		std::string svm_block_name = "svm_sum" + std::to_string(coeffs.size());
 

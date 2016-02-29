@@ -1,5 +1,5 @@
 all: client gan-server nginx-server send-email
-BASEP = -Wall -std=c++0x -gdwarf-3 -O3
+BASEP = -Wall -std=c++0x -gdwarf-3
 
 gan-exception.o: gan-exception.cpp
 	g++ $(BASEP) -c gan-exception.cpp

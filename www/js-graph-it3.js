@@ -332,6 +332,12 @@ Vertex.prototype.init_elements = function () {
 			);
 
 	var vertex_div = this.get_vertex_div();
+
+	vertex_div.css('border-bottom-left-radius', '5px');
+	vertex_div.css('border-bottom-right-radius', '5px');
+	vertex_div.css('border-top-left-radius', '5px');
+	vertex_div.css('border-top-right-radius', '5px');
+
 	vertex_div.css('position', 'absolute');
 	vertex_div.css('overflow', 'hidden');
 	vertex_div.css('display', 'block');
