@@ -33,7 +33,7 @@ $(function() {
 									+ ' type="button"'
 									+ ' style="background-color: #101010; color:#9d9d9d;"'
 								+'>'
-									+ 'Создать новый граф'
+									+ '+ New Graph'
 								+'</button>'
 								+ '&nbsp&nbsp&nbsp'
 								+ '<button'
@@ -42,7 +42,7 @@ $(function() {
 									+ ' type="button"'
 									+ ' style="background-color: #101010; color:#9d9d9d;"'
 								+'>'
-									+'Загрузить граф'
+									+ 'Download Graph'
 								+'</button>'
 								+ '&nbsp&nbsp&nbsp'
 								+ '<button'
@@ -51,7 +51,7 @@ $(function() {
 									+ ' type="button"'
 									+ ' style="background-color: #101010; color:#9d9d9d;"'
 								+'>'
-									+'Удалить граф'
+									+ 'Delete Graph'
 								+'</button>'
 
 							+ '</p>'
@@ -726,7 +726,7 @@ $(function() {
 				'target' : function() {
 					return $('#send_points');
 				},
-				'new_html' : 'Завершить прогон точек',
+				'new_html' : '&#x292B; Done sending',
 			}),
 			new Builder({
 				'container' : $('body'),
@@ -825,7 +825,7 @@ $(function() {
 				'target' : function() {
 					return $('#show_params');
 				},
-				'new_html' : 'Завершить изменение параметров',
+				'new_html' : '&#x292B; Done params changing',
 			}),
 			new Enabler({
 				'target' : function() {
@@ -981,7 +981,7 @@ $(function() {
 				'target' : function() {
 					return $('#delete_edge');
 				},
-				'new_html' : 'Завершить удаление ребер',
+				'new_html' : '&#x292B; Done deliting',
 			}),
 			new GoTo({
 				'type' : 'substate',
@@ -1050,7 +1050,7 @@ $(function() {
 				'target' : function() {
 					return $('#new_edge');
 				},
-				'new_html' : 'Завершить создания ребер',
+				'new_html' : '&#x292B; Done creating',
 			}),
 			new SwitchToSelectMode({
 				'graph' : function(context) {
@@ -1092,7 +1092,20 @@ $(function() {
 				'action' : 'click',
 				'write_to' : 'to',
 				'type' : 'next',
-				'new_state' : 'edit_graph::create_edges::download_missing_edges',
+				'new_state' : 'edit_graph::create_edges::check_blocks',
+			}),
+		]),
+		'edit_graph::create_edges::check_blocks' : new Combine([
+			new GoTo({
+				'type' : 'next',
+				'new_state' : function(context) {
+					if (context.from.attr('id') == context.to.attr('id')) {
+						alert('Cnnot create edge from block to itself.');
+						return 'edit_graph::create_edges::listen';
+					} else {
+						return 'edit_graph::create_edges::download_missing_edges';
+					}
+				},
 			}),
 		]),
 		'edit_graph::create_edges::download_missing_edges' : new SendQuery({
@@ -1417,6 +1430,7 @@ $(function() {
 				'new_state' : function (context) {
 					if ($('#vertex_name').val() === "") {
 						alert("Input of vertex name is empty.");
+						return 'edit_graph::set_vertex::listen';
 					} else if (context.has_vertex) {
 						return 'edit_graph::set_vertex::listen';
 					} else {

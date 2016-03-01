@@ -3332,7 +3332,7 @@ void SvnIterativeLearning::FitGraph() {
 
 		for (auto it = coeffs.begin(); it != coeffs.end(); ++it) {
 			std::string block_name = it->first;
-			double coeff = roundf((it->second) / std::fabs(max_coeff) * 100) / 100;
+			double coeff = roundf((it->second) / std::fabs(max_coeff) * 1000) / 1000;
 			std::string to_sum_block_name = block_name;
 			if (coeff != 1) {
 				std::string scale_block_name = "scale_block_" + block_name;

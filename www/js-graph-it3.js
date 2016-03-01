@@ -323,13 +323,20 @@ Vertex.prototype.get_vertex_div = function () {
 
 Vertex.prototype.init_elements = function () {
 	this.params.graph.params.container.append(
-			'<div'
+		'<div'
 			+ ' id=' + this.params.id
 			+ ' class="block draggable"'
-			+ '>'
-			+ (this.params.content || '')
-			+ '</div>'
-			);
+		+ '>'
+			+ '<table style="height:100%">'
+		  		+ '<tr>'
+	      				+ '<td  style="height:100%; text-align:center; padding:3px; font-size:14px">'
+						+  (this.params.content || '')
+					+ '</td>'
+      				+ '</tr>'
+			+ '</table>'
+		+ '</div>'
+	);
+
 
 	var vertex_div = this.get_vertex_div();
 
@@ -337,6 +344,7 @@ Vertex.prototype.init_elements = function () {
 	vertex_div.css('border-bottom-right-radius', '5px');
 	vertex_div.css('border-top-left-radius', '5px');
 	vertex_div.css('border-top-right-radius', '5px');
+
 
 	vertex_div.css('position', 'absolute');
 	vertex_div.css('overflow', 'hidden');
