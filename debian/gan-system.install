@@ -2,8 +2,10 @@ gan-server /root/gan-system/
 gan-client /root/gan-system/
 client /root/gan-system/
 nginx-server /root/gan-system/
+svm.py /root/gan-system/
 nginx-server /usr/bin/
 gan-server /usr/bin/
 gan-client /usr/bin/
 config /etc/nginx/sites-available/
+send_email /root/gan-system/
 www /var/

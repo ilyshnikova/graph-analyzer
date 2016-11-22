@@ -113,7 +113,7 @@ Edge.prototype.render = function () {
 		var to_y = INITIAL_EDGE_OFFSET + ONE_EDGE_WIDTH * this.to_index + to.position().top;
 		var middle_x = (
 			(to.position().left + from.position().left + from.outerWidth()) / 2
-			- (to_x - from_x) / ((this.to_index + 1) * 4)
+			//- (to_x - from_x) / ((this.to_index + 1) * 4)
 		);
 
 		Edge.change_segment(first_edge, from_x, from_y, middle_x, from_y);
@@ -132,7 +132,7 @@ Edge.prototype.render = function () {
 		var to_y = INITIAL_EDGE_OFFSET + ONE_EDGE_WIDTH * this.to_index + to.position().top;
 		var middle_x = (
 			(to.position().left + to.outerWidth() + from.position().left) / 2
-			+ (from_x - to_x) / ((this.to_index + 1) * 4)
+			//+ (from_x - to_x) / ((this.to_index + 1) * 4)
 		);
 
 
@@ -152,7 +152,7 @@ Edge.prototype.render = function () {
 		var to_y = to.position().top + to.outerHeight();
 		var middle_y = (
 			(to.position().top + to.outerHeight() + from.position().top) / 2
-			- (to_y - to_x) / ((this.to_index + 1) * 4)
+			//- (to_y - to_x) / ((this.to_index + 1) * 4)
 		);
 
 		Edge.change_segment(first_edge, from_x, from_y, from_x, middle_y);
@@ -171,7 +171,7 @@ Edge.prototype.render = function () {
 		var to_y = to.position().top;
 		var middle_y = (
 			(to.position().top + from.position().top + from.outerHeight()) / 2
-			+ (to_y - to_x) / ((this.to_index + 1) * 4)
+			//+ (to_y - to_x) / ((this.to_index + 1) * 4)
 		);
 
 		Edge.change_segment(first_edge, from_x, from_y, from_x, middle_y);
@@ -323,15 +323,29 @@ Vertex.prototype.get_vertex_div = function () {
 
 Vertex.prototype.init_elements = function () {
 	this.params.graph.params.container.append(
-			'<div'
+		'<div'
 			+ ' id=' + this.params.id
 			+ ' class="block draggable"'
-			+ '>'
-			+ (this.params.content || '')
-			+ '</div>'
-			);
+		+ '>'
+			+ '<table style="height:100%">'
+		  		+ '<tr>'
+	      				+ '<td  style="height:100%; text-align:center; padding:3px; font-size:14px">'
+						+  (this.params.content || '')
+					+ '</td>'
+      				+ '</tr>'
+			+ '</table>'
+		+ '</div>'
+	);
+
 
 	var vertex_div = this.get_vertex_div();
+
+	vertex_div.css('border-bottom-left-radius', '5px');
+	vertex_div.css('border-bottom-right-radius', '5px');
+	vertex_div.css('border-top-left-radius', '5px');
+	vertex_div.css('border-top-right-radius', '5px');
+
+
 	vertex_div.css('position', 'absolute');
 	vertex_div.css('overflow', 'hidden');
 	vertex_div.css('display', 'block');

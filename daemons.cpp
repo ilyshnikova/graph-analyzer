@@ -377,7 +377,7 @@ std::string TerminalClient::CreateJsonForDaemon(const std::string& query) const	
 		boost::regex_match(
 			query,
 			match,
-			boost::regex("\\s*insert\\s+point\\s+('.+':\\d+:\\-{0,1}\\d*.{0,1}\\d*\\s*,{0,1}\\s*)+\\s+into(\\s+block\\s+(\\w+)\\s+of){0,1}\\s+graph\\s+(\\w+)\\s*")
+			boost::regex("\\s*insert\\s+point\\s+('.+':\\d+:\\-{0,1}\\d*.{0,1}\\d*\\s*(:\\w+)*,{0,1}\\s*)+\\s+into(\\s+block\\s+(\\w+)\\s+of){0,1}\\s+graph\\s+(\\w+)\\s*")
 		)
 	) {
 		std::vector<std::string> points = Split(match[1], ',');
@@ -389,7 +389,7 @@ std::string TerminalClient::CreateJsonForDaemon(const std::string& query) const	
 				boost::regex_match(
 					points[i],
 					point,
-					boost::regex("\\s*'(.+)':(\\d+):(\\-{0,1}\\d*.{0,1}\\d*)\\s*")
+					boost::regex("\\s*'(.+)':(\\d+):(\\-{0,1}\\d*.{0,1}\\d*)(:(\\w*))*\\s*")
 				)
 			) {
 
@@ -397,8 +397,10 @@ std::string TerminalClient::CreateJsonForDaemon(const std::string& query) const	
 				jpoint["series"] = std::string(point[1]);
 				jpoint["time"] = std::stoll(point[2]);
 				jpoint["value"] = std::stod(point[3]);
-				if (match[3] != std::string("")) {
+				if (match[4] != std::string("")) {
 					jpoint["block"] = std::string(match[3]);
+				} else if (point[5] != std::string("")) {
+					jpoint["block"] = std::string(point[5]);
 				}
 
 				jpoints.append(jpoint);
@@ -408,7 +410,7 @@ std::string TerminalClient::CreateJsonForDaemon(const std::string& query) const	
 		json_query = CreateJson(
 			std::map<std::string, std::string>({
 				{"type", "insert"},
-				{"graph", match[4]},
+				{"graph", match[5]},
 			})
 		);
 		json_query["points"] = jpoints;
@@ -670,6 +672,46 @@ std::string TerminalClient::CreateJsonForDaemon(const std::string& query) const	
 			})
 		);
 
+	} else if (
+		boost::regex_match(
+			query,
+			match,
+			boost::regex("\\s*fit\\s+graph\\s+(\\w+)\\s+by\\s+points\\s+('.+':\\d+:\\-{0,1}\\d*.{0,1}\\d*\\s*:\\d:\\w+,{0,1}\\s*)+\\s*")
+		)
+	) {
+		std::vector<std::string> points = Split(match[2], ',');
+		Json::Value jpoints;
+
+		for (size_t i = 0; i < points.size(); ++i) {
+			boost::smatch point;
+			if (
+				boost::regex_match(
+					points[i],
+					point,
+					boost::regex("\\s*'(.+)':(\\d+):(\\-{0,1}\\d*.{0,1}\\d*):(\\d):(\\w*)\\s*")
+				)
+			) {
+
+				Json::Value jpoint;
+				jpoint["series"] = std::string(point[1]);
+				jpoint["time"] = std::stoll(point[2]);
+				jpoint["value"] = std::stod(point[3]);
+				jpoint["is_bad"] = std::stoi(point[4]);
+				jpoint["block"] = std::string(point[5]);
+				jpoints.append(jpoint);
+			}
+		}
+
+		json_query = CreateJson(
+			std::map<std::string, std::string>({
+				{"type", "fit_graph"},
+				{"graph", match[1]},
+				{"build_graph_method", "take_initial"},
+				{"ml_method", "SVM"},
+			})
+		);
+		json_query["iteration_count"] = 1;
+		json_query["train_data"] = jpoints;
 
 
 	} else if (
@@ -796,7 +838,9 @@ void DaemonBase::Daemon() {
 		std::string str_answer = styledWriter.write(answer);
 		logger << "answer = " + str_answer;
 
+		logger << "start send answer to client";
 		SendMessage(client_socketfd, str_answer);
+		logger << "finish send answer to client";
 
 		close(client_socketfd);
 	}

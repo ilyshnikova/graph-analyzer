@@ -1,4 +1,4 @@
-all: client gan-server nginx-server
+all: client gan-server nginx-server send-email
 BASEP = -Wall -std=c++0x -gdwarf-3
 
 gan-exception.o: gan-exception.cpp
@@ -57,6 +57,9 @@ nginx-server.o: nginx-server.cpp
 
 nginx-server: nginx-server.o daemons.o gan-exception.o logger.o graph.o mysql.o base64.o execute.o
 	g++ $(BASEP) -lfcgi -lpthread -lmysqlcppconn -lyaml-cpp -lcgicc  -lcurl -I/usr/include/jsoncpp -lboost_regex -ljsoncpp  daemons.o gan-exception.o logger.o graph.o mysql.o base64.o execute.o nginx-server.o -o nginx-server
+
+send-email: send_email.cpp
+	g++ $(BASEP) send_email.cpp -o send_email
 
 clean:
 	rm -rf *.o mysql-test client test-server gan-server test nginx-server
